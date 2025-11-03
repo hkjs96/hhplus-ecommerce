@@ -1,0 +1,33 @@
+spring:
+  application:
+    name: ecommerce
+
+# SpringDoc OpenAPI 설정
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    operations-sorter: method
+    tags-sorter: alpha
+    display-request-duration: true
+    doc-expansion: none
+  default-consumes-media-type: application/json
+  default-produces-media-type: application/json
+
+# 로깅 설정
+logging:
+  level:
+    io.hhplus.ecommerce: INFO
+    org.springframework.web: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# 서버 설정
+server:
+  port: 8080
+  error:
+    include-message: always
+    include-binding-errors: always
