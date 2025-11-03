@@ -1,0 +1,702 @@
+# E-Commerce Backend System
+
+항해플러스 백엔드 커리큘럼 - 이커머스 시스템 (Week 2: API Design & System Architecture)
+
+---
+
+## 📋 프로젝트 개요
+
+**핵심 목표**: 애플리케이션 레벨에서 가용성을 보장하는 이커머스 시스템 설계
+
+단일 서버 환경에서 동시성 제어, 장애 대응, 성능 최적화를 고려한 REST API 설계 및 구현
+
+---
+
+## 🎯 2주차 목표
+
+### 필수 과제 (Basic)
+- ✅ **API 설계**: RESTful API 엔드포인트 설계 및 문서화
+- ✅ **ERD**: 데이터베이스 설계 및 관계 정의
+- ✅ **시퀀스 다이어그램**: 핵심 플로우별 상세 시나리오
+- ✅ **가용성 패턴**: Timeout, Retry, Fallback, Async 설계
+
+### 선택 과제 (Advanced)
+- ⚠️ **Mock API**: Spring Boot 기반 In-Memory Mock 서버 (선택)
+- ⚠️ **통합 테스트**: API 엔드포인트 테스트 (선택)
+
+---
+
+## 🏗️ 시스템 아키텍처
+
+### Layered Architecture
+
+```
+┌─────────────────────────────────────────┐
+│     Presentation Layer (API)            │
+│  ┌──────────────────────────────────┐   │
+│  │  Controllers (REST Endpoints)    │   │
+│  │  - ProductController             │   │
+│  │  - OrderController               │   │
+│  │  - CartController                │   │
+│  │  - CouponController              │   │
+│  │  - UserController                │   │
+│  └──────────────────────────────────┘   │
+└─────────────────────────────────────────┘
+              ⬇
+┌─────────────────────────────────────────┐
+│     Application Layer (Use Cases)       │
+│  ┌──────────────────────────────────┐   │
+│  │  UseCases (Business Flows)       │   │
+│  │  - OrderUseCase                  │   │
+│  │  - PaymentUseCase                │   │
+│  │  - CouponUseCase                 │   │
+│  └──────────────────────────────────┘   │
+└─────────────────────────────────────────┘
+              ⬇
+┌─────────────────────────────────────────┐
+│     Domain Layer (Business Logic)       │
+│  ┌──────────────────────────────────┐   │
+│  │  Domain Services & Entities      │   │
+│  │  - Product, Stock                │   │
+│  │  - Order, OrderItem              │   │
+│  │  - Cart, CartItem                │   │
+│  │  - Coupon, UserCoupon            │   │
+│  │  - User                          │   │
+│  └──────────────────────────────────┘   │
+└─────────────────────────────────────────┘
+              ⬇
+┌─────────────────────────────────────────┐
+│   Infrastructure Layer (Persistence)    │
+│  ┌──────────────────────────────────┐   │
+│  │  Repositories & External APIs    │   │
+│  │  - JPA Repositories              │   │
+│  │  - Redis Cache                   │   │
+│  │  - External Data Platform Client │   │
+│  └──────────────────────────────────┘   │
+└─────────────────────────────────────────┘
+              ⬇
+┌─────────────────────────────────────────┐
+│          Database & Cache               │
+│   MySQL  │  Redis  │  External API      │
+└─────────────────────────────────────────┘
+```
+
+---
+
+## 🗂️ 문서 구조
+
+프로젝트의 모든 설계 문서는 `docs/` 폴더에 체계적으로 정리되어 있습니다.
+
+```
+docs/
+├── api/                          # API 설계 문서
+│   ├── requirements.md           # 요구사항 명세서 ⭐
+│   ├── user-stories.md           # 사용자 스토리 (16개)
+│   ├── api-specification.md      # API 명세서 (엔드포인트, 요청/응답)
+│   ├── data-models.md            # 데이터 모델 정의
+│   ├── availability-patterns.md  # 가용성 패턴 설계
+│   └── error-codes.md            # 에러 코드 표준 ⭐
+│
+├── diagrams/                     # 다이어그램
+│   ├── erd.md                    # ERD (DBML, Mermaid) ⭐
+│   ├── sequence-diagrams.md      # 시퀀스 다이어그램 (API별) ⭐
+│   └── flowcharts.md             # 플로우차트 (비즈니스 로직) ⭐
+│
+└── PROJECT_STRUCTURE.md          # 프로젝트 구조 가이드
+```
+
+### 📍 주요 문서 바로가기
+
+| 문서 | 설명 | 링크 |
+|------|------|------|
+| **요구사항 명세서** | 비즈니스 요구사항 및 제약사항 | [requirements.md](docs/api/requirements.md) |
+| **API 명세서** | REST API 엔드포인트 상세 | [api-specification.md](docs/api/api-specification.md) |
+| **ERD** | 데이터베이스 설계 (10개 테이블) | [erd.md](docs/diagrams/erd.md) |
+| **시퀀스 다이어그램** | API별 상세 플로우 (8개) | [sequence-diagrams.md](docs/diagrams/sequence-diagrams.md) |
+| **플로우차트** | 비즈니스 로직 흐름 (5개) | [flowcharts.md](docs/diagrams/flowcharts.md) |
+| **에러 코드** | 표준 에러 코드 체계 | [error-codes.md](docs/api/error-codes.md) |
+
+---
+
+## 🔑 핵심 기능 (4가지)
+
+### 1. 상품 관리 📦
+- **상품 조회**: 목록, 상세, 인기 상품 Top 5
+- **재고 관리**: Stock 테이블 분리, 재고 이력 추적 (StockHistory)
+- **동시성 제어**: Optimistic Lock (@Version)
+
+### 2. 주문/결제 💳
+- **장바구니**: 상품 추가, 조회, 수정, 삭제
+- **주문 생성**: 재고 검증, 쿠폰 적용
+- **포인트 결제**: 내부 포인트 시스템 (PG 없음)
+- **재고 차감**: 결제 완료 **후** 차감 (Optimistic Lock)
+- **동시성 제어**: Pessimistic Lock (포인트), Optimistic Lock (재고)
+
+### 3. 쿠폰 시스템 🎟️
+- **선착순 발급**: Optimistic Lock으로 정확한 수량 제어
+- **1인 1매 제한**: DB Unique Constraint
+- **쿠폰 사용**: 결제 시점에 적용
+
+### 4. 외부 연동 🔗
+- **비동기 전송**: 주문 완료 후 외부 데이터 플랫폼으로 전송
+- **Timeout & Retry**: 3초 타임아웃, 최대 3회 재시도 (1분 → 5분 → 30분)
+- **Fallback**: Outbox 패턴 (재시도 큐)
+
+---
+
+## 🛠️ 기술 스택
+
+### Backend
+- **Language**: Java 17
+- **Framework**: Spring Boot 3.5.7
+- **Build**: Gradle
+
+### Database
+- **RDBMS**: MySQL 8.0 (Production) / H2 (Development)
+- **Cache**: Redis (선택)
+
+### 동시성 제어
+- **Pessimistic Lock**: `SELECT ... FOR UPDATE` (포인트 차감)
+- **Optimistic Lock**: `@Version` (재고 차감, 쿠폰 발급)
+- **DB Unique Constraint**: 1인 1매 쿠폰 보장
+
+### 가용성 패턴
+- **Timeout**: 3초 (외부 API)
+- **Retry**: Exponential Backoff (1분 → 5분 → 30분)
+- **Fallback**: Outbox 패턴, 캐시 반환
+- **Async**: `@Async` (비동기 외부 전송)
+
+---
+
+## 📊 데이터베이스 설계
+
+### 테이블 구조 (10개)
+
+| 테이블 | 역할 | 주요 컬럼 | 비고 |
+|--------|------|-----------|------|
+| **products** | 상품 정보 | id, name, price, category | - |
+| **stock** | 재고 현황 | product_id, quantity, version | Optimistic Lock |
+| **stock_history** | 재고 변동 이력 | type, quantity_before, quantity_after | FK 없음 (조회 최적화) |
+| **carts** | 장바구니 | user_id | 사용자당 1개 |
+| **cart_items** | 장바구니 상품 | cart_id, product_id, quantity | - |
+| **orders** | 주문 | user_id, total_amount, status | PENDING, COMPLETED |
+| **order_items** | 주문 상세 | order_id, product_id, quantity | - |
+| **coupons** | 쿠폰 마스터 | total_quantity, issued_quantity, version | Optimistic Lock |
+| **user_coupons** | 사용자 쿠폰 | user_id, coupon_id, status | Unique (user_id, coupon_id) |
+| **users** | 사용자 | email, balance | balance = 포인트 잔액 |
+
+### 인덱스 전략
+```sql
+-- 상품 조회
+CREATE INDEX idx_products_category ON products(category);
+
+-- 재고 조회
+CREATE UNIQUE INDEX uidx_stock_product_warehouse ON stock(product_id, warehouse_id);
+
+-- 재고 이력 (FK 없이 인덱스만)
+CREATE INDEX idx_stock_history_product_id ON stock_history(product_id);
+CREATE INDEX idx_stock_history_reference ON stock_history(reference_type, reference_id);
+
+-- 주문 조회
+CREATE INDEX idx_orders_user_status ON orders(user_id, status);
+CREATE INDEX idx_orders_paid_at ON orders(paid_at);
+
+-- 쿠폰 조회
+CREATE INDEX idx_user_coupons_user_status ON user_coupons(user_id, status);
+CREATE UNIQUE INDEX uidx_user_coupons_user_coupon ON user_coupons(user_id, coupon_id);
+```
+
+**상세 ERD**: [docs/diagrams/erd.md](docs/diagrams/erd.md)
+
+---
+
+## 🔄 핵심 플로우
+
+### 1. 주문 생성 및 결제 플로우
+
+```
+1. 장바구니 조회 (MySQL)
+   ↓
+2. 재고 검증 (MySQL stock 테이블)
+   ↓
+3. 쿠폰 검증 (선택, MySQL user_coupons)
+   ↓
+4. 주문 생성 (status=PENDING)
+   ↓
+5. 결제 처리
+   - 포인트 차감 (Pessimistic Lock)
+   - 재고 차감 (Optimistic Lock) ← 결제 성공 후
+   - 재고 이력 기록 (stock_history)
+   - 쿠폰 사용 처리
+   ↓
+6. 주문 상태 업데이트 (status=COMPLETED)
+   ↓
+7. 외부 데이터 전송 (@Async, Non-blocking)
+   - 성공: 완료
+   - 실패: Outbox 테이블에 저장 → 재시도 워커가 처리
+```
+
+**상세 시퀀스 다이어그램**: [docs/diagrams/sequence-diagrams.md](docs/diagrams/sequence-diagrams.md)
+
+### 2. 선착순 쿠폰 발급 플로우
+
+```
+1. 쿠폰 조회 (total_quantity, issued_quantity, version)
+   ↓
+2. 중복 발급 체크 (user_coupons)
+   ↓
+3. 쿠폰 발급 (Optimistic Lock)
+   - UPDATE coupons SET issued_quantity = issued_quantity + 1, version = version + 1
+     WHERE version = ? AND issued_quantity < total_quantity
+   ↓
+4. 사용자 쿠폰 생성 (Unique Constraint: user_id + coupon_id)
+   - 성공: 발급 완료
+   - Unique 제약 위반: 쿠폰 수량 롤백 + 에러 반환
+```
+
+---
+
+## 🚨 에러 코드 체계
+
+### HTTP Status Code 매핑
+
+| Status | 상황 | 예시 |
+|--------|------|------|
+| **200 OK** | 성공 (조회, 수정) | 장바구니 조회, 포인트 충전 |
+| **201 Created** | 생성 성공 | 주문 생성, 쿠폰 발급 |
+| **400 Bad Request** | 잘못된 요청 | 재고 부족, 잔액 부족, 유효하지 않은 쿠폰 |
+| **404 Not Found** | 리소스 없음 | 주문 없음, 사용자 없음 |
+| **409 Conflict** | 충돌 | 쿠폰 소진, 동시성 충돌 (Optimistic Lock) |
+| **500 Internal Server Error** | 서버 오류 | 예상치 못한 오류 |
+
+### 비즈니스 에러 코드
+
+```java
+// 상품 관련
+PRODUCT_NOT_FOUND           // P001: 상품을 찾을 수 없습니다
+INSUFFICIENT_STOCK          // P002: 재고가 부족합니다
+
+// 주문 관련
+EMPTY_CART                  // O001: 장바구니가 비어있습니다
+ORDER_NOT_FOUND             // O002: 주문을 찾을 수 없습니다
+INVALID_QUANTITY            // O003: 유효하지 않은 수량입니다
+
+// 결제 관련
+INSUFFICIENT_BALANCE        // PAY001: 잔액이 부족합니다
+PAYMENT_FAILED              // PAY002: 결제에 실패했습니다
+STOCK_DEDUCTION_FAILED      // PAY003: 재고 차감 실패 (재시도 필요)
+
+// 쿠폰 관련
+COUPON_NOT_FOUND            // C001: 쿠폰을 찾을 수 없습니다
+COUPON_SOLD_OUT             // C002: 쿠폰이 모두 소진되었습니다
+INVALID_COUPON              // C003: 유효하지 않은 쿠폰입니다
+EXPIRED_COUPON              // C004: 만료된 쿠폰입니다
+ALREADY_ISSUED              // C005: 이미 발급받은 쿠폰입니다
+COUPON_ISSUE_FAILED         // C006: 쿠폰 발급 실패 (동시성 충돌)
+
+// 사용자 관련
+USER_NOT_FOUND              // U001: 사용자를 찾을 수 없습니다
+INVALID_AMOUNT              // U002: 유효하지 않은 금액입니다
+```
+
+**상세 에러 코드**: [docs/api/error-codes.md](docs/api/error-codes.md)
+
+---
+
+## 🎯 동시성 제어 전략
+
+### Pessimistic Lock (비관적 락)
+
+**사용처**: 포인트 충전, 포인트 차감
+
+**이유**:
+- 정확성이 최우선 (포인트 불일치 허용 불가)
+- 충돌 빈도가 낮음 (성능 영향 최소)
+
+**구현**:
+```java
+@Lock(LockModeType.PESSIMISTIC_WRITE)
+@Query("SELECT u FROM User u WHERE u.id = :id")
+User findByIdWithLock(@Param("id") String id);
+```
+
+```sql
+SELECT * FROM users WHERE id = ? FOR UPDATE;
+UPDATE users SET balance = balance - ? WHERE id = ?;
+```
+
+### Optimistic Lock (낙관적 락)
+
+**사용처**: 재고 차감, 쿠폰 발급
+
+**이유**:
+- 높은 동시성 처리 (성능 우선)
+- 충돌 시 재시도 가능
+
+**구현**:
+```java
+@Entity
+public class Stock {
+    @Version
+    private Long version;
+}
+```
+
+```sql
+UPDATE stock
+SET quantity = quantity - ?, version = version + 1
+WHERE product_id = ? AND version = ? AND quantity >= ?;
+```
+
+**충돌 처리**:
+- 재고 차감 실패 시 포인트 복구 후 409 Conflict 반환
+- 쿠폰 발급 실패 시 409 Conflict 반환 (클라이언트 재시도)
+
+### DB Unique Constraint
+
+**사용처**: 1인 1매 쿠폰 제한
+
+**구현**:
+```sql
+CREATE UNIQUE INDEX uidx_user_coupons_user_coupon
+ON user_coupons(user_id, coupon_id);
+```
+
+**충돌 처리**:
+- DuplicateKeyException 발생 시 쿠폰 발급 수량 롤백
+
+---
+
+## 🛡️ 가용성 패턴
+
+### 1. Timeout ⏱️
+
+**적용**: 모든 외부 API 호출
+
+```java
+@Bean
+public RestTemplate restTemplate() {
+    SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+    factory.setConnectTimeout(3000);  // 3초
+    factory.setReadTimeout(3000);     // 3초
+    return new RestTemplate(factory);
+}
+```
+
+### 2. Retry 🔄
+
+**적용**: 외부 데이터 플랫폼 전송 실패 시
+
+**전략**: Exponential Backoff
+- 1차 실패: 1분 후 재시도
+- 2차 실패: 5분 후 재시도
+- 3차 실패: 30분 후 재시도
+- 3회 모두 실패: 영구 실패 (알림 발송)
+
+```java
+@Scheduled(fixedDelay = 60000) // 1분마다 실행
+public void retryFailedMessages() {
+    List<OutboxMessage> pendingMessages = outboxRepository.findPending();
+
+    for (OutboxMessage message : pendingMessages) {
+        if (message.getRetryCount() < 3) {
+            // 재시도 로직
+        } else {
+            // 영구 실패 처리
+        }
+    }
+}
+```
+
+### 3. Fallback 🛡️
+
+**적용**: 인기 상품 조회 (실시간 쿼리)
+
+**전략**:
+- 정상: MySQL 쿼리 결과 반환
+- 쿼리 실패/타임아웃: 빈 배열 반환 (서비스 중단 방지)
+
+```java
+public List<PopularProductDTO> getPopularProducts() {
+    try {
+        return productRepository.findTopProducts(LocalDateTime.now().minusDays(3), 5);
+    } catch (Exception e) {
+        log.error("Failed to fetch popular products", e);
+        return Collections.emptyList(); // Fallback
+    }
+}
+```
+
+### 4. Async (비동기 처리) ⚡
+
+**적용**: 외부 데이터 플랫폼 전송
+
+**이유**:
+- 주문 완료 시간 단축 (외부 API 응답 대기 불필요)
+- 외부 API 장애가 주문 성공에 영향 없음
+
+```java
+@Async
+public CompletableFuture<Void> sendOrderData(Order order) {
+    try {
+        externalApiClient.sendOrder(transformToExternalFormat(order));
+    } catch (Exception e) {
+        // Outbox 테이블에 저장 (재시도 큐)
+        outboxRepository.save(new OutboxMessage(order));
+    }
+    return CompletableFuture.completedFuture(null);
+}
+```
+
+---
+
+## 📝 API 엔드포인트
+
+### 상품
+
+| Method | Endpoint | 설명 | 인증 |
+|--------|----------|------|------|
+| GET | `/api/products` | 상품 목록 조회 | - |
+| GET | `/api/products/{productId}` | 상품 상세 조회 | - |
+| GET | `/api/products/top` | 인기 상품 Top 5 | - |
+
+### 장바구니
+
+| Method | Endpoint | 설명 | 인증 |
+|--------|----------|------|------|
+| POST | `/api/cart/items` | 장바구니 추가 | ✅ |
+| GET | `/api/cart` | 장바구니 조회 | ✅ |
+| PUT | `/api/cart/items` | 장바구니 수정 | ✅ |
+| DELETE | `/api/cart/items` | 장바구니 삭제 | ✅ |
+
+### 주문/결제
+
+| Method | Endpoint | 설명 | 인증 |
+|--------|----------|------|------|
+| POST | `/api/orders` | 주문 생성 | ✅ |
+| POST | `/api/orders/{orderId}/payment` | 결제 처리 | ✅ |
+| GET | `/api/orders/{orderId}` | 주문 조회 | ✅ |
+
+### 쿠폰
+
+| Method | Endpoint | 설명 | 인증 |
+|--------|----------|------|------|
+| POST | `/api/coupons/{couponId}/issue` | 쿠폰 발급 | ✅ |
+| GET | `/api/users/{userId}/coupons` | 보유 쿠폰 조회 | ✅ |
+
+### 사용자
+
+| Method | Endpoint | 설명 | 인증 |
+|--------|----------|------|------|
+| GET | `/api/users/{userId}/balance` | 포인트 조회 | ✅ |
+| POST | `/api/users/{userId}/balance/charge` | 포인트 충전 | ✅ |
+
+**상세 API 명세**: [docs/api/api-specification.md](docs/api/api-specification.md)
+
+---
+
+## 🧪 테스트 전략 (선택 구현)
+
+### 1. 컨트롤러 단위 테스트
+- `@WebMvcTest` 활용
+- Mock 서비스 주입
+- API 엔드포인트 응답 검증
+
+### 2. 서비스 통합 테스트
+- `@SpringBootTest` 활용
+- H2 In-Memory DB 사용
+- 트랜잭션 롤백
+
+### 3. 동시성 테스트
+- `ExecutorService`로 멀티 스레드 시뮬레이션
+- 재고 차감, 쿠폰 발급 동시성 검증
+
+---
+
+## 🚀 실행 방법
+
+### 사전 요구사항
+- Java 17 이상
+- MySQL 8.0 (또는 H2 사용)
+- Gradle 8.0 이상
+
+### 빌드 및 실행
+
+```bash
+# 빌드
+./gradlew build
+
+# 실행 (H2)
+./gradlew bootRun
+
+# 실행 (MySQL)
+./gradlew bootRun --args='--spring.profiles.active=prod'
+```
+
+### 데이터베이스 초기화
+
+```bash
+# DDL 생성 (docs/diagrams/erd.md 참고)
+mysql -u root -p < schema.sql
+
+# 초기 데이터 (선택)
+mysql -u root -p < data.sql
+```
+
+---
+
+## 📚 학습 포인트
+
+### Week 2에서 중점적으로 학습한 내용
+
+#### 1. **동시성 제어**
+- Pessimistic Lock vs Optimistic Lock 선택 기준
+- `@Version` 필드를 통한 낙관적 락 구현
+- `SELECT ... FOR UPDATE`를 통한 비관적 락 구현
+- DB Unique Constraint 활용
+
+#### 2. **가용성 패턴**
+- Timeout 설정의 중요성 (Cascading Failure 방지)
+- Retry 전략 (Exponential Backoff)
+- Fallback 메커니즘 (서비스 중단 방지)
+- 비동기 처리 (`@Async`)
+
+#### 3. **트랜잭션 관리**
+- 트랜잭션 범위 최소화 (성능 최적화)
+- 재고 차감 실패 시 포인트 복구 (보상 트랜잭션)
+- 외부 API 호출은 트랜잭션 밖에서 처리
+
+#### 4. **인덱스 전략**
+- 복합 인덱스 설계 (user_id, status)
+- FK 없이 인덱스만 설정 (stock_history)
+- Unique 인덱스 활용 (1인 1매 보장)
+
+#### 5. **API 설계**
+- RESTful 원칙 준수
+- 적절한 HTTP Status Code 사용
+- 에러 응답 표준화
+
+---
+
+## 🔍 주요 설계 결정 (Design Decisions)
+
+### 1. 재고 테이블 분리 (Product vs Stock)
+
+**결정**: 상품(Product)과 재고(Stock)를 별도 테이블로 분리
+
+**이유**:
+- 재고 이력 추적 용이 (StockHistory 테이블)
+- 다중 창고 확장 가능 (warehouse_id 필드)
+- 재고 불일치 디버깅 용이
+
+### 2. 포인트 시스템 (PG 없음)
+
+**결정**: 외부 PG 연동 없이 내부 포인트 시스템만 구현
+
+**이유**:
+- Week 2는 설계 단계 (PG 연동은 Week 3+)
+- 핵심 로직(동시성, 가용성)에 집중
+- 사용자는 미리 포인트를 충전하여 사용
+
+### 3. 재고 차감 시점 (결제 완료 후)
+
+**결정**: 재고 차감은 결제 완료 **후**에 수행
+
+**이유**:
+- 결제 실패 시 재고 복원 불필요
+- 트랜잭션 범위 최소화
+- 데이터 일관성 보장
+
+### 4. 쿠폰 적용 시점 (결제 단계)
+
+**결정**: 쿠폰은 주문 생성 시 검증만 하고, 실제 사용 처리는 결제 완료 시
+
+**이유**:
+- 결제 실패 시 쿠폰 복원 불필요
+- 주문 생성과 결제를 분리하여 유연성 확보
+
+### 5. 인기 상품 조회 (실시간 쿼리)
+
+**결정**: 배치 집계 대신 실시간 쿼리로 단순화 (피드백 반영)
+
+**이유**:
+- Week 2 수준에서는 단순한 접근 권장
+- 복잡도 감소, 기술 학습 목표에 집중
+- 필요 시 추후 캐시/배치로 최적화 가능
+
+```sql
+-- 실시간 쿼리 (최근 3일)
+SELECT p.id, p.name, SUM(oi.quantity) as sales_count
+FROM products p
+JOIN order_items oi ON p.id = oi.product_id
+JOIN orders o ON oi.order_id = o.id
+WHERE o.status = 'COMPLETED' AND o.paid_at >= NOW() - INTERVAL 3 DAY
+GROUP BY p.id ORDER BY sales_count DESC LIMIT 5;
+```
+
+### 6. StockHistory FK 제약조건 없음
+
+**결정**: stock_history 테이블은 FK 제약조건 없이 인덱스만 설정
+
+**이유**:
+- 조회 전용 테이블 (감사 목적)
+- FK 락으로 인한 성능 저하 방지
+- 애플리케이션 레벨에서 데이터 무결성 보장
+
+---
+
+## 📋 체크리스트
+
+### 필수 과제
+- [x] **요구사항 명세서** 작성
+- [x] **사용자 스토리** 16개 작성
+- [x] **API 명세서** 작성 (9개 엔드포인트)
+- [x] **ERD** 작성 (10개 테이블, DBML + Mermaid)
+- [x] **시퀀스 다이어그램** 작성 (8개 플로우)
+- [x] **플로우차트** 작성 (5개 비즈니스 로직)
+- [x] **에러 코드 표준화**
+- [x] **README** 작성
+
+### 설계 검증
+- [x] 재고 차감 시점 (결제 완료 후)
+- [x] 쿠폰 적용 시점 (결제 단계)
+- [x] 동시성 제어 전략 (Pessimistic vs Optimistic)
+- [x] 트랜잭션 경계 명확화
+- [x] 외부 API 장애 대응 (Async, Fallback)
+- [x] 인덱스 설계
+
+### 피드백 반영
+- [x] 인기 상품 실시간 쿼리로 단순화
+- [x] 트랜잭션 경계 명시 (시퀀스 다이어그램)
+- [x] 에러 코드 enum 정의
+- [x] FK 정책 명시 (stock_history)
+- [x] 컬럼 네이밍 직관적으로 (quantity, description)
+- [x] **시퀀스 다이어그램 개선** (피어 리뷰 반영)
+  - SQL 쿼리 제거 → 액션 의도 설명으로 대체
+  - 메서드명 제거 → "~요청", "~조회" 등 액션 설명 사용
+- [x] **ERD Unique Index 네이밍** (uidx_ 접두사 적용)
+- [x] **플로우차트 추가** (5개 비즈니스 로직 플로우)
+
+---
+
+## 🙏 참고 자료
+
+### REST API Design
+- [REST API Best Practices](https://restfulapi.net/rest-api-best-practices/)
+- [Microsoft API Design Guide](https://learn.microsoft.com/en-us/azure/architecture/best-practices/api-design)
+
+### Resilience Patterns
+- [Microservices Patterns](https://microservices.io/patterns/index.html)
+
+### Concurrency Control
+- [Optimistic Locking vs Pessimistic Locking](https://stackoverflow.com/questions/129329/optimistic-vs-pessimistic-locking)
+
+---
+
+## 📞 Contact
+
+프로젝트 관련 문의: [GitHub Issues](https://github.com/username/ecommerce/issues)
+
+---
+
+**항해플러스 백엔드 커리큘럼 Week 2** - E-Commerce System Design
