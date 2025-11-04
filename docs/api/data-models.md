@@ -1,11 +1,164 @@
 # 데이터 모델 설계
 
+## ⚠️ Week 3 Implementation Notes
+
+**Week 3 (Step 5-6)**: 이 문서의 JPA Entity 예시는 Week 4 이후 데이터베이스 연동 시 사용됩니다.
+
+### Week 3 요구사항
+- **NO DATABASE**: JPA, H2, MySQL 사용 안 함
+- **In-Memory Only**: ConcurrentHashMap, ArrayList로 모든 데이터 관리
+- **Pure Java**: `@Entity`, `@Table`, `@Version` 등 JPA 어노테이션 사용 안 함
+- **Thread-Safe Collections**: ConcurrentHashMap 필수 사용
+
+### Week 3 Entity 예시
+
+```java
+// ✅ Week 3: Pure Java Entity (JPA 어노테이션 없음)
+@Getter
+@AllArgsConstructor
+public class Product {
+    private String id;
+    private String name;
+    private String description;
+    private Long price;
+    private String category;
+    private Integer stock;  // Week 3: Product에 stock 포함
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+
+    /**
+     * 재고 차감 (비즈니스 로직 포함 - Rich Domain Model)
+     */
+    public void decreaseStock(int quantity) {
+        validateQuantity(quantity);
+        validateStock(quantity);
+        this.stock -= quantity;
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    private void validateQuantity(int quantity) {
+        if (quantity <= 0) {
+            throw new BusinessException(ErrorCode.INVALID_QUANTITY);
+        }
+    }
+
+    private void validateStock(int quantity) {
+        if (this.stock < quantity) {
+            throw new BusinessException(ErrorCode.INSUFFICIENT_STOCK);
+        }
+    }
+}
+```
+
+### Week 3 Repository 예시
+
+```java
+// Domain Layer (interface)
+package io.hhplus.ecommerce.domain.product;
+
+public interface ProductRepository {
+    Optional<Product> findById(String id);
+    List<Product> findAll();
+    Product save(Product product);
+    void deleteById(String id);
+}
+
+// Infrastructure Layer (In-Memory implementation)
+package io.hhplus.ecommerce.infrastructure.persistence.product;
+
+@Repository
+public class InMemoryProductRepository implements ProductRepository {
+    // Thread-safe 인메모리 저장소
+    private final Map<String, Product> storage = new ConcurrentHashMap<>();
+
+    @Override
+    public Optional<Product> findById(String id) {
+        return Optional.ofNullable(storage.get(id));
+    }
+
+    @Override
+    public List<Product> findAll() {
+        return new ArrayList<>(storage.values());
+    }
+
+    @Override
+    public Product save(Product product) {
+        storage.put(product.getId(), product);
+        return product;
+    }
+
+    @Override
+    public void deleteById(String id) {
+        storage.remove(id);
+    }
+}
+```
+
+### Week 3 동시성 제어
+
+**Step 5**: ConcurrentHashMap만 사용 (충분함)
+```java
+private final Map<String, Product> storage = new ConcurrentHashMap<>();
+```
+
+**Step 6**: 선착순 쿠폰만 동시성 제어 추가
+```java
+@Getter
+@AllArgsConstructor
+public class Coupon {
+    private String id;
+    private String name;
+    private Integer discountRate;
+    private Integer totalQuantity;
+    private AtomicInteger issuedQuantity;  // AtomicInteger 사용
+
+    public Coupon(String id, String name, int discountRate, int totalQuantity) {
+        this.id = id;
+        this.name = name;
+        this.discountRate = discountRate;
+        this.totalQuantity = totalQuantity;
+        this.issuedQuantity = new AtomicInteger(0);
+    }
+
+    /**
+     * CAS 기반 동시성 제어 (Compare-And-Swap)
+     */
+    public boolean tryIssue() {
+        while (true) {
+            int current = issuedQuantity.get();
+            if (current >= totalQuantity) {
+                return false;  // 수량 초과
+            }
+            if (issuedQuantity.compareAndSet(current, current + 1)) {
+                return true;  // 발급 성공
+            }
+            // CAS 실패 시 재시도
+        }
+    }
+}
+```
+
+### Week 3 주요 차이점
+
+| 항목 | Week 3 (In-Memory) | Week 4+ (Database) |
+|------|-------------------|-------------------|
+| Entity | Pure Java, Lombok | @Entity, @Table, @Id |
+| Repository | Interface + In-Memory Impl | JpaRepository 또는 Custom Impl |
+| Storage | ConcurrentHashMap | MySQL, H2 |
+| Concurrency | synchronized, AtomicInteger | @Version (Optimistic Lock) |
+| Relationship | 직접 참조 (객체 참조) | @OneToMany, @ManyToOne |
+| ID Generation | UUID.randomUUID() | @GeneratedValue |
+
+**참고**: Week 3에서는 아래의 JPA 기반 Entity 설계를 이해하고, In-Memory 버전으로 단순화하여 구현합니다.
+
+---
+
 ## 도메인 모델 개요
 
 이커머스 시스템의 핵심 도메인:
 - **Product**: 상품 정보 관리
-- **Stock**: 재고 현황 관리
-- **StockHistory**: 재고 변동 이력 추적
+- **Stock**: 재고 현황 관리 (Week 3에서는 Product에 통합)
+- **StockHistory**: 재고 변동 이력 추적 (Week 3에서는 선택)
 - **Order**: 주문 생성 및 상태 관리
 - **Payment**: 결제 처리
 - **Coupon**: 쿠폰 발급 및 사용
