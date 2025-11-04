@@ -48,6 +48,16 @@
 - API별 전용 DTO vs 공통 DTO
 - 입력값 검증 레이어
 
+### 8️⃣ [토론 주제](./08-discussion-topics.md) 🔥
+- 14개 핵심 토론 주제 Q&A
+- 레이어드 아키텍처 (Q1-Q3)
+- UseCase 패턴 (Q4-Q5)
+- Domain Modeling (Q6-Q7)
+- Repository 패턴 (Q8-Q9)
+- 동시성 제어 (Q10-Q12)
+- Testing (Q13-Q14)
+- 면접/코드리뷰 준비 자료
+
 ---
 
 ## 🎯 학습 목표
