@@ -329,59 +329,64 @@ int size = map.size();  // 근사값 반환 (정확하지 않을 수 있음)
 
 ---
 
-## 💡 Week 3 실전 활용 패턴
+## 🔬 Week 3 프로젝트 실전 분석
 
-### 패턴 1: 기본 CRUD Repository
+### 작성한 8개 Repository의 ConcurrentHashMap 사용 패턴
+
+| Repository | 주 저장소 | 보조 인덱스 | 인덱스 목적 |
+|-----------|----------|------------|-----------|
+| **InMemoryProductRepository** | `Map<String, Product>` | 없음 | 카테고리 필터링은 Stream |
+| **InMemoryUserRepository** | `Map<String, User>` | `Map<String, String>` (email→userId) | 이메일로 빠른 조회 |
+| **InMemoryOrderRepository** | `Map<String, Order>` | 없음 | userId 필터링은 Stream |
+| **InMemoryOrderItemRepository** | `Map<String, OrderItem>` | 없음 | orderId 필터링은 Stream |
+| **InMemoryCouponRepository** | `Map<String, Coupon>` | 없음 | 단순 CRUD |
+| **InMemoryUserCouponRepository** | `Map<String, UserCoupon>` | `Map<String, String>` (userId:couponId→id) | 중복 발급 방지 |
+| **InMemoryCartRepository** | `Map<String, Cart>` | `Map<String, String>` (userId→cartId) | 1인 1장바구니 |
+| **InMemoryCartItemRepository** | `Map<String, CartItem>` | `Map<String, String>` (cartId:productId→id) | 장바구니 내 중복 방지 |
+
+### 패턴 1: 단순 저장소 (보조 인덱스 없음)
 ```java
+// InMemoryProductRepository
 @Repository
 public class InMemoryProductRepository implements ProductRepository {
+    // 주 저장소만 사용
     private final Map<String, Product> storage = new ConcurrentHashMap<>();
 
     @Override
-    public Product save(Product product) {
-        storage.put(product.getId(), product);
-        return product;
-    }
-
-    @Override
-    public Optional<Product> findById(String id) {
-        return Optional.ofNullable(storage.get(id));
-    }
-
-    @Override
-    public List<Product> findAll() {
-        return new ArrayList<>(storage.values());
-    }
-
-    @Override
-    public void deleteById(String id) {
-        storage.remove(id);
+    public List<Product> findByCategory(String category) {
+        // Stream 필터링 (O(n))
+        return storage.values().stream()
+            .filter(product -> category.equals(product.getCategory()))
+            .collect(Collectors.toList());
     }
 }
 ```
 
+**특징:**
+- 조회 빈도가 낮거나 데이터가 적을 때 적합
+- 카테고리별 조회가 자주 발생하면 인덱스 추가 고려
+
 ---
 
-### 패턴 2: 복합 인덱스 (빠른 조회)
+### 패턴 2: 이메일 인덱스 (1:1 관계)
 ```java
+// InMemoryUserRepository
 @Repository
 public class InMemoryUserRepository implements UserRepository {
-    // 주 저장소
     private final Map<String, User> storage = new ConcurrentHashMap<>();
-
-    // 이메일 인덱스 (userId → email)
+    // 이메일 → userId 매핑 (빠른 조회)
     private final Map<String, String> emailIndex = new ConcurrentHashMap<>();
 
     @Override
     public User save(User user) {
         storage.put(user.getId(), user);
-        emailIndex.put(user.getEmail(), user.getId());  // 인덱스 업데이트
+        emailIndex.put(user.getEmail(), user.getId());  // 인덱스 동기화
         return user;
     }
 
     @Override
     public Optional<User> findByEmail(String email) {
-        String userId = emailIndex.get(email);  // 인덱스로 빠른 조회
+        String userId = emailIndex.get(email);  // O(1) 조회
         if (userId == null) return Optional.empty();
         return Optional.ofNullable(storage.get(userId));
     }
@@ -389,31 +394,35 @@ public class InMemoryUserRepository implements UserRepository {
 ```
 
 **장점:**
-- O(1) 시간 복잡도로 이메일 조회
-- Stream 필터링보다 훨씬 빠름
+- 이메일 조회가 O(1)로 매우 빠름
+- Stream 필터링 대비 100배 이상 빠름
+
+**주의:**
+- save() 시 인덱스 동기화 필수
+- 이메일 변경 시 기존 인덱스 삭제 후 재생성
 
 ---
 
-### 패턴 3: 중복 체크 인덱스
+### 패턴 3: 복합 키 인덱스 (중복 방지)
 ```java
+// InMemoryUserCouponRepository
 @Repository
-public class InMemoryUserCouponRepository {
+public class InMemoryUserCouponRepository implements UserCouponRepository {
     private final Map<String, UserCoupon> storage = new ConcurrentHashMap<>();
-
-    // 중복 체크용 인덱스 (userId:couponId → userCouponId)
+    // 복합 키 인덱스 (userId:couponId → userCouponId)
     private final Map<String, String> userCouponIndex = new ConcurrentHashMap<>();
 
     @Override
     public boolean existsByUserIdAndCouponId(String userId, String couponId) {
         String key = makeKey(userId, couponId);
-        return userCouponIndex.containsKey(key);
+        return userCouponIndex.containsKey(key);  // O(1) 중복 체크
     }
 
     @Override
     public UserCoupon save(UserCoupon userCoupon) {
         storage.put(userCoupon.getId(), userCoupon);
 
-        // 중복 체크용 인덱스 업데이트
+        // 복합 키 인덱스 업데이트
         String key = makeKey(userCoupon.getUserId(), userCoupon.getCouponId());
         userCouponIndex.put(key, userCoupon.getId());
 
@@ -421,26 +430,195 @@ public class InMemoryUserCouponRepository {
     }
 
     private String makeKey(String userId, String couponId) {
-        return userId + ":" + couponId;
+        return userId + ":" + couponId;  // 복합 키 생성
     }
 }
 ```
 
-**활용: 1인 1매 제한**
-```java
-@Service
-public class CouponService {
-    public UserCoupon issueCoupon(String userId, String couponId) {
-        // 중복 체크 (O(1))
-        if (userCouponRepository.existsByUserIdAndCouponId(userId, couponId)) {
-            throw new BusinessException(ErrorCode.ALREADY_ISSUED);
-        }
+**활용 사례:**
+- **1인 1매 쿠폰 제한**: 같은 사용자가 같은 쿠폰을 중복 발급받지 못하도록
+- **장바구니 중복 방지**: 같은 상품이 장바구니에 여러 번 추가되지 않도록
 
-        // 쿠폰 발급
+**성능:**
+- 중복 체크가 O(1)로 매우 빠름
+- Stream으로 필터링하면 O(n) → 인덱스 사용 권장
+
+---
+
+### 패턴 4: 1:1 매핑 인덱스
+```java
+// InMemoryCartRepository
+@Repository
+public class InMemoryCartRepository implements CartRepository {
+    private final Map<String, Cart> storage = new ConcurrentHashMap<>();
+    // userId → cartId 매핑 (1인 1장바구니)
+    private final Map<String, String> userCartIndex = new ConcurrentHashMap<>();
+
+    @Override
+    public Optional<Cart> findByUserId(String userId) {
+        String cartId = userCartIndex.get(userId);  // O(1)
+        if (cartId == null) return Optional.empty();
+        return Optional.ofNullable(storage.get(cartId));
+    }
+
+    @Override
+    public Cart save(Cart cart) {
+        storage.put(cart.getId(), cart);
+        userCartIndex.put(cart.getUserId(), cart.getId());
+        return cart;
+    }
+}
+```
+
+**특징:**
+- 1인 1장바구니 제약 보장
+- userId로 빠르게 조회 가능
+
+---
+
+### 인덱스 설계 가이드
+
+**인덱스를 추가해야 하는 경우:**
+- ✅ 조회 빈도가 높을 때 (매 요청마다 조회)
+- ✅ 데이터 크기가 클 때 (100개 이상)
+- ✅ 성능이 중요할 때 (사용자 경험에 직접 영향)
+- ✅ 중복 체크가 필요할 때 (1인 1매 제한 등)
+
+**Stream 필터링으로 충분한 경우:**
+- ✅ 조회 빈도가 낮을 때 (관리자 기능 등)
+- ✅ 데이터 크기가 작을 때 (100개 미만)
+- ✅ 성능이 덜 중요할 때
+
+**예시 - 카테고리 조회:**
+```java
+// ❌ 인덱스 추가 (Over-engineering)
+private final Map<String, List<String>> categoryIndex = new ConcurrentHashMap<>();
+
+// ✅ Stream 필터링으로 충분 (상품이 많지 않음)
+public List<Product> findByCategory(String category) {
+    return storage.values().stream()
+        .filter(p -> category.equals(p.getCategory()))
+        .collect(Collectors.toList());
+}
+```
+
+---
+
+## 🧠 메모리 가시성과 Lock-free 읽기
+
+### volatile이 없으면 무슨 일이 일어날까?
+
+```java
+// ❌ volatile 없는 경우 (문제 발생 가능)
+class UnsafeCounter {
+    private int count = 0;  // volatile 없음
+
+    public void increment() {
+        count++;  // Thread A
+    }
+
+    public int getCount() {
+        return count;  // Thread B - 최신 값을 못 볼 수 있음!
+    }
+}
+```
+
+**문제:**
+- Thread A가 count를 증가시켜도
+- Thread B는 캐시된 이전 값을 읽을 수 있음
+- **메모리 가시성(Memory Visibility) 문제**
+
+---
+
+### ConcurrentHashMap의 해결책: volatile
+
+```java
+// ConcurrentHashMap의 내부 구조 (단순화)
+static class Node<K,V> {
+    final int hash;
+    final K key;
+    volatile V val;        // ✅ volatile로 선언
+    volatile Node<K,V> next;  // ✅ volatile로 선언
+}
+```
+
+**volatile의 효과:**
+1. **즉시 Main Memory에 쓰기**: Thread A가 값을 쓰면 즉시 Main Memory로
+2. **항상 Main Memory에서 읽기**: Thread B는 CPU 캐시가 아닌 Main Memory에서 읽음
+3. **최신 값 보장**: 다른 스레드의 변경사항을 즉시 볼 수 있음
+
+---
+
+### Lock-free 읽기가 가능한 이유
+
+```java
+// ConcurrentHashMap의 get() 메서드 (단순화)
+public V get(Object key) {
+    Node<K,V>[] tab;
+    Node<K,V> e;
+    int n, hash;
+    K k;
+    V v;
+
+    if ((tab = table) != null && (n = tab.length) > 0 &&
+        (e = tabAt(tab, (n - 1) & (hash = spread(key.hashCode())))) != null) {
+
+        // volatile 읽기 (Lock 불필요)
+        if ((k = e.key) == key || (k != null && key.equals(k)))
+            return e.val;  // volatile 변수 읽기
+
+        // 충돌 시 LinkedList 순회 (역시 Lock 불필요)
+        while ((e = e.next) != null) {  // volatile next
+            if (e.hash == hash && ((k = e.key) == key ||
+                (k != null && key.equals(k))))
+                return e.val;  // volatile 변수 읽기
+        }
+    }
+    return null;
+}
+```
+
+**핵심:**
+- `e.val`과 `e.next`가 모두 `volatile`
+- volatile 읽기는 Lock 없이도 최신 값 보장
+- 여러 스레드가 동시에 읽기 가능 (⚡ 최고 성능)
+
+---
+
+### 쓰기는 Lock이 필요한 이유
+
+```java
+// ConcurrentHashMap의 put() 메서드 (단순화)
+public V put(K key, V value) {
+    // ...
+    synchronized (f) {  // ✅ Bucket에 Lock
+        // LinkedList에 노드 추가
+        Node<K,V> node = new Node<>(hash, key, value, null);
         // ...
     }
+    // ...
 }
 ```
+
+**이유:**
+- 읽기: 단순히 값만 읽으면 됨 (volatile로 최신 값 보장)
+- 쓰기: 여러 변수를 수정해야 함 (next 포인터, val, size 등)
+- **복합 연산은 Atomic하지 않음** → Lock 필요
+
+---
+
+### volatile vs synchronized vs Lock
+
+| 방식 | 사용 사례 | 성능 | Atomicity |
+|------|----------|------|-----------|
+| **volatile** | 단순 읽기/쓰기 | ⚡⚡⚡ | ❌ (복합 연산 불가) |
+| **synchronized** | 복합 연산 (간단) | ⚡⚡ | ✅ |
+| **Lock** | 복합 연산 (세밀한 제어) | ⚡⚡ | ✅ |
+| **CAS (Atomic)** | 단순 증감 | ⚡⚡⚡ | ✅ |
+
+**ConcurrentHashMap의 전략:**
+- **읽기**: volatile만 사용 (Lock 없음) → 최고 성능
+- **쓰기**: Bucket 단위 synchronized → 높은 동시성
 
 ---
 
@@ -620,24 +798,36 @@ void ConcurrentHashMap_동시성_테스트() throws InterruptedException {
 - [ ] ConcurrentHashMap의 내부 구조를 설명할 수 있다 (Segment, Bucket, Node)
 - [ ] Lock Striping의 개념을 설명할 수 있다
 - [ ] Java 7과 Java 8+의 차이를 설명할 수 있다
-- [ ] Lock-free 읽기의 원리를 설명할 수 있다
+- [ ] Lock-free 읽기의 원리를 설명할 수 있다 (volatile)
+- [ ] 메모리 가시성(Memory Visibility) 문제를 설명할 수 있다
+- [ ] volatile과 synchronized의 차이를 설명할 수 있다
+
+### Week 3 프로젝트
+- [ ] 8개 Repository의 ConcurrentHashMap 활용 패턴을 설명할 수 있다
+- [ ] 보조 인덱스가 필요한 경우와 불필요한 경우를 구분할 수 있다
+- [ ] 복합 키 인덱스 (userId:couponId)의 목적을 설명할 수 있다
+- [ ] Stream 필터링 vs 인덱스 조회의 트레이드오프를 이해한다
 
 ### 실전 적용
 - [ ] ConcurrentHashMap으로 Repository를 구현할 수 있다
 - [ ] 복합 인덱스를 설계하고 구현할 수 있다
 - [ ] putIfAbsent, computeIfAbsent를 활용할 수 있다
 - [ ] 동시성 테스트를 작성할 수 있다
+- [ ] 인덱스가 필요한지 판단하고 Over-engineering을 피할 수 있다
 
 ### 성능 이해
 - [ ] 4가지 Thread-safe Map의 성능 차이를 설명할 수 있다
 - [ ] ConcurrentHashMap이 빠른 이유를 설명할 수 있다
 - [ ] size(), isEmpty()가 근사값인 이유를 설명할 수 있다
+- [ ] 읽기 70%, 쓰기 30% 시나리오에서 5배 빠른 이유를 설명할 수 있다
 
 ### 토론 주제
-- "ConcurrentHashMap은 어떻게 Lock 없이 읽기가 가능한가?"
+- "ConcurrentHashMap은 어떻게 Lock 없이 읽기가 가능한가?" (volatile)
 - "Segment 방식(Java 7)과 CAS 방식(Java 8+)의 차이는?"
 - "null을 허용하지 않는 이유는?"
-- "복합 인덱스는 언제 사용해야 하나?"
+- "복합 인덱스는 언제 사용해야 하나?" (성능 vs Over-engineering)
+- "InMemoryUserRepository는 왜 emailIndex를 사용했나?"
+- "InMemoryProductRepository는 왜 categoryIndex를 사용하지 않았나?"
 
 ---
 
