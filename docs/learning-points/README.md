@@ -58,6 +58,15 @@
 - Testing (Q13-Q14)
 - 면접/코드리뷰 준비 자료
 
+### 9️⃣ [Thread-Safe 컬렉션 (ConcurrentHashMap)](./09-concurrent-collections.md) ⭐
+- ConcurrentHashMap vs HashMap/Hashtable/synchronizedMap
+- 내부 동작 원리 (Java 7 Segment vs Java 8+ Node)
+- Lock-free 읽기와 Lock Striping
+- 주요 메서드 (put, get, putIfAbsent, computeIfAbsent)
+- Week 3 In-Memory Repository 활용 패턴
+- 복합 인덱스 설계
+- 동시성 테스트 작성법
+
 ---
 
 ## 🎯 학습 목표
@@ -116,8 +125,9 @@
 6. 테스트 전략 수립
 
 ### 고급 (Concurrency)
-7. 동시성 제어 방식 비교
-8. 통합 테스트 작성
+7. Thread-Safe 컬렉션 (ConcurrentHashMap) ⭐
+8. 동시성 제어 방식 비교 (AtomicInteger, Lock)
+9. 통합 테스트 작성
 
 ---
 

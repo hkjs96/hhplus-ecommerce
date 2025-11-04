@@ -15,6 +15,8 @@
 - ConcurrentHashMap만으로 충분
 - 레이어드 아키텍처 구현에 집중
 
+> **참고**: ConcurrentHashMap의 상세한 내부 동작 원리와 활용법은 [09. Thread-Safe 컬렉션](./09-concurrent-collections.md)을 참조하세요.
+
 ### Step 6: 선착순 쿠폰만 동시성 제어 ✅
 - Race Condition 방지 필수
 - 200명 요청 → 정확히 100개만 발급

@@ -160,6 +160,8 @@ class ProductUseCaseTest {
 ### 로이코치님 조언
 > "ConcurrentHashMap을 사용하면 어느 정도 동시성을 보장합니다."
 
+**더 자세한 내용**: [09. Thread-Safe 컬렉션 (ConcurrentHashMap)](./09-concurrent-collections.md)에서 내부 동작 원리, 주요 메서드, 성능 비교를 확인하세요.
+
 ---
 
 ## 📋 Repository vs DAO
