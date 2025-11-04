@@ -1,6 +1,37 @@
 # 시퀀스 다이어그램
 
-이커머스 시스템의 API별 시퀀스 다이어그램입니다. 인프라 구성요소(MySQL, External API)를 명확히 구분하여 표현합니다.
+## ⚠️ Week 3 Implementation Notes
+
+**중요**: 이 시퀀스 다이어그램은 **Week 4 이후 데이터베이스 연동 시** 사용될 플로우입니다.
+
+### Week 3 (Step 5-6) 구현 시 차이점
+
+**Week 3에서는 MySQL 대신 In-Memory Repository를 사용합니다:**
+
+| 항목 | Week 4+ (다이어그램) | Week 3 (In-Memory) |
+|------|---------------------|-------------------|
+| **Database** | MySQL Database | ConcurrentHashMap (Repository 구현체) |
+| **Transaction** | @Transactional, BEGIN/COMMIT | 수동 관리 (없음) |
+| **Lock** | @Version (Optimistic), FOR UPDATE | synchronized, AtomicInteger |
+| **Fallback** | SQLException 처리 | Optional.empty() 처리 |
+
+**Week 3 적용 방법:**
+- 다이어그램의 "MySQL" 박스를 "InMemoryXxxRepository"로 읽으세요
+- 트랜잭션 블록은 Week 3에서 생략됩니다
+- 락 메커니즘은 synchronized 또는 AtomicInteger로 대체됩니다
+- 비즈니스 로직 플로우는 동일합니다
+
+**예시**: 주문 생성 시퀀스
+```
+Week 4+: OrderUseCase → MySQL (BEGIN) → ProductRepository → StockRepository → COMMIT
+Week 3:  OrderUseCase → InMemoryProductRepository → InMemoryOrderRepository
+```
+
+---
+
+## 이커머스 시스템의 API별 시퀀스 다이어그램 (Week 4+)
+
+인프라 구성요소(MySQL, External API)를 명확히 구분하여 표현합니다.
 
 ---
 
