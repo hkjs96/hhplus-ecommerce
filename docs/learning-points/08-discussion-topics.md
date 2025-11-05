@@ -143,25 +143,27 @@ public class OrderUseCase {
 
 ---
 
-### Q3. "UseCase에서 다른 UseCase를 호출하면 안 되는 이유는?"
+### Q3. "Application Service에서 다른 Application Service를 호출하면 안 되는 이유는?"
 
 **Short Answer:**
 순환 참조 위험과 책임 혼재 문제 때문입니다.
 
 **Detailed Explanation:**
 
+> **용어**: Application Layer의 Service를 "UseCase"라고도 부르지만, 레이어드 아키텍처에서는 "Application Service"가 정확한 표현입니다. ([02. UseCase 패턴](./02-usecase-pattern.md) 참조)
+
 **잘못된 설계 (❌):**
 ```java
 @Service
 @RequiredArgsConstructor
-public class OrderUseCase {
-    private final ProductUseCase productUseCase;  // ❌ UseCase가 다른 UseCase 의존
-    private final PaymentUseCase paymentUseCase;
+public class OrderService {
+    private final ProductService productService;  // ❌ Application Service가 다른 Application Service 의존
+    private final PaymentService paymentService;
 
     public OrderResponse createOrder(CreateOrderRequest request) {
-        // UseCase를 직접 호출
-        ProductResponse product = productUseCase.getProduct(request.getProductId());  // ❌
-        PaymentResponse payment = paymentUseCase.processPayment(...);  // ❌
+        // Application Service를 직접 호출
+        ProductResponse product = productService.getProduct(request.getProductId());  // ❌
+        PaymentResponse payment = paymentService.processPayment(...);  // ❌
 
         // ...
     }
@@ -169,11 +171,11 @@ public class OrderUseCase {
 
 @Service
 @RequiredArgsConstructor
-public class PaymentUseCase {
-    private final OrderUseCase orderUseCase;  // ❌ 순환 참조 발생 가능
+public class PaymentService {
+    private final OrderService orderService;  // ❌ 순환 참조 발생 가능
 
     public PaymentResponse processPayment(...) {
-        // OrderUseCase 호출...
+        // OrderService 호출...
     }
 }
 ```
@@ -186,9 +188,9 @@ public class PaymentUseCase {
 
 **올바른 설계 (✅):**
 ```java
-// DomainService 활용
+// DomainService 활용 (Domain Layer)
 @Service
-public class OrderService {  // Domain Layer
+public class OrderDomainService {  // Domain Layer
     public void validateOrder(Order order, Product product) {
         // 도메인 규칙 검증
     }
@@ -196,9 +198,9 @@ public class OrderService {  // Domain Layer
 
 @Service
 @RequiredArgsConstructor
-public class OrderUseCase {  // Application Layer
+public class OrderService {  // Application Layer (= Application Service)
     private final ProductRepository productRepository;  // Repository 직접 사용
-    private final OrderService orderService;  // DomainService 사용
+    private final OrderDomainService orderDomainService;  // DomainService 사용
 
     public OrderResponse createOrder(CreateOrderRequest request) {
         // Repository를 직접 호출
@@ -208,15 +210,20 @@ public class OrderUseCase {  // Application Layer
         Order order = Order.create(request);
 
         // DomainService 호출
-        orderService.validateOrder(order, product);
+        orderDomainService.validateOrder(order, product);
 
         // ...
     }
 }
 ```
 
+**핵심:**
+- ❌ Application Service → Application Service (순환 참조 위험)
+- ✅ Application Service → Repository (직접 호출)
+- ✅ Application Service → DomainService (도메인 로직 위임)
+
 **토론 포인트:**
-- "UseCase와 DomainService의 차이는 무엇인가요?"
+- "Application Service와 DomainService의 차이는 무엇인가요?"
 - "여러 도메인을 조합해야 할 때는 어떻게 하나요?"
 
 ---
@@ -290,14 +297,23 @@ public class ProductDetailUseCase {
 ### Q5. "UseCase와 Service의 차이는 무엇인가요?"
 
 **Short Answer:**
-UseCase는 Application Layer의 워크플로우 조율자, Service는 Domain Layer의 비즈니스 로직 담당자입니다.
+레이어드 아키텍처에서 "UseCase"와 "Application Service"는 같은 개념입니다. 반면 "DomainService"는 Domain Layer의 비즈니스 로직을 담당합니다.
 
 **Detailed Explanation:**
 
+**핵심 정리:**
+```
+Application Service = UseCase (같은 역할, 다른 이름)
+  vs
+DomainService (Domain Layer의 비즈니스 로직)
+```
+
+> **참고**: [02. UseCase 패턴](./02-usecase-pattern.md)의 "UseCase in Layered Architecture" 섹션을 참조하세요.
+
 **비교표:**
 
-| 항목 | UseCase (Application) | DomainService (Domain) |
-|------|----------------------|------------------------|
+| 항목 | Application Service (= UseCase) | DomainService |
+|------|--------------------------------|---------------|
 | 위치 | Application Layer | Domain Layer |
 | 역할 | 워크플로우 조율 | 도메인 로직 |
 | 의존성 | Repository, DomainService | Entity, Value Object |
@@ -308,7 +324,7 @@ UseCase는 Application Layer의 워크플로우 조율자, Service는 Domain Lay
 ```java
 // DomainService (Domain Layer)
 @Service
-public class OrderService {
+public class OrderDomainService {
     /**
      * 여러 Entity를 조합한 도메인 로직
      * 외부 의존성 없음 (순수 비즈니스 로직)
@@ -332,14 +348,14 @@ public class OrderService {
     }
 }
 
-// UseCase (Application Layer)
+// Application Service (Application Layer)
 @Service
 @RequiredArgsConstructor
 @Transactional  // 트랜잭션 관리
-public class OrderUseCase {
+public class OrderService {
     private final ProductRepository productRepository;
     private final OrderRepository orderRepository;
-    private final OrderService orderService;  // DomainService 사용
+    private final OrderDomainService orderDomainService;  // DomainService 사용
 
     public OrderResponse createOrder(CreateOrderRequest request) {
         // 1. 데이터 조회 (Repository)
@@ -352,8 +368,8 @@ public class OrderUseCase {
         Order order = Order.create(request.getUserId(), request.getItems());
 
         // 2. 도메인 로직 (DomainService)
-        orderService.validateStock(products, order.getItems());
-        long totalAmount = orderService.calculateTotalAmount(products, order.getItems());
+        orderDomainService.validateStock(products, order.getItems());
+        long totalAmount = orderDomainService.calculateTotalAmount(products, order.getItems());
         order.setTotalAmount(totalAmount);
 
         // 3. 재고 차감 (Entity)
@@ -370,8 +386,13 @@ public class OrderUseCase {
 }
 ```
 
+**핵심 역할 분리:**
+- **Application Service (OrderService)**: 흐름 조율 (조회 → 검증 → 계산 → 저장)
+- **DomainService (OrderDomainService)**: 순수 비즈니스 로직 (검증, 계산)
+- **Entity (Product)**: 자신의 상태 변경 (재고 차감)
+
 **토론 포인트:**
-- "DomainService 없이 UseCase만으로 구현하면 안 되나요?"
+- "DomainService 없이 Application Service만으로 구현하면 안 되나요?"
 - "언제 DomainService를 만들어야 하나요?"
 
 ---

@@ -69,8 +69,10 @@ public class ProductController {
 - DTO 변환 (Domain Entity ↔ Response DTO)
 
 **포함 클래스:**
-- UseCase
+- Application Service (= UseCase)
 - DTO (Request/Response)
+
+> **참고**: 레이어드 아키텍처에서 "Application Service"와 "UseCase"는 같은 개념입니다. Week 3에서는 전통적인 "Service" 네이밍을 사용합니다. (예: `ProductService`, `OrderService`)
 
 **예시:**
 ```java
