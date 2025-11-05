@@ -104,6 +104,26 @@ public class Coupon {
         return issuedQuantity.get();
     }
 
+    /**
+     * 만료일 조회 (expiresAt getter)
+     */
+    public LocalDateTime getExpiresAt() {
+        return this.endDate;
+    }
+
+    /**
+     * 쿠폰 발급 가능 여부 검증
+     * - 만료 여부만 확인 (수량은 tryIssue()에서 확인)
+     */
+    public void validateIssuable() {
+        if (isExpired(LocalDateTime.now())) {
+            throw new BusinessException(
+                ErrorCode.EXPIRED_COUPON,
+                "만료된 쿠폰입니다. couponId: " + this.id
+            );
+        }
+    }
+
     // ====================================
     // Validation Methods
     // ====================================
