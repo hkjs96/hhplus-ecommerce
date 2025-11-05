@@ -14,11 +14,6 @@ import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.*;
 
-/**
- * UserService 단위 테스트
- * - 실제 InMemory Repository 사용 (Week 3 권장 방식)
- * - 포인트 충전 비즈니스 로직 검증
- */
 class UserServiceTest {
 
     private UserRepository userRepository;
@@ -37,7 +32,6 @@ class UserServiceTest {
         String userId = "U001";
         User user = User.create(userId, "test@example.com", "김항해");
 
-        // 실제 Repository에 데이터 저장
         userRepository.save(user);
 
         // When
@@ -56,8 +50,6 @@ class UserServiceTest {
         // Given
         String userId = "INVALID";
 
-        // 사용자를 저장하지 않음 (존재하지 않는 상태)
-
         // When & Then
         assertThatThrownBy(() -> userService.getUser(userId))
                 .isInstanceOf(BusinessException.class)
@@ -72,7 +64,6 @@ class UserServiceTest {
         User user = User.create(userId, "test@example.com", "김항해");
         ChargeBalanceRequest request = new ChargeBalanceRequest(500000L);
 
-        // 실제 Repository에 데이터 저장
         userRepository.save(user);
 
         // When
@@ -84,7 +75,6 @@ class UserServiceTest {
         assertThat(response.getChargedAmount()).isEqualTo(500000L);
         assertThat(response.getChargedAt()).isNotNull();
 
-        // Repository에서 다시 조회하여 실제 저장 확인
         User savedUser = userRepository.findById(userId).orElseThrow();
         assertThat(savedUser.getBalance()).isEqualTo(500000L);
     }
@@ -95,8 +85,6 @@ class UserServiceTest {
         // Given
         String userId = "INVALID";
         ChargeBalanceRequest request = new ChargeBalanceRequest(500000L);
-
-        // 사용자를 저장하지 않음 (존재하지 않는 상태)
 
         // When & Then
         assertThatThrownBy(() -> userService.chargeBalance(userId, request))
@@ -112,7 +100,6 @@ class UserServiceTest {
         User user = User.create(userId, "test@example.com", "김항해");
         ChargeBalanceRequest request = new ChargeBalanceRequest(0L);
 
-        // 실제 Repository에 데이터 저장
         userRepository.save(user);
 
         // When & Then
@@ -129,7 +116,6 @@ class UserServiceTest {
         User user = User.create(userId, "test@example.com", "김항해");
         ChargeBalanceRequest request = new ChargeBalanceRequest(-1000L);
 
-        // 실제 Repository에 데이터 저장
         userRepository.save(user);
 
         // When & Then
@@ -145,28 +131,25 @@ class UserServiceTest {
         String userId = "U001";
         User user = User.create(userId, "test@example.com", "김항해");
 
-        // 실제 Repository에 데이터 저장
         userRepository.save(user);
 
-        // When - 첫 번째 충전
+        // When
         ChargeBalanceRequest request1 = new ChargeBalanceRequest(500000L);
         ChargeBalanceResponse response1 = userService.chargeBalance(userId, request1);
 
-        // Then - 첫 번째 충전 확인
+        // Then
         assertThat(response1.getBalance()).isEqualTo(500000L);
 
-        // Repository에서 다시 조회하여 실제 저장 확인
         User savedUser1 = userRepository.findById(userId).orElseThrow();
         assertThat(savedUser1.getBalance()).isEqualTo(500000L);
 
-        // When - 두 번째 충전
+        // When
         ChargeBalanceRequest request2 = new ChargeBalanceRequest(300000L);
         ChargeBalanceResponse response2 = userService.chargeBalance(userId, request2);
 
-        // Then - 두 번째 충전 확인 (누적)
+        // Then
         assertThat(response2.getBalance()).isEqualTo(800000L);
 
-        // Repository에서 다시 조회하여 실제 저장 확인
         User savedUser2 = userRepository.findById(userId).orElseThrow();
         assertThat(savedUser2.getBalance()).isEqualTo(800000L);
     }

@@ -17,11 +17,6 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.*;
 
-/**
- * ProductService 단위 테스트
- * - 실제 InMemory Repository 사용 (Week 3 권장 방식)
- * - 비즈니스 플로우 검증
- */
 class ProductServiceTest {
 
     private ProductRepository productRepository;
@@ -40,7 +35,6 @@ class ProductServiceTest {
         String productId = "P001";
         Product product = Product.create(productId, "노트북", "고성능 노트북", 890000L, "전자제품", 10);
 
-        // 실제 Repository에 데이터 저장
         productRepository.save(product);
 
         // When
@@ -59,8 +53,6 @@ class ProductServiceTest {
         // Given
         String productId = "INVALID";
 
-        // 상품을 저장하지 않음 (존재하지 않는 상태)
-
         // When & Then
         assertThatThrownBy(() -> productService.getProduct(productId))
                 .isInstanceOf(BusinessException.class)
@@ -75,7 +67,6 @@ class ProductServiceTest {
         Product p1 = new Product("P001", "노트북", "고성능 노트북", 890000L, "전자제품", 10, now, now);
         Product p2 = new Product("P002", "키보드", "기계식 키보드", 120000L, "주변기기", 50, now, now);
 
-        // 실제 Repository에 데이터 저장
         productRepository.save(p1);
         productRepository.save(p2);
 
@@ -96,7 +87,6 @@ class ProductServiceTest {
         Product p2 = new Product("P002", "키보드", "기계식 키보드", 120000L, "주변기기", 50, now, now);
         Product p3 = new Product("P003", "마우스", "무선 마우스", 45000L, "주변기기", 30, now, now);
 
-        // 실제 Repository에 데이터 저장
         productRepository.save(p1);
         productRepository.save(p2);
         productRepository.save(p3);
@@ -120,7 +110,6 @@ class ProductServiceTest {
         Product p2 = new Product("P002", "키보드", "기계식 키보드", 120000L, "주변기기", 50, now, now);
         Product p3 = new Product("P003", "마우스", "무선 마우스", 45000L, "주변기기", 30, now, now);
 
-        // 실제 Repository에 데이터 저장
         productRepository.save(p1);
         productRepository.save(p2);
         productRepository.save(p3);
@@ -132,7 +121,7 @@ class ProductServiceTest {
         assertThat(response.getProducts()).hasSize(3);
         assertThat(response.getProducts())
                 .extracting("price")
-                .containsExactly(45000L, 120000L, 890000L);  // 가격 오름차순
+                .containsExactly(45000L, 120000L, 890000L);
     }
 
     @Test
@@ -144,7 +133,5 @@ class ProductServiceTest {
         // Then
         assertThat(response.getPeriod()).isEqualTo("3days");
         assertThat(response.getProducts()).isEmpty();
-
-        // Week 3에서는 주문 데이터가 없으므로 빈 리스트 반환
     }
 }

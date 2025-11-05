@@ -18,11 +18,6 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.*;
 
-/**
- * CouponService 단위 테스트
- * - 실제 InMemory Repository 사용 (Week 3 권장 방식)
- * - 선착순 쿠폰 발급 비즈니스 로직 검증 (Step 6 핵심)
- */
 class CouponServiceTest {
 
     private CouponRepository couponRepository;
@@ -49,7 +44,6 @@ class CouponServiceTest {
         Coupon coupon = Coupon.create(couponId, "10% 할인", 10, 100, now, now.plusDays(7));
         IssueCouponRequest request = new IssueCouponRequest(userId);
 
-        // 실제 Repository에 데이터 저장
         userRepository.save(user);
         couponRepository.save(coupon);
 
@@ -61,13 +55,10 @@ class CouponServiceTest {
         assertThat(response.getCouponName()).isEqualTo("10% 할인");
         assertThat(response.getDiscountRate()).isEqualTo(10);
         assertThat(response.getStatus()).isEqualTo("AVAILABLE");
-        assertThat(response.getRemainingQuantity()).isEqualTo(99);  // 100 - 1
+        assertThat(response.getRemainingQuantity()).isEqualTo(99);
 
-        // 쿠폰 수량 감소 확인 (Repository에서 다시 조회)
         Coupon savedCoupon = couponRepository.findById(couponId).orElseThrow();
         assertThat(savedCoupon.getIssuedQuantityValue()).isEqualTo(1);
-
-        // UserCoupon이 실제로 저장되었는지 확인
         assertThat(userCouponRepository.existsByUserIdAndCouponId(userId, couponId)).isTrue();
     }
 
@@ -78,8 +69,6 @@ class CouponServiceTest {
         String userId = "INVALID";
         String couponId = "C001";
         IssueCouponRequest request = new IssueCouponRequest(userId);
-
-        // 사용자를 저장하지 않음 (존재하지 않는 상태)
 
         // When & Then
         assertThatThrownBy(() -> couponService.issueCoupon(couponId, request))
@@ -96,7 +85,6 @@ class CouponServiceTest {
         User user = User.create(userId, "test@example.com", "김항해");
         IssueCouponRequest request = new IssueCouponRequest(userId);
 
-        // 사용자만 저장, 쿠폰은 저장하지 않음
         userRepository.save(user);
 
         // When & Then
@@ -113,11 +101,9 @@ class CouponServiceTest {
         String couponId = "C001";
         User user = User.create(userId, "test@example.com", "김항해");
         LocalDateTime now = LocalDateTime.now();
-        // 이미 만료된 쿠폰
         Coupon coupon = Coupon.create(couponId, "10% 할인", 10, 100, now.minusDays(10), now.minusDays(1));
         IssueCouponRequest request = new IssueCouponRequest(userId);
 
-        // 실제 Repository에 데이터 저장
         userRepository.save(user);
         couponRepository.save(coupon);
 
@@ -138,11 +124,9 @@ class CouponServiceTest {
         Coupon coupon = Coupon.create(couponId, "10% 할인", 10, 100, now, now.plusDays(7));
         IssueCouponRequest request = new IssueCouponRequest(userId);
 
-        // 실제 Repository에 데이터 저장
         userRepository.save(user);
         couponRepository.save(coupon);
 
-        // 이미 발급받은 상태 만들기
         String userCouponId = "UC001";
         UserCoupon userCoupon = UserCoupon.create(userCouponId, userId, couponId, coupon.getExpiresAt());
         userCouponRepository.save(userCoupon);
@@ -161,13 +145,11 @@ class CouponServiceTest {
         String couponId = "C001";
         User user = User.create(userId, "test@example.com", "김항해");
         LocalDateTime now = LocalDateTime.now();
-        Coupon coupon = Coupon.create(couponId, "10% 할인", 10, 1, now, now.plusDays(7));  // 총 1개
+        Coupon coupon = Coupon.create(couponId, "10% 할인", 10, 1, now, now.plusDays(7));
         IssueCouponRequest request = new IssueCouponRequest(userId);
 
-        // 이미 1개 발급됨 (수량 소진)
         coupon.tryIssue();
 
-        // 실제 Repository에 데이터 저장
         userRepository.save(user);
         couponRepository.save(coupon);
 
@@ -188,7 +170,6 @@ class CouponServiceTest {
         Coupon coupon = Coupon.create(couponId, "10% 할인", 10, 100, now, now.plusDays(7));
         UserCoupon userCoupon = UserCoupon.create("UC001", userId, couponId, coupon.getExpiresAt());
 
-        // 실제 Repository에 데이터 저장
         userRepository.save(user);
         couponRepository.save(coupon);
         userCouponRepository.save(userCoupon);
@@ -221,16 +202,15 @@ class CouponServiceTest {
 
         UserCoupon userCoupon1 = UserCoupon.create("UC001", userId, "C001", coupon1.getExpiresAt());
         UserCoupon userCoupon2 = UserCoupon.create("UC002", userId, "C002", coupon2.getExpiresAt());
-        userCoupon2.use();  // 사용됨
+        userCoupon2.use();
 
-        // 실제 Repository에 데이터 저장
         userRepository.save(user);
         couponRepository.save(coupon1);
         couponRepository.save(coupon2);
         userCouponRepository.save(userCoupon1);
         userCouponRepository.save(userCoupon2);
 
-        // When - AVAILABLE 상태만 조회
+        // When
         UserCouponListResponse response = couponService.getUserCoupons(userId, "AVAILABLE");
 
         // Then
@@ -243,8 +223,6 @@ class CouponServiceTest {
     void getUserCoupons_실패_존재하지않는사용자() {
         // Given
         String userId = "INVALID";
-
-        // 사용자를 저장하지 않음 (존재하지 않는 상태)
 
         // When & Then
         assertThatThrownBy(() -> couponService.getUserCoupons(userId, null))
@@ -259,7 +237,6 @@ class CouponServiceTest {
         String userId = "U001";
         User user = User.create(userId, "test@example.com", "김항해");
 
-        // 실제 Repository에 사용자만 저장, 쿠폰은 저장하지 않음
         userRepository.save(user);
 
         // When
