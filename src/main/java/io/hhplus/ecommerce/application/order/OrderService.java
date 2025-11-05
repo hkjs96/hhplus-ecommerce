@@ -143,6 +143,13 @@ public class OrderService {
             );
         }
 
+        if (order.getStatus() != io.hhplus.ecommerce.domain.order.OrderStatus.PENDING) {
+            throw new BusinessException(
+                    ErrorCode.INVALID_ORDER_STATUS,
+                    "결제할 수 없는 주문 상태입니다. 현재 상태: " + order.getStatus()
+            );
+        }
+
         if (user.getBalance() < order.getTotalAmount()) {
             throw new BusinessException(
                     ErrorCode.INSUFFICIENT_BALANCE,
