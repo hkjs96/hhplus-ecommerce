@@ -6,40 +6,37 @@ import io.hhplus.ecommerce.common.exception.ErrorCode;
 import io.hhplus.ecommerce.domain.coupon.*;
 import io.hhplus.ecommerce.domain.user.User;
 import io.hhplus.ecommerce.domain.user.UserRepository;
+import io.hhplus.ecommerce.infrastructure.persistence.coupon.InMemoryCouponRepository;
+import io.hhplus.ecommerce.infrastructure.persistence.coupon.InMemoryUserCouponRepository;
+import io.hhplus.ecommerce.infrastructure.persistence.user.InMemoryUserRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
 
 /**
  * CouponService 단위 테스트
- * - Mock Repository 사용
+ * - 실제 InMemory Repository 사용 (Week 3 권장 방식)
  * - 선착순 쿠폰 발급 비즈니스 로직 검증 (Step 6 핵심)
  */
-@ExtendWith(MockitoExtension.class)
 class CouponServiceTest {
 
-    @Mock
     private CouponRepository couponRepository;
-
-    @Mock
     private UserCouponRepository userCouponRepository;
-
-    @Mock
     private UserRepository userRepository;
-
-    @InjectMocks
     private CouponService couponService;
+
+    @BeforeEach
+    void setUp() {
+        couponRepository = new InMemoryCouponRepository();
+        userCouponRepository = new InMemoryUserCouponRepository();
+        userRepository = new InMemoryUserRepository();
+        couponService = new CouponService(couponRepository, userCouponRepository, userRepository);
+    }
 
     @Test
     @DisplayName("쿠폰 발급 성공")
@@ -52,16 +49,9 @@ class CouponServiceTest {
         Coupon coupon = Coupon.create(couponId, "10% 할인", 10, 100, now, now.plusDays(7));
         IssueCouponRequest request = new IssueCouponRequest(userId);
 
-        when(userRepository.findById(userId))
-                .thenReturn(Optional.of(user));
-        when(couponRepository.findById(couponId))
-                .thenReturn(Optional.of(coupon));
-        when(userCouponRepository.existsByUserIdAndCouponId(userId, couponId))
-                .thenReturn(false);
-        when(userCouponRepository.save(any(UserCoupon.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
-        when(couponRepository.save(any(Coupon.class)))
-                .thenReturn(coupon);
+        // 실제 Repository에 데이터 저장
+        userRepository.save(user);
+        couponRepository.save(coupon);
 
         // When
         IssueCouponResponse response = couponService.issueCoupon(couponId, request);
@@ -73,14 +63,12 @@ class CouponServiceTest {
         assertThat(response.getStatus()).isEqualTo("AVAILABLE");
         assertThat(response.getRemainingQuantity()).isEqualTo(99);  // 100 - 1
 
-        // 쿠폰 수량 감소 확인
-        assertThat(coupon.getIssuedQuantityValue()).isEqualTo(1);
+        // 쿠폰 수량 감소 확인 (Repository에서 다시 조회)
+        Coupon savedCoupon = couponRepository.findById(couponId).orElseThrow();
+        assertThat(savedCoupon.getIssuedQuantityValue()).isEqualTo(1);
 
-        verify(userRepository).findById(userId);
-        verify(couponRepository).findById(couponId);
-        verify(userCouponRepository).existsByUserIdAndCouponId(userId, couponId);
-        verify(userCouponRepository).save(any(UserCoupon.class));
-        verify(couponRepository).save(coupon);
+        // UserCoupon이 실제로 저장되었는지 확인
+        assertThat(userCouponRepository.existsByUserIdAndCouponId(userId, couponId)).isTrue();
     }
 
     @Test
@@ -91,16 +79,12 @@ class CouponServiceTest {
         String couponId = "C001";
         IssueCouponRequest request = new IssueCouponRequest(userId);
 
-        when(userRepository.findById(userId))
-                .thenReturn(Optional.empty());
+        // 사용자를 저장하지 않음 (존재하지 않는 상태)
 
         // When & Then
         assertThatThrownBy(() -> couponService.issueCoupon(couponId, request))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.USER_NOT_FOUND);
-
-        verify(userRepository).findById(userId);
-        verify(couponRepository, never()).findById(any());
     }
 
     @Test
@@ -112,18 +96,13 @@ class CouponServiceTest {
         User user = User.create(userId, "test@example.com", "김항해");
         IssueCouponRequest request = new IssueCouponRequest(userId);
 
-        when(userRepository.findById(userId))
-                .thenReturn(Optional.of(user));
-        when(couponRepository.findById(couponId))
-                .thenReturn(Optional.empty());
+        // 사용자만 저장, 쿠폰은 저장하지 않음
+        userRepository.save(user);
 
         // When & Then
         assertThatThrownBy(() -> couponService.issueCoupon(couponId, request))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_COUPON);
-
-        verify(userRepository).findById(userId);
-        verify(couponRepository).findById(couponId);
     }
 
     @Test
@@ -138,19 +117,14 @@ class CouponServiceTest {
         Coupon coupon = Coupon.create(couponId, "10% 할인", 10, 100, now.minusDays(10), now.minusDays(1));
         IssueCouponRequest request = new IssueCouponRequest(userId);
 
-        when(userRepository.findById(userId))
-                .thenReturn(Optional.of(user));
-        when(couponRepository.findById(couponId))
-                .thenReturn(Optional.of(coupon));
+        // 실제 Repository에 데이터 저장
+        userRepository.save(user);
+        couponRepository.save(coupon);
 
         // When & Then
         assertThatThrownBy(() -> couponService.issueCoupon(couponId, request))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.EXPIRED_COUPON);
-
-        verify(userRepository).findById(userId);
-        verify(couponRepository).findById(couponId);
-        verify(userCouponRepository, never()).existsByUserIdAndCouponId(any(), any());
     }
 
     @Test
@@ -164,22 +138,19 @@ class CouponServiceTest {
         Coupon coupon = Coupon.create(couponId, "10% 할인", 10, 100, now, now.plusDays(7));
         IssueCouponRequest request = new IssueCouponRequest(userId);
 
-        when(userRepository.findById(userId))
-                .thenReturn(Optional.of(user));
-        when(couponRepository.findById(couponId))
-                .thenReturn(Optional.of(coupon));
-        when(userCouponRepository.existsByUserIdAndCouponId(userId, couponId))
-                .thenReturn(true);  // 이미 발급받음
+        // 실제 Repository에 데이터 저장
+        userRepository.save(user);
+        couponRepository.save(coupon);
+
+        // 이미 발급받은 상태 만들기
+        String userCouponId = "UC001";
+        UserCoupon userCoupon = UserCoupon.create(userCouponId, userId, couponId, coupon.getExpiresAt());
+        userCouponRepository.save(userCoupon);
 
         // When & Then
         assertThatThrownBy(() -> couponService.issueCoupon(couponId, request))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.ALREADY_ISSUED_COUPON);
-
-        verify(userRepository).findById(userId);
-        verify(couponRepository).findById(couponId);
-        verify(userCouponRepository).existsByUserIdAndCouponId(userId, couponId);
-        verify(userCouponRepository, never()).save(any());
     }
 
     @Test
@@ -196,22 +167,14 @@ class CouponServiceTest {
         // 이미 1개 발급됨 (수량 소진)
         coupon.tryIssue();
 
-        when(userRepository.findById(userId))
-                .thenReturn(Optional.of(user));
-        when(couponRepository.findById(couponId))
-                .thenReturn(Optional.of(coupon));
-        when(userCouponRepository.existsByUserIdAndCouponId(userId, couponId))
-                .thenReturn(false);
+        // 실제 Repository에 데이터 저장
+        userRepository.save(user);
+        couponRepository.save(coupon);
 
         // When & Then
         assertThatThrownBy(() -> couponService.issueCoupon(couponId, request))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.COUPON_SOLD_OUT);
-
-        verify(userRepository).findById(userId);
-        verify(couponRepository).findById(couponId);
-        verify(userCouponRepository).existsByUserIdAndCouponId(userId, couponId);
-        verify(userCouponRepository, never()).save(any());
     }
 
     @Test
@@ -225,12 +188,10 @@ class CouponServiceTest {
         Coupon coupon = Coupon.create(couponId, "10% 할인", 10, 100, now, now.plusDays(7));
         UserCoupon userCoupon = UserCoupon.create("UC001", userId, couponId, coupon.getExpiresAt());
 
-        when(userRepository.findById(userId))
-                .thenReturn(Optional.of(user));
-        when(userCouponRepository.findByUserId(userId))
-                .thenReturn(List.of(userCoupon));
-        when(couponRepository.findById(couponId))
-                .thenReturn(Optional.of(coupon));
+        // 실제 Repository에 데이터 저장
+        userRepository.save(user);
+        couponRepository.save(coupon);
+        userCouponRepository.save(userCoupon);
 
         // When
         UserCouponListResponse response = couponService.getUserCoupons(userId, null);
@@ -245,10 +206,6 @@ class CouponServiceTest {
         assertThat(couponResponse.getCouponName()).isEqualTo("10% 할인");
         assertThat(couponResponse.getDiscountRate()).isEqualTo(10);
         assertThat(couponResponse.getStatus()).isEqualTo("AVAILABLE");
-
-        verify(userRepository).findById(userId);
-        verify(userCouponRepository).findByUserId(userId);
-        verify(couponRepository).findById(couponId);
     }
 
     @Test
@@ -266,12 +223,12 @@ class CouponServiceTest {
         UserCoupon userCoupon2 = UserCoupon.create("UC002", userId, "C002", coupon2.getExpiresAt());
         userCoupon2.use();  // 사용됨
 
-        when(userRepository.findById(userId))
-                .thenReturn(Optional.of(user));
-        when(userCouponRepository.findByUserId(userId))
-                .thenReturn(List.of(userCoupon1, userCoupon2));
-        when(couponRepository.findById("C001"))
-                .thenReturn(Optional.of(coupon1));
+        // 실제 Repository에 데이터 저장
+        userRepository.save(user);
+        couponRepository.save(coupon1);
+        couponRepository.save(coupon2);
+        userCouponRepository.save(userCoupon1);
+        userCouponRepository.save(userCoupon2);
 
         // When - AVAILABLE 상태만 조회
         UserCouponListResponse response = couponService.getUserCoupons(userId, "AVAILABLE");
@@ -279,11 +236,6 @@ class CouponServiceTest {
         // Then
         assertThat(response.getCoupons()).hasSize(1);
         assertThat(response.getCoupons().get(0).getStatus()).isEqualTo("AVAILABLE");
-
-        verify(userRepository).findById(userId);
-        verify(userCouponRepository).findByUserId(userId);
-        verify(couponRepository).findById("C001");
-        verify(couponRepository, never()).findById("C002");  // USED는 필터링됨
     }
 
     @Test
@@ -292,16 +244,12 @@ class CouponServiceTest {
         // Given
         String userId = "INVALID";
 
-        when(userRepository.findById(userId))
-                .thenReturn(Optional.empty());
+        // 사용자를 저장하지 않음 (존재하지 않는 상태)
 
         // When & Then
         assertThatThrownBy(() -> couponService.getUserCoupons(userId, null))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.USER_NOT_FOUND);
-
-        verify(userRepository).findById(userId);
-        verify(userCouponRepository, never()).findByUserId(any());
     }
 
     @Test
@@ -311,10 +259,8 @@ class CouponServiceTest {
         String userId = "U001";
         User user = User.create(userId, "test@example.com", "김항해");
 
-        when(userRepository.findById(userId))
-                .thenReturn(Optional.of(user));
-        when(userCouponRepository.findByUserId(userId))
-                .thenReturn(List.of());
+        // 실제 Repository에 사용자만 저장, 쿠폰은 저장하지 않음
+        userRepository.save(user);
 
         // When
         UserCouponListResponse response = couponService.getUserCoupons(userId, null);
@@ -323,8 +269,5 @@ class CouponServiceTest {
         assertThat(response.getUserId()).isEqualTo(userId);
         assertThat(response.getCoupons()).isEmpty();
         assertThat(response.getTotalCount()).isEqualTo(0);
-
-        verify(userRepository).findById(userId);
-        verify(userCouponRepository).findByUserId(userId);
     }
 }
