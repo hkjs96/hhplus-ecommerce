@@ -57,4 +57,11 @@ public class InMemoryProductRepository implements ProductRepository {
     public boolean existsById(String id) {
         return storage.containsKey(id);
     }
+
+    /**
+     * 테스트용: 모든 데이터 초기화
+     */
+    public void clear() {
+        storage.clear();
+    }
 }

@@ -40,7 +40,8 @@ public class ProductService {
 
         if (sort != null) {
             productStream = switch (sort) {
-                case "price" -> productStream.sorted(Comparator.comparing(Product::getPrice));
+                case "price", "price_asc" -> productStream.sorted(Comparator.comparing(Product::getPrice));
+                case "price_desc" -> productStream.sorted(Comparator.comparing(Product::getPrice).reversed());
                 case "newest" -> productStream.sorted(Comparator.comparing(Product::getCreatedAt).reversed());
                 default -> productStream;
             };

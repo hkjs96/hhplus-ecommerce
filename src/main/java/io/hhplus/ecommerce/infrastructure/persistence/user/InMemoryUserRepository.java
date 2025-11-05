@@ -69,4 +69,12 @@ public class InMemoryUserRepository implements UserRepository {
     public boolean existsByEmail(String email) {
         return emailIndex.containsKey(email);
     }
+
+    /**
+     * 테스트용: 모든 데이터 초기화
+     */
+    public void clear() {
+        storage.clear();
+        emailIndex.clear();
+    }
 }

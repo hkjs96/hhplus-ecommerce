@@ -1,0 +1,127 @@
+package io.hhplus.ecommerce.presentation.api.user;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.hhplus.ecommerce.application.user.dto.ChargeBalanceRequest;
+import io.hhplus.ecommerce.domain.user.User;
+import io.hhplus.ecommerce.domain.user.UserRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+@SpringBootTest
+@AutoConfigureMockMvc
+class UserControllerIntegrationTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @BeforeEach
+    void setUp() {
+        // Clear existing data
+        if (userRepository instanceof io.hhplus.ecommerce.infrastructure.persistence.user.InMemoryUserRepository) {
+            ((io.hhplus.ecommerce.infrastructure.persistence.user.InMemoryUserRepository) userRepository).clear();
+        }
+
+        User user = User.create("U001", "test@example.com", "김항해");
+        user.charge(100000L);
+        userRepository.save(user);
+    }
+
+    @Test
+    @DisplayName("사용자 조회 API - 성공")
+    void getUser_성공() throws Exception {
+        mockMvc.perform(get("/api/users/U001"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.userId").value("U001"))
+                .andExpect(jsonPath("$.email").value("test@example.com"))
+                .andExpect(jsonPath("$.username").value("김항해"))
+                .andExpect(jsonPath("$.balance").value(100000L));
+    }
+
+    @Test
+    @DisplayName("사용자 조회 API - 존재하지 않는 사용자")
+    void getUser_실패_존재하지않는사용자() throws Exception {
+        mockMvc.perform(get("/api/users/INVALID_USER"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("U001"));
+    }
+
+    @Test
+    @DisplayName("잔액 충전 API - 성공")
+    void chargeBalance_성공() throws Exception {
+        // Given
+        ChargeBalanceRequest request = new ChargeBalanceRequest(50000L);
+
+        // When & Then
+        mockMvc.perform(post("/api/users/U001/balance/charge")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.userId").value("U001"))
+                .andExpect(jsonPath("$.balance").value(150000L))
+                .andExpect(jsonPath("$.chargedAmount").value(50000L));
+
+        // Verify balance updated in repository
+        User user = userRepository.findById("U001").orElseThrow();
+        assertThat(user.getBalance()).isEqualTo(150000L);
+    }
+
+    @Test
+    @DisplayName("잔액 충전 API - 음수 금액")
+    void chargeBalance_실패_음수금액() throws Exception {
+        // Given
+        ChargeBalanceRequest request = new ChargeBalanceRequest(-10000L);
+
+        // When & Then
+        mockMvc.perform(post("/api/users/U001/balance/charge")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("U002"));
+    }
+
+    @Test
+    @DisplayName("잔액 충전 API - 0원 충전")
+    void chargeBalance_실패_0원충전() throws Exception {
+        // Given
+        ChargeBalanceRequest request = new ChargeBalanceRequest(0L);
+
+        // When & Then
+        mockMvc.perform(post("/api/users/U001/balance/charge")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("U002"));
+    }
+
+    @Test
+    @DisplayName("잔액 충전 API - 존재하지 않는 사용자")
+    void chargeBalance_실패_존재하지않는사용자() throws Exception {
+        // Given
+        ChargeBalanceRequest request = new ChargeBalanceRequest(50000L);
+
+        // When & Then
+        mockMvc.perform(post("/api/users/INVALID_USER/balance/charge")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("U001"));
+    }
+}
