@@ -143,10 +143,6 @@ public class Coupon {
         this.issuedQuantity = new AtomicInteger(0);
     }
 
-    /**
-     * CAS (Compare-And-Swap) 기반 동시성 제어
-     * Lock 없이 원자적 연산으로 안전하게 증가
-     */
     public boolean tryIssue() {
         while (true) {
             int current = issuedQuantity.get();

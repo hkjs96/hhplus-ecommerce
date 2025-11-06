@@ -7,10 +7,6 @@ import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.*;
 
-/**
- * Product Entity 단위 테스트
- * Week 3: 핵심 비즈니스 로직 테스트 (재고 차감/복구)
- */
 class ProductTest {
 
     @Test
@@ -121,5 +117,87 @@ class ProductTest {
 
         // When & Then
         assertThat(product.hasEnoughStock(11)).isFalse();
+    }
+
+    @Test
+    @DisplayName("상품 생성 실패 - 가격이 null")
+    void create_가격null_예외발생() {
+        // When & Then
+        assertThatThrownBy(() -> Product.create("P001", "노트북", "고성능 노트북", null, "전자제품", 10))
+            .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);
+    }
+
+    @Test
+    @DisplayName("상품 생성 실패 - 가격이 0")
+    void create_가격0_예외발생() {
+        // When & Then
+        assertThatThrownBy(() -> Product.create("P001", "노트북", "고성능 노트북", 0L, "전자제품", 10))
+            .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);
+    }
+
+    @Test
+    @DisplayName("상품 생성 실패 - 가격이 음수")
+    void create_가격음수_예외발생() {
+        // When & Then
+        assertThatThrownBy(() -> Product.create("P001", "노트북", "고성능 노트북", -1000L, "전자제품", 10))
+            .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);
+    }
+
+    @Test
+    @DisplayName("상품 생성 실패 - 재고가 null")
+    void create_재고null_예외발생() {
+        // When & Then
+        assertThatThrownBy(() -> Product.create("P001", "노트북", "고성능 노트북", 890000L, "전자제품", null))
+            .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);
+    }
+
+    @Test
+    @DisplayName("상품 생성 실패 - 재고가 음수")
+    void create_재고음수_예외발생() {
+        // When & Then
+        assertThatThrownBy(() -> Product.create("P001", "노트북", "고성능 노트북", 890000L, "전자제품", -1))
+            .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);
+    }
+
+    @Test
+    @DisplayName("상품 업데이트 성공 - 가격 변경")
+    void update_가격변경_성공() {
+        // Given
+        Product product = Product.create("P001", "노트북", "고성능 노트북", 890000L, "전자제품", 10);
+
+        // When
+        product.update(null, null, 950000L, null);
+
+        // Then
+        assertThat(product.getPrice()).isEqualTo(950000L);
+    }
+
+    @Test
+    @DisplayName("상품 업데이트 실패 - 가격이 0")
+    void update_가격0_예외발생() {
+        // Given
+        Product product = Product.create("P001", "노트북", "고성능 노트북", 890000L, "전자제품", 10);
+
+        // When & Then
+        assertThatThrownBy(() -> product.update(null, null, 0L, null))
+            .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);
+    }
+
+    @Test
+    @DisplayName("상품 업데이트 실패 - 가격이 음수")
+    void update_가격음수_예외발생() {
+        // Given
+        Product product = Product.create("P001", "노트북", "고성능 노트북", 890000L, "전자제품", 10);
+
+        // When & Then
+        assertThatThrownBy(() -> product.update(null, null, -1000L, null))
+            .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);
     }
 }

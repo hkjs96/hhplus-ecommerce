@@ -7,10 +7,6 @@ import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.*;
 
-/**
- * Order Entity 단위 테스트
- * Week 3: 핵심 비즈니스 로직 테스트 (주문 생성, 상태 전이)
- */
 class OrderTest {
 
     @Test
@@ -161,5 +157,77 @@ class OrderTest {
         assertThat(pendingOrder.isPending()).isFalse();
         assertThat(pendingOrder.isCompleted()).isTrue();
         assertThat(pendingOrder.isCancelled()).isFalse();
+    }
+
+    @Test
+    @DisplayName("주문 생성 실패 - 주문 금액이 null")
+    void create_주문금액null_예외발생() {
+        // Given
+        Long subtotal = null;
+        Long discount = 0L;
+
+        // When & Then
+        assertThatThrownBy(() -> Order.create("ORDER-001", "U001", subtotal, discount))
+            .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT)
+            .hasMessageContaining("주문 금액은 0보다 커야 합니다");
+    }
+
+    @Test
+    @DisplayName("주문 생성 실패 - 주문 금액이 음수")
+    void create_주문금액음수_예외발생() {
+        // Given
+        Long subtotal = -100000L;
+        Long discount = 0L;
+
+        // When & Then
+        assertThatThrownBy(() -> Order.create("ORDER-001", "U001", subtotal, discount))
+            .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT)
+            .hasMessageContaining("주문 금액은 0보다 커야 합니다");
+    }
+
+    @Test
+    @DisplayName("주문 생성 실패 - 할인 금액이 null")
+    void create_할인금액null_예외발생() {
+        // Given
+        Long subtotal = 100000L;
+        Long discount = null;
+
+        // When & Then
+        assertThatThrownBy(() -> Order.create("ORDER-001", "U001", subtotal, discount))
+            .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT)
+            .hasMessageContaining("할인 금액은 필수입니다");
+    }
+
+    @Test
+    @DisplayName("주문 취소 후 완료 시도 실패")
+    void cancel_후_complete_예외발생() {
+        // Given
+        Order order = Order.create("ORDER-001", "U001", 100000L, 10000L);
+        order.cancel();  // 먼저 취소 처리
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCELLED);
+
+        // When & Then (취소된 주문을 완료하려 시도)
+        assertThatThrownBy(() -> order.complete())
+            .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_ORDER_STATUS)
+            .hasMessageContaining("결제 대기 중인 주문만 완료할 수 있습니다");
+    }
+
+    @Test
+    @DisplayName("취소된 주문 상태 확인")
+    void 취소된주문_상태확인() {
+        // Given
+        Order order = Order.create("ORDER-001", "U001", 100000L, 10000L);
+
+        // When
+        order.cancel();
+
+        // Then
+        assertThat(order.isPending()).isFalse();
+        assertThat(order.isCompleted()).isFalse();
+        assertThat(order.isCancelled()).isTrue();
     }
 }

@@ -7,15 +7,6 @@ import lombok.Getter;
 
 import java.time.LocalDateTime;
 
-/**
- * 사용자 엔티티 (Rich Domain Model)
- * Week 3: Pure Java Entity (JPA 어노테이션 없음)
- *
- * 비즈니스 규칙:
- * - 포인트 충전/차감 로직 포함
- * - 잔액은 0 이상이어야 함
- * - 충전 금액은 양수여야 함
- */
 @Getter
 @AllArgsConstructor
 public class User {
@@ -27,9 +18,6 @@ public class User {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    /**
-     * 사용자 생성 (Factory Method)
-     */
     public static User create(String id, String email, String username) {
         validateEmail(email);
         validateUsername(username);
@@ -38,12 +26,6 @@ public class User {
         return new User(id, email, username, 0L, now, now);
     }
 
-    /**
-     * 포인트 충전 (비즈니스 로직)
-     *
-     * @param amount 충전 금액
-     * @throws BusinessException 충전 금액이 0 이하인 경우
-     */
     public void charge(Long amount) {
         validateChargeAmount(amount);
 
@@ -51,12 +33,6 @@ public class User {
         this.updatedAt = LocalDateTime.now();
     }
 
-    /**
-     * 포인트 차감 (결제 시)
-     *
-     * @param amount 차감 금액
-     * @throws BusinessException 잔액이 부족하거나 금액이 0 이하인 경우
-     */
     public void deduct(Long amount) {
         validateDeductAmount(amount);
         validateSufficientBalance(amount);
@@ -65,31 +41,9 @@ public class User {
         this.updatedAt = LocalDateTime.now();
     }
 
-    /**
-     * 잔액 확인
-     */
     public boolean hasEnoughBalance(Long amount) {
         return this.balance >= amount;
     }
-
-    /**
-     * 사용자 정보 업데이트
-     */
-    public void updateProfile(String email, String username) {
-        if (email != null) {
-            validateEmail(email);
-            this.email = email;
-        }
-        if (username != null) {
-            validateUsername(username);
-            this.username = username;
-        }
-        this.updatedAt = LocalDateTime.now();
-    }
-
-    // ====================================
-    // Validation Methods
-    // ====================================
 
     private void validateChargeAmount(Long amount) {
         if (amount == null || amount <= 0) {

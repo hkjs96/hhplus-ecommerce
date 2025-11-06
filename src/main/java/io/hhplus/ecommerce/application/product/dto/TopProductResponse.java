@@ -6,10 +6,6 @@ import lombok.Getter;
 
 import java.util.List;
 
-/**
- * 인기 상품 조회 응답 DTO
- * - 최근 3일간 Top 5 상품
- */
 @Getter
 @Builder
 @AllArgsConstructor

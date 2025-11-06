@@ -84,13 +84,6 @@ public class OrderUseCase {
     private final UserRepository userRepository;
     private final OrderService orderService;  // Domain Service
 
-    /**
-     * 주문 생성 유스케이스
-     * - 상품 조회
-     * - 재고 검증
-     * - 주문 생성
-     * - 재고 차감
-     */
     public OrderResponse createOrder(CreateOrderRequest request) {
         // 1. 상품 조회
         List<Product> products = request.getItems().stream()
@@ -147,10 +140,6 @@ public class Product {
     private Integer stock;
     private Long price;
 
-    /**
-     * 비즈니스 로직: 재고 차감
-     * Domain Layer에서 비즈니스 규칙 검증
-     */
     public void decreaseStock(int quantity) {
         validateQuantity(quantity);
         validateStock(quantity);
@@ -180,9 +169,6 @@ public interface ProductRepository {
 // DomainService
 @Service
 public class OrderService {
-    /**
-     * 여러 Entity를 조합한 도메인 로직
-     */
     public void validateStock(List<Product> products, List<OrderItem> items) {
         for (Product product : products) {
             OrderItem item = findItem(items, product.getId());

@@ -3,10 +3,6 @@ package io.hhplus.ecommerce.common.exception;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
-/**
- * 비즈니스 에러 코드 정의
- * Week 3: 애플리케이션 레벨 예외 처리
- */
 @Getter
 @RequiredArgsConstructor
 public enum ErrorCode {

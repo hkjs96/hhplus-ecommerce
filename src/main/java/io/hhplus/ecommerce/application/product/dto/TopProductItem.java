@@ -4,10 +4,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 
-/**
- * 인기 상품 항목 DTO
- * - 순위, 판매량, 매출액 정보 포함
- */
 @Getter
 @Builder
 @AllArgsConstructor

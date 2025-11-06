@@ -1,5 +1,8 @@
 package io.hhplus.ecommerce.application.order.dto;
 
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -8,6 +11,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class OrderItemRequest {
+    @NotBlank(message = "상품 ID는 필수입니다")
     private String productId;
+
+    @NotNull(message = "수량은 필수입니다")
+    @Min(value = 1, message = "수량은 1개 이상이어야 합니다")
     private Integer quantity;
 }

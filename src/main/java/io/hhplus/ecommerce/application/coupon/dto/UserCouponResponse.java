@@ -7,10 +7,6 @@ import lombok.Getter;
 
 import java.time.LocalDateTime;
 
-/**
- * 사용자 쿠폰 응답 DTO
- * - 보유 쿠폰 조회 시 사용
- */
 @Getter
 @Builder
 @AllArgsConstructor

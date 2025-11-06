@@ -6,10 +6,6 @@ import lombok.Getter;
 
 import java.time.LocalDateTime;
 
-/**
- * 포인트 충전 응답 DTO
- * - 충전 후 잔액 정보 포함
- */
 @Getter
 @Builder
 @AllArgsConstructor

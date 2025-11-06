@@ -1,5 +1,9 @@
 package io.hhplus.ecommerce.presentation.api.product;
 
+import io.hhplus.ecommerce.domain.order.Order;
+import io.hhplus.ecommerce.domain.order.OrderItem;
+import io.hhplus.ecommerce.domain.order.OrderItemRepository;
+import io.hhplus.ecommerce.domain.order.OrderRepository;
 import io.hhplus.ecommerce.domain.product.Product;
 import io.hhplus.ecommerce.domain.product.ProductRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,8 +28,22 @@ class ProductControllerIntegrationTest {
     @Autowired
     private ProductRepository productRepository;
 
+    @Autowired
+    private OrderRepository orderRepository;
+
+    @Autowired
+    private OrderItemRepository orderItemRepository;
+
     @BeforeEach
     void setUp() {
+        // Clear existing data
+        if (orderRepository instanceof io.hhplus.ecommerce.infrastructure.persistence.order.InMemoryOrderRepository) {
+            ((io.hhplus.ecommerce.infrastructure.persistence.order.InMemoryOrderRepository) orderRepository).clear();
+        }
+        if (orderItemRepository instanceof io.hhplus.ecommerce.infrastructure.persistence.order.InMemoryOrderItemRepository) {
+            ((io.hhplus.ecommerce.infrastructure.persistence.order.InMemoryOrderItemRepository) orderItemRepository).clear();
+        }
+
         // Setup test products
         Product product1 = Product.create("P001", "노트북", "고성능 게이밍 노트북", 1500000L, "전자제품", 50);
         Product product2 = Product.create("P002", "마우스", "무선 게이밍 마우스", 80000L, "전자제품", 100);
@@ -94,11 +112,49 @@ class ProductControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("인기 상품 조회 API - 성공")
-    void getTopProducts_성공() throws Exception {
+    @DisplayName("인기 상품 조회 API - 최근 3일 판매량 기준 Top 5")
+    void getTopProducts_실제집계() throws Exception {
+        // Given: 완료된 주문 생성
+        Order order1 = Order.create("O001", "U001", 1500000L, 0L);
+        order1.complete();  // COMPLETED 상태
+        orderRepository.save(order1);
+
+        OrderItem item1 = OrderItem.create("OI001", "O001", "P001", 5, 1500000L);  // 노트북 5개
+        orderItemRepository.save(item1);
+
+        Order order2 = Order.create("O002", "U002", 240000L, 0L);
+        order2.complete();
+        orderRepository.save(order2);
+
+        OrderItem item2 = OrderItem.create("OI002", "O002", "P003", 2, 120000L);  // 키보드 2개
+        orderItemRepository.save(item2);
+
+        Order order3 = Order.create("O003", "U003", 320000L, 0L);
+        order3.complete();
+        orderRepository.save(order3);
+
+        OrderItem item3 = OrderItem.create("OI003", "O003", "P002", 4, 80000L);  // 마우스 4개
+        orderItemRepository.save(item3);
+
+        // When & Then
         mockMvc.perform(get("/api/products/top"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.period").value("3days"))
-                .andExpect(jsonPath("$.products").isArray());
+                .andExpect(jsonPath("$.products").isArray())
+                .andExpect(jsonPath("$.products.length()").value(3))
+                // 첫 번째: 노트북 (5개 판매)
+                .andExpect(jsonPath("$.products[0].rank").value(1))
+                .andExpect(jsonPath("$.products[0].productId").value("P001"))
+                .andExpect(jsonPath("$.products[0].name").value("노트북"))
+                .andExpect(jsonPath("$.products[0].salesCount").value(5))
+                .andExpect(jsonPath("$.products[0].revenue").value(7500000L))
+                // 두 번째: 마우스 (4개 판매)
+                .andExpect(jsonPath("$.products[1].rank").value(2))
+                .andExpect(jsonPath("$.products[1].productId").value("P002"))
+                .andExpect(jsonPath("$.products[1].salesCount").value(4))
+                // 세 번째: 키보드 (2개 판매)
+                .andExpect(jsonPath("$.products[2].rank").value(3))
+                .andExpect(jsonPath("$.products[2].productId").value("P003"))
+                .andExpect(jsonPath("$.products[2].salesCount").value(2));
     }
 }

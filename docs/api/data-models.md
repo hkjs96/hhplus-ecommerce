@@ -26,9 +26,6 @@ public class Product {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    /**
-     * 재고 차감 (비즈니스 로직 포함 - Rich Domain Model)
-     */
     public void decreaseStock(int quantity) {
         validateQuantity(quantity);
         validateStock(quantity);
@@ -120,9 +117,6 @@ public class Coupon {
         this.issuedQuantity = new AtomicInteger(0);
     }
 
-    /**
-     * CAS 기반 동시성 제어 (Compare-And-Swap)
-     */
     public boolean tryIssue() {
         while (true) {
             int current = issuedQuantity.get();

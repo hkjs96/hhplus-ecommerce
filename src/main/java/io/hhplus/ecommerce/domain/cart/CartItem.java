@@ -7,14 +7,6 @@ import lombok.Getter;
 
 import java.time.LocalDateTime;
 
-/**
- * 장바구니 항목 엔티티 (Rich Domain Model)
- * Week 3: Pure Java Entity (JPA 어노테이션 없음)
- *
- * 비즈니스 규칙:
- * - quantity는 1 이상이어야 함
- * - 같은 상품 중복 추가 시 수량만 증가
- */
 @Getter
 @AllArgsConstructor
 public class CartItem {
@@ -25,9 +17,6 @@ public class CartItem {
     private Integer quantity;
     private LocalDateTime addedAt;
 
-    /**
-     * 장바구니 항목 생성 (Factory Method)
-     */
     public static CartItem create(String id, String cartId, String productId, Integer quantity) {
         validateCartId(cartId);
         validateProductId(productId);
@@ -37,31 +26,15 @@ public class CartItem {
         return new CartItem(id, cartId, productId, quantity, now);
     }
 
-    /**
-     * 수량 변경 (비즈니스 로직)
-     *
-     * @param quantity 새로운 수량
-     * @throws BusinessException 수량이 0 이하인 경우
-     */
     public void updateQuantity(Integer quantity) {
         validateQuantity(quantity);
         this.quantity = quantity;
     }
 
-    /**
-     * 수량 증가
-     *
-     * @param additionalQuantity 추가 수량
-     * @throws BusinessException 추가 수량이 0 이하인 경우
-     */
     public void increaseQuantity(Integer additionalQuantity) {
         validateQuantity(additionalQuantity);
         this.quantity += additionalQuantity;
     }
-
-    // ====================================
-    // Validation Methods
-    // ====================================
 
     private static void validateCartId(String cartId) {
         if (cartId == null || cartId.trim().isEmpty()) {

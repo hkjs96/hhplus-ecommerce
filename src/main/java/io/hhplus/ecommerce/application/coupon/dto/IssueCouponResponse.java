@@ -7,10 +7,6 @@ import lombok.Getter;
 
 import java.time.LocalDateTime;
 
-/**
- * 쿠폰 발급 응답 DTO
- * - 발급된 쿠폰 정보 + 남은 수량
- */
 @Getter
 @Builder
 @AllArgsConstructor

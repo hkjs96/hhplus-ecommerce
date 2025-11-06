@@ -7,15 +7,6 @@ import lombok.Getter;
 
 import java.time.LocalDateTime;
 
-/**
- * 주문 엔티티 (Rich Domain Model)
- * Week 3: Pure Java Entity (JPA 어노테이션 없음)
- *
- * 비즈니스 규칙:
- * - totalAmount = subtotalAmount - discountAmount
- * - 결제 완료 시에만 재고 차감
- * - PENDING 상태에서만 COMPLETED 또는 CANCELLED로 변경 가능
- */
 @Getter
 @AllArgsConstructor
 public class Order {
@@ -29,9 +20,6 @@ public class Order {
     private LocalDateTime createdAt;
     private LocalDateTime paidAt;
 
-    /**
-     * 주문 생성 (Factory Method)
-     */
     public static Order create(String id, String userId, Long subtotalAmount, Long discountAmount) {
         validateAmounts(subtotalAmount, discountAmount);
 
@@ -50,11 +38,6 @@ public class Order {
         );
     }
 
-    /**
-     * 결제 완료 처리 (비즈니스 로직)
-     *
-     * @throws BusinessException 주문 상태가 PENDING이 아닌 경우
-     */
     public void complete() {
         validateStatusForComplete();
 
@@ -62,34 +45,20 @@ public class Order {
         this.paidAt = LocalDateTime.now();
     }
 
-    /**
-     * 주문 취소 처리 (비즈니스 로직)
-     *
-     * @throws BusinessException 주문 상태가 PENDING이 아닌 경우
-     */
     public void cancel() {
         validateStatusForCancel();
 
         this.status = OrderStatus.CANCELLED;
     }
 
-    /**
-     * 주문이 결제 대기 중인지 확인
-     */
     public boolean isPending() {
         return this.status == OrderStatus.PENDING;
     }
 
-    /**
-     * 주문이 완료되었는지 확인
-     */
     public boolean isCompleted() {
         return this.status == OrderStatus.COMPLETED;
     }
 
-    /**
-     * 주문이 취소되었는지 확인
-     */
     public boolean isCancelled() {
         return this.status == OrderStatus.CANCELLED;
     }

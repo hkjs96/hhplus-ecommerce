@@ -94,7 +94,7 @@ class UserControllerIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("U002"));
+                .andExpect(jsonPath("$.code").value("COMMON002"));
     }
 
     @Test
@@ -108,7 +108,7 @@ class UserControllerIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("U002"));
+                .andExpect(jsonPath("$.code").value("COMMON002"));
     }
 
     @Test
@@ -123,5 +123,43 @@ class UserControllerIntegrationTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("U001"));
+    }
+
+    @Test
+    @DisplayName("포인트 조회 API - 성공")
+    void getBalance_성공() throws Exception {
+        mockMvc.perform(get("/api/users/U001/balance"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.userId").value("U001"))
+                .andExpect(jsonPath("$.balance").value(100000L));
+    }
+
+    @Test
+    @DisplayName("포인트 조회 API - 존재하지 않는 사용자")
+    void getBalance_실패_존재하지않는사용자() throws Exception {
+        mockMvc.perform(get("/api/users/INVALID_USER/balance"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("U001"));
+    }
+
+    @Test
+    @DisplayName("포인트 조회 API - 충전 후 잔액 확인")
+    void getBalance_충전후_잔액확인() throws Exception {
+        // Given - 50000원 충전
+        ChargeBalanceRequest request = new ChargeBalanceRequest(50000L);
+        mockMvc.perform(post("/api/users/U001/balance/charge")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk());
+
+        // When & Then - 잔액 조회
+        mockMvc.perform(get("/api/users/U001/balance"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.userId").value("U001"))
+                .andExpect(jsonPath("$.balance").value(150000L));  // 100000 + 50000
+
+        // Verify balance in repository
+        User user = userRepository.findById("U001").orElseThrow();
+        assertThat(user.getBalance()).isEqualTo(150000L);
     }
 }

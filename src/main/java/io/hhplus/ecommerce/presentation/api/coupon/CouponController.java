@@ -4,10 +4,14 @@ import io.hhplus.ecommerce.application.coupon.CouponService;
 import io.hhplus.ecommerce.application.coupon.dto.IssueCouponRequest;
 import io.hhplus.ecommerce.application.coupon.dto.IssueCouponResponse;
 import io.hhplus.ecommerce.application.coupon.dto.UserCouponListResponse;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+@Validated
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
@@ -17,8 +21,8 @@ public class CouponController {
 
     @PostMapping("/coupons/{couponId}/issue")
     public ResponseEntity<IssueCouponResponse> issueCoupon(
-            @PathVariable String couponId,
-            @RequestBody IssueCouponRequest request
+            @NotBlank(message = "쿠폰 ID는 필수입니다") @PathVariable String couponId,
+            @Valid @RequestBody IssueCouponRequest request
     ) {
         IssueCouponResponse response = couponService.issueCoupon(couponId, request);
         return ResponseEntity.ok(response);
@@ -26,7 +30,7 @@ public class CouponController {
 
     @GetMapping("/users/{userId}/coupons")
     public ResponseEntity<UserCouponListResponse> getUserCoupons(
-            @PathVariable String userId,
+            @NotBlank(message = "사용자 ID는 필수입니다") @PathVariable String userId,
             @RequestParam(required = false) String status
     ) {
         UserCouponListResponse response = couponService.getUserCoupons(userId, status);

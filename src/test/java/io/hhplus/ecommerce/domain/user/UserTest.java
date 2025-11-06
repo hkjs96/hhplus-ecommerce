@@ -7,10 +7,6 @@ import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.*;
 
-/**
- * User Entity 단위 테스트
- * Week 3: 핵심 비즈니스 로직 테스트 (포인트 충전/차감)
- */
 class UserTest {
 
     @Test
@@ -128,5 +124,108 @@ class UserTest {
 
         // When & Then
         assertThat(user.hasEnoughBalance(10001L)).isFalse();
+    }
+
+    @Test
+    @DisplayName("사용자 생성 성공")
+    void create_성공() {
+        // When
+        User user = User.create("U001", "test@example.com", "테스터");
+
+        // Then
+        assertThat(user.getId()).isEqualTo("U001");
+        assertThat(user.getEmail()).isEqualTo("test@example.com");
+        assertThat(user.getUsername()).isEqualTo("테스터");
+        assertThat(user.getBalance()).isEqualTo(0L);
+        assertThat(user.getCreatedAt()).isNotNull();
+        assertThat(user.getUpdatedAt()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("사용자 생성 실패 - 이메일이 null")
+    void create_이메일null_예외발생() {
+        // When & Then
+        assertThatThrownBy(() -> User.create("U001", null, "테스터"))
+            .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);
+    }
+
+    @Test
+    @DisplayName("사용자 생성 실패 - 이메일이 빈 문자열")
+    void create_이메일빈문자열_예외발생() {
+        // When & Then
+        assertThatThrownBy(() -> User.create("U001", "", "테스터"))
+            .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);
+    }
+
+    @Test
+    @DisplayName("사용자 생성 실패 - 이메일이 공백")
+    void create_이메일공백_예외발생() {
+        // When & Then
+        assertThatThrownBy(() -> User.create("U001", "   ", "테스터"))
+            .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);
+    }
+
+    @Test
+    @DisplayName("사용자 생성 실패 - 이메일 형식이 잘못됨 (@없음)")
+    void create_이메일형식오류_예외발생() {
+        // When & Then
+        assertThatThrownBy(() -> User.create("U001", "testexample.com", "테스터"))
+            .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);
+    }
+
+    @Test
+    @DisplayName("사용자 생성 실패 - 사용자명이 null")
+    void create_사용자명null_예외발생() {
+        // When & Then
+        assertThatThrownBy(() -> User.create("U001", "test@example.com", null))
+            .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);
+    }
+
+    @Test
+    @DisplayName("사용자 생성 실패 - 사용자명이 빈 문자열")
+    void create_사용자명빈문자열_예외발생() {
+        // When & Then
+        assertThatThrownBy(() -> User.create("U001", "test@example.com", ""))
+            .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);
+    }
+
+    @Test
+    @DisplayName("사용자 생성 실패 - 사용자명이 공백")
+    void create_사용자명공백_예외발생() {
+        // When & Then
+        assertThatThrownBy(() -> User.create("U001", "test@example.com", "   "))
+            .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);
+    }
+
+    @Test
+    @DisplayName("포인트 충전 실패 - 충전 금액이 null")
+    void charge_금액null_예외발생() {
+        // Given
+        User user = User.create("U001", "test@example.com", "테스터");
+
+        // When & Then
+        assertThatThrownBy(() -> user.charge(null))
+            .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_CHARGE_AMOUNT);
+    }
+
+    @Test
+    @DisplayName("포인트 차감 실패 - 차감 금액이 null")
+    void deduct_금액null_예외발생() {
+        // Given
+        User user = User.create("U001", "test@example.com", "테스터");
+        user.charge(10000L);
+
+        // When & Then
+        assertThatThrownBy(() -> user.deduct(null))
+            .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);
     }
 }

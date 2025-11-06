@@ -263,13 +263,6 @@ public class ProductDetailUseCase {
     private final ReviewRepository reviewRepository;
     private final StockRepository stockRepository;
 
-    /**
-     * 고객이 구매 결정을 내리는데 필요한 모든 정보 제공
-     * - 상품 정보
-     * - 재고 수량
-     * - 리뷰 통계
-     * - 추천 상품
-     */
     public ProductDetailResponse getProductDetail(String productId) {
         Product product = productRepository.findById(productId)
             .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
@@ -325,10 +318,6 @@ DomainService (Domain Layer의 비즈니스 로직)
 // DomainService (Domain Layer)
 @Service
 public class OrderDomainService {
-    /**
-     * 여러 Entity를 조합한 도메인 로직
-     * 외부 의존성 없음 (순수 비즈니스 로직)
-     */
     public long calculateTotalAmount(List<Product> products, List<OrderItem> items) {
         return items.stream()
             .mapToLong(item -> {
@@ -438,9 +427,6 @@ public class Product {
     private String id;
     private Integer stock;
 
-    /**
-     * 재고 차감: Entity가 스스로 행동
-     */
     public void decreaseStock(int quantity) {
         validateQuantity(quantity);
         validateStock(quantity);
@@ -502,9 +488,6 @@ public class Coupon {
     private String id;
     private Integer discountRate;  // 10%
 
-    /**
-     * 단일 Entity의 로직 → Entity 메서드
-     */
     public long calculateDiscount(long originalPrice) {
         return originalPrice * discountRate / 100;
     }
@@ -519,9 +502,6 @@ long discount = coupon.calculateDiscount(10000);  // 1000원
 // 여러 Entity를 조합 → DomainService
 @Service
 public class DiscountService {
-    /**
-     * 쿠폰 할인 + 회원 등급 할인 + 프로모션 할인
-     */
     public long calculateTotalDiscount(
         Order order,
         Coupon coupon,

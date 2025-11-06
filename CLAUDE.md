@@ -614,10 +614,6 @@ src/main/java/io/hhplus/ecommerce/
 ```java
 package io.hhplus.ecommerce.common.exception;
 
-/**
- * 애플리케이션 전역 에러 코드 정의
- * Week 3 구현 시 사용
- */
 public class ErrorCode {
 
     // 상품 관련 (Product)
@@ -652,9 +648,6 @@ package io.hhplus.ecommerce.common.exception;
 
 import lombok.Getter;
 
-/**
- * 비즈니스 로직 예외
- */
 @Getter
 public class BusinessException extends RuntimeException {
     private final String errorCode;
@@ -723,10 +716,6 @@ public class Product {
     private Integer stock;
     private String category;
 
-    /**
-     * 비즈니스 로직: 재고 차감
-     * - Domain Layer에서 비즈니스 규칙 검증
-     */
     public void decreaseStock(int quantity) {
         if (stock < quantity) {
             throw new IllegalArgumentException("재고가 부족합니다");
@@ -734,16 +723,10 @@ public class Product {
         this.stock -= quantity;
     }
 
-    /**
-     * 비즈니스 로직: 재고 복구
-     */
     public void restoreStock(int quantity) {
         this.stock += quantity;
     }
 
-    /**
-     * 비즈니스 로직: 재고 확인
-     */
     public boolean hasStock(int quantity) {
         return stock >= quantity;
     }
@@ -758,10 +741,6 @@ package io.hhplus.ecommerce.domain.product;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Repository 인터페이스는 Domain Layer에 위치
- * 구현체는 Infrastructure Layer에 위치
- */
 public interface ProductRepository {
     Optional<Product> findById(String id);
     List<Product> findAll();
@@ -848,9 +827,6 @@ public class ProductUseCase {
 
     private final ProductRepository productRepository;
 
-    /**
-     * 상품 목록 조회
-     */
     public List<ProductResponse> getProducts(String category, String sort) {
         List<Product> products;
 
@@ -868,9 +844,6 @@ public class ProductUseCase {
             .collect(Collectors.toList());
     }
 
-    /**
-     * 상품 상세 조회
-     */
     public ProductResponse getProduct(String productId) {
         Product product = productRepository.findById(productId)
             .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
@@ -1004,9 +977,6 @@ public class Coupon {
     private Integer totalQuantity;
     private AtomicInteger issuedQuantity;  // Atomic 사용
 
-    /**
-     * CAS (Compare-And-Swap) 기반 동시성 제어
-     */
     public boolean tryIssue() {
         while (true) {
             int current = issuedQuantity.get();
@@ -1268,9 +1238,6 @@ import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
 
-/**
- * 애플리케이션 시작 시 초기 데이터 로딩
- */
 @Component
 @RequiredArgsConstructor
 public class DataInitializer implements ApplicationRunner {
@@ -1460,14 +1427,6 @@ public class ProductDetailUseCase {
     private final StockRepository stockRepository;
     private final ShippingRepository shippingRepository;
 
-    /**
-     * 고객이 구매 결정을 내리는데 필요한 모든 정보를 제공
-     * - 상품 기본 정보
-     * - 재고 수량
-     * - 평균 평점 및 리뷰 개수
-     * - 배송 예정일
-     * - 추천 상품
-     */
     public ProductDetailResponse getProductDetail(String productId) {
         Product product = productRepository.findById(productId)
             .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));

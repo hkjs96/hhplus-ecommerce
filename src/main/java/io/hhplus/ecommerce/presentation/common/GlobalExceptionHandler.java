@@ -2,9 +2,11 @@ package io.hhplus.ecommerce.presentation.common;
 
 import io.hhplus.ecommerce.common.exception.BusinessException;
 import io.hhplus.ecommerce.common.exception.ErrorCode;
+import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -23,6 +25,40 @@ public class GlobalExceptionHandler {
 
         HttpStatus status = mapErrorCodeToHttpStatus(e.getErrorCode());
         return ResponseEntity.status(status).body(errorResponse);
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ErrorResponse> handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
+        String message = e.getBindingResult().getFieldErrors().stream()
+                .map(error -> error.getDefaultMessage())
+                .findFirst()
+                .orElse("입력값이 올바르지 않습니다");
+
+        log.warn("Validation exception occurred: message={}", message);
+
+        ErrorResponse errorResponse = ErrorResponse.of(
+                ErrorCode.INVALID_INPUT.getCode(),
+                message
+        );
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ErrorResponse> handleConstraintViolationException(ConstraintViolationException e) {
+        String message = e.getConstraintViolations().stream()
+                .map(violation -> violation.getMessage())
+                .findFirst()
+                .orElse("입력값이 올바르지 않습니다");
+
+        log.warn("Constraint violation exception occurred: message={}", message);
+
+        ErrorResponse errorResponse = ErrorResponse.of(
+                ErrorCode.INVALID_INPUT.getCode(),
+                message
+        );
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
     }
 
     @ExceptionHandler(Exception.class)

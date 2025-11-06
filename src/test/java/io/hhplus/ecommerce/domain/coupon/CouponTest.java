@@ -11,10 +11,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.*;
 
-/**
- * Coupon Entity 단위 테스트
- * Week 3 Step 6: 핵심 비즈니스 로직 테스트 (선착순 쿠폰 발급, 동시성 제어)
- */
 class CouponTest {
 
     @Test
@@ -124,5 +120,126 @@ class CouponTest {
         // When & Then
         assertThat(coupon.isValid(now)).isFalse();
         assertThat(coupon.isExpired(now)).isTrue();
+    }
+
+    @Test
+    @DisplayName("쿠폰 생성 실패 - 할인율이 null")
+    void create_할인율null_예외발생() {
+        // Given
+        LocalDateTime now = LocalDateTime.now();
+
+        // When & Then
+        assertThatThrownBy(() -> Coupon.create("C001", "10% 할인", null, 100, now, now.plusDays(7)))
+            .isInstanceOf(io.hhplus.ecommerce.common.exception.BusinessException.class)
+            .hasFieldOrPropertyWithValue("errorCode", io.hhplus.ecommerce.common.exception.ErrorCode.INVALID_INPUT);
+    }
+
+    @Test
+    @DisplayName("쿠폰 생성 실패 - 할인율이 음수")
+    void create_할인율음수_예외발생() {
+        // Given
+        LocalDateTime now = LocalDateTime.now();
+
+        // When & Then
+        assertThatThrownBy(() -> Coupon.create("C001", "10% 할인", -1, 100, now, now.plusDays(7)))
+            .isInstanceOf(io.hhplus.ecommerce.common.exception.BusinessException.class)
+            .hasFieldOrPropertyWithValue("errorCode", io.hhplus.ecommerce.common.exception.ErrorCode.INVALID_INPUT);
+    }
+
+    @Test
+    @DisplayName("쿠폰 생성 실패 - 할인율이 100 초과")
+    void create_할인율초과_예외발생() {
+        // Given
+        LocalDateTime now = LocalDateTime.now();
+
+        // When & Then
+        assertThatThrownBy(() -> Coupon.create("C001", "10% 할인", 101, 100, now, now.plusDays(7)))
+            .isInstanceOf(io.hhplus.ecommerce.common.exception.BusinessException.class)
+            .hasFieldOrPropertyWithValue("errorCode", io.hhplus.ecommerce.common.exception.ErrorCode.INVALID_INPUT);
+    }
+
+    @Test
+    @DisplayName("쿠폰 생성 실패 - 총 수량이 null")
+    void create_총수량null_예외발생() {
+        // Given
+        LocalDateTime now = LocalDateTime.now();
+
+        // When & Then
+        assertThatThrownBy(() -> Coupon.create("C001", "10% 할인", 10, null, now, now.plusDays(7)))
+            .isInstanceOf(io.hhplus.ecommerce.common.exception.BusinessException.class)
+            .hasFieldOrPropertyWithValue("errorCode", io.hhplus.ecommerce.common.exception.ErrorCode.INVALID_INPUT);
+    }
+
+    @Test
+    @DisplayName("쿠폰 생성 실패 - 총 수량이 0")
+    void create_총수량0_예외발생() {
+        // Given
+        LocalDateTime now = LocalDateTime.now();
+
+        // When & Then
+        assertThatThrownBy(() -> Coupon.create("C001", "10% 할인", 10, 0, now, now.plusDays(7)))
+            .isInstanceOf(io.hhplus.ecommerce.common.exception.BusinessException.class)
+            .hasFieldOrPropertyWithValue("errorCode", io.hhplus.ecommerce.common.exception.ErrorCode.INVALID_INPUT);
+    }
+
+    @Test
+    @DisplayName("쿠폰 생성 실패 - 총 수량이 음수")
+    void create_총수량음수_예외발생() {
+        // Given
+        LocalDateTime now = LocalDateTime.now();
+
+        // When & Then
+        assertThatThrownBy(() -> Coupon.create("C001", "10% 할인", 10, -1, now, now.plusDays(7)))
+            .isInstanceOf(io.hhplus.ecommerce.common.exception.BusinessException.class)
+            .hasFieldOrPropertyWithValue("errorCode", io.hhplus.ecommerce.common.exception.ErrorCode.INVALID_INPUT);
+    }
+
+    @Test
+    @DisplayName("쿠폰 생성 실패 - 시작일이 null")
+    void create_시작일null_예외발생() {
+        // Given
+        LocalDateTime now = LocalDateTime.now();
+
+        // When & Then
+        assertThatThrownBy(() -> Coupon.create("C001", "10% 할인", 10, 100, null, now.plusDays(7)))
+            .isInstanceOf(io.hhplus.ecommerce.common.exception.BusinessException.class)
+            .hasFieldOrPropertyWithValue("errorCode", io.hhplus.ecommerce.common.exception.ErrorCode.INVALID_INPUT);
+    }
+
+    @Test
+    @DisplayName("쿠폰 생성 실패 - 종료일이 null")
+    void create_종료일null_예외발생() {
+        // Given
+        LocalDateTime now = LocalDateTime.now();
+
+        // When & Then
+        assertThatThrownBy(() -> Coupon.create("C001", "10% 할인", 10, 100, now, null))
+            .isInstanceOf(io.hhplus.ecommerce.common.exception.BusinessException.class)
+            .hasFieldOrPropertyWithValue("errorCode", io.hhplus.ecommerce.common.exception.ErrorCode.INVALID_INPUT);
+    }
+
+    @Test
+    @DisplayName("쿠폰 생성 실패 - 시작일이 종료일보다 이후")
+    void create_시작일종료일역전_예외발생() {
+        // Given
+        LocalDateTime now = LocalDateTime.now();
+
+        // When & Then
+        assertThatThrownBy(() -> Coupon.create("C001", "10% 할인", 10, 100, now.plusDays(7), now))
+            .isInstanceOf(io.hhplus.ecommerce.common.exception.BusinessException.class)
+            .hasFieldOrPropertyWithValue("errorCode", io.hhplus.ecommerce.common.exception.ErrorCode.INVALID_INPUT);
+    }
+
+    @Test
+    @DisplayName("쿠폰 발급 가능 여부 검증 실패 - 만료된 쿠폰")
+    void validateIssuable_만료됨_예외발생() {
+        // Given
+        LocalDateTime now = LocalDateTime.now();
+        Coupon coupon = Coupon.create("C001", "10% 할인", 10, 100, now.minusDays(7), now.minusDays(1));
+
+        // When & Then
+        assertThatThrownBy(() -> coupon.validateIssuable())
+            .isInstanceOf(io.hhplus.ecommerce.common.exception.BusinessException.class)
+            .hasFieldOrPropertyWithValue("errorCode", io.hhplus.ecommerce.common.exception.ErrorCode.EXPIRED_COUPON);
     }
 }

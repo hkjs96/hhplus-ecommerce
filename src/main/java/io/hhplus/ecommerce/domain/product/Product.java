@@ -7,15 +7,6 @@ import lombok.Getter;
 
 import java.time.LocalDateTime;
 
-/**
- * 상품 엔티티 (Rich Domain Model)
- * Week 3: Pure Java Entity (JPA 어노테이션 없음)
- *
- * 비즈니스 규칙:
- * - 재고 차감/복구 로직 포함
- * - 가격은 양수여야 함
- * - 재고는 0 이상이어야 함
- */
 @Getter
 @AllArgsConstructor
 public class Product {
@@ -29,9 +20,6 @@ public class Product {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    /**
-     * 상품 생성 (Factory Method)
-     */
     public static Product create(String id, String name, String description, Long price, String category, Integer stock) {
         validatePrice(price);
         validateStock(stock);
@@ -40,12 +28,6 @@ public class Product {
         return new Product(id, name, description, price, category, stock, now, now);
     }
 
-    /**
-     * 재고 차감 (비즈니스 로직)
-     *
-     * @param quantity 차감할 수량
-     * @throws BusinessException 수량이 0 이하이거나 재고가 부족한 경우
-     */
     public void decreaseStock(int quantity) {
         validateQuantity(quantity);
         validateSufficientStock(quantity);
@@ -54,12 +36,6 @@ public class Product {
         this.updatedAt = LocalDateTime.now();
     }
 
-    /**
-     * 재고 복구 (주문 취소 시)
-     *
-     * @param quantity 복구할 수량
-     * @throws BusinessException 수량이 0 이하인 경우
-     */
     public void increaseStock(int quantity) {
         validateQuantity(quantity);
 
@@ -67,16 +43,10 @@ public class Product {
         this.updatedAt = LocalDateTime.now();
     }
 
-    /**
-     * 재고 확인
-     */
     public boolean hasEnoughStock(int quantity) {
         return this.stock >= quantity;
     }
 
-    /**
-     * 상품 정보 업데이트
-     */
     public void update(String name, String description, Long price, String category) {
         if (name != null) {
             this.name = name;

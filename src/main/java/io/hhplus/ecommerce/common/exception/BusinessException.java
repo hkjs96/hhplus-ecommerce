@@ -2,10 +2,6 @@ package io.hhplus.ecommerce.common.exception;
 
 import lombok.Getter;
 
-/**
- * 비즈니스 로직 예외
- * Week 3: Domain Layer에서 발생하는 비즈니스 규칙 위반 예외
- */
 @Getter
 public class BusinessException extends RuntimeException {
 

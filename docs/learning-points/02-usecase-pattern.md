@@ -366,18 +366,6 @@ public class ProductDetailUseCase {
     private final StockRepository stockRepository;
     private final ShippingRepository shippingRepository;
 
-    /**
-     * 고객이 구매 결정을 내리는데 필요한 모든 정보를 제공
-     *
-     * 사용자 목표: 상품 상세 정보를 보고 구매 여부를 결정한다
-     *
-     * 제공 정보:
-     * - 상품 기본 정보 (이름, 가격, 설명)
-     * - 실시간 재고 수량
-     * - 평균 평점 및 리뷰 개수
-     * - 배송 예정일
-     * - 함께 구매하면 좋은 상품 추천
-     */
     public ProductDetailResponse getProductDetail(String productId) {
         // 1. 상품 기본 정보 조회
         Product product = productRepository.findById(productId)
@@ -497,10 +485,6 @@ public class OrderUseCase {
 // DomainService (Domain Layer)
 @Service
 public class OrderService {
-    /**
-     * 여러 Entity를 조합한 도메인 로직
-     * 외부 의존성 없음 (순수 비즈니스 로직)
-     */
     public void validateOrder(Order order, List<Product> products) {
         // 주문 유효성 검증
         if (order.getItems().isEmpty()) {
@@ -516,9 +500,6 @@ public class OrderService {
         }
     }
 
-    /**
-     * 총 주문 금액 계산
-     */
     public long calculateTotalAmount(List<Product> products, List<OrderItem> items) {
         return items.stream()
             .mapToLong(item -> {
@@ -537,10 +518,6 @@ public class OrderUseCase {
     private final OrderRepository orderRepository;
     private final OrderService orderService;  // DomainService 사용
 
-    /**
-     * 주문 생성 워크플로우 조율
-     * 여러 도메인을 조합하여 완전한 비즈니스 플로우 구성
-     */
     public OrderResponse createOrder(CreateOrderRequest request) {
         // 1. 데이터 조회 (Repository)
         List<Product> products = productRepository.findByIds(
@@ -678,16 +655,6 @@ saveCoupon(CouponDto)
 
 ### Good Example
 ```java
-/**
- * UseCase: 선착순 쿠폰 발급
- *
- * 사용자 목표: 한정된 수량의 쿠폰을 선착순으로 발급받는다
- *
- * 비즈니스 규칙:
- * - 1인 1매 제한
- * - 수량 소진 시 실패
- * - 만료된 쿠폰은 발급 불가
- */
 @Service
 @RequiredArgsConstructor
 public class CouponUseCase {

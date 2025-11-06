@@ -67,27 +67,17 @@ public class Product {
     private Integer stock;
     private Long price;
 
-    /**
-     * 비즈니스 로직: 재고 차감
-     * Entity가 스스로 행동 (능동성)
-     */
     public void decreaseStock(int quantity) {
         validateQuantity(quantity);
         validateStock(quantity);
         this.stock -= quantity;
     }
 
-    /**
-     * 비즈니스 로직: 재고 복구
-     */
     public void restoreStock(int quantity) {
         validateQuantity(quantity);
         this.stock += quantity;
     }
 
-    /**
-     * 비즈니스 로직: 재고 확인
-     */
     public boolean hasStock(int quantity) {
         return stock >= quantity;
     }
@@ -233,9 +223,6 @@ public class Order {
     private Long totalAmount;
     private LocalDateTime createdAt;
 
-    /**
-     * 주문 생성 (Factory Method)
-     */
     public static Order create(String userId, List<OrderItemRequest> items) {
         String orderId = generateOrderId();
         List<OrderItem> orderItems = items.stream()
@@ -252,25 +239,16 @@ public class Order {
         );
     }
 
-    /**
-     * 비즈니스 로직: 주문 완료 처리
-     */
     public void complete() {
         validateCompletable();
         this.status = OrderStatus.COMPLETED;
     }
 
-    /**
-     * 비즈니스 로직: 주문 취소
-     */
     public void cancel() {
         validateCancelable();
         this.status = OrderStatus.CANCELLED;
     }
 
-    /**
-     * 비즈니스 로직: 총 금액 설정
-     */
     public void setTotalAmount(Long amount) {
         validateAmount(amount);
         this.totalAmount = amount;
@@ -317,9 +295,6 @@ public class Coupon {
     private AtomicInteger issuedQuantity;
     private LocalDateTime expiresAt;
 
-    /**
-     * 비즈니스 로직: 발급 가능 여부 검증
-     */
     public void validateIssuable() {
         if (isExpired()) {
             throw new BusinessException(ErrorCode.EXPIRED_COUPON);
@@ -329,9 +304,6 @@ public class Coupon {
         }
     }
 
-    /**
-     * 비즈니스 로직: 쿠폰 발급 시도 (동시성 제어 포함)
-     */
     public boolean tryIssue() {
         while (true) {
             int current = issuedQuantity.get();
@@ -349,9 +321,6 @@ public class Coupon {
         }
     }
 
-    /**
-     * 비즈니스 로직: 할인 금액 계산
-     */
     public long calculateDiscount(long originalPrice) {
         return originalPrice * discountRate / 100;
     }

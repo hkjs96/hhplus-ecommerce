@@ -11,20 +11,10 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-/**
- * 장바구니 항목 In-Memory Repository 구현체 (Infrastructure Layer)
- * Week 3: ConcurrentHashMap 기반 Thread-safe 저장소
- *
- * DIP (Dependency Inversion Principle):
- * - Domain의 CartItemRepository 인터페이스를 구현
- * - Infrastructure가 Domain에 의존 (Domain은 Infrastructure를 모름)
- */
 @Repository
 public class InMemoryCartItemRepository implements CartItemRepository {
 
-    // Thread-safe 인메모리 저장소
     private final Map<String, CartItem> storage = new ConcurrentHashMap<>();
-    // 중복 체크용 인덱스 (cartId + productId)
     private final Map<String, String> cartProductIndex = new ConcurrentHashMap<>();
 
     @Override
@@ -57,7 +47,6 @@ public class InMemoryCartItemRepository implements CartItemRepository {
     @Override
     public CartItem save(CartItem cartItem) {
         storage.put(cartItem.getId(), cartItem);
-        // 중복 체크용 인덱스 업데이트
         String key = makeKey(cartItem.getCartId(), cartItem.getProductId());
         cartProductIndex.put(key, cartItem.getId());
         return cartItem;
@@ -83,9 +72,6 @@ public class InMemoryCartItemRepository implements CartItemRepository {
         return storage.containsKey(id);
     }
 
-    /**
-     * 복합 키 생성 (cartId + productId)
-     */
     private String makeKey(String cartId, String productId) {
         return cartId + ":" + productId;
     }

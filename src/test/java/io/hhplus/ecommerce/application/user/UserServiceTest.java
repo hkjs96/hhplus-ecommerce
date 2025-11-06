@@ -1,5 +1,6 @@
 package io.hhplus.ecommerce.application.user;
 
+import io.hhplus.ecommerce.application.user.dto.BalanceResponse;
 import io.hhplus.ecommerce.application.user.dto.ChargeBalanceRequest;
 import io.hhplus.ecommerce.application.user.dto.ChargeBalanceResponse;
 import io.hhplus.ecommerce.application.user.dto.UserResponse;
@@ -152,5 +153,55 @@ class UserServiceTest {
 
         User savedUser2 = userRepository.findById(userId).orElseThrow();
         assertThat(savedUser2.getBalance()).isEqualTo(800000L);
+    }
+
+    @Test
+    @DisplayName("포인트 조회 성공")
+    void getBalance_성공() {
+        // Given
+        String userId = "U001";
+        User user = User.create(userId, "test@example.com", "김항해");
+        user.charge(100000L);
+        userRepository.save(user);
+
+        // When
+        BalanceResponse response = userService.getBalance(userId);
+
+        // Then
+        assertThat(response.getUserId()).isEqualTo(userId);
+        assertThat(response.getBalance()).isEqualTo(100000L);
+    }
+
+    @Test
+    @DisplayName("포인트 조회 실패 - 존재하지 않는 사용자")
+    void getBalance_실패_존재하지않는사용자() {
+        // Given
+        String userId = "INVALID";
+
+        // When & Then
+        assertThatThrownBy(() -> userService.getBalance(userId))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.USER_NOT_FOUND);
+    }
+
+    @Test
+    @DisplayName("포인트 조회 - 충전 후 잔액 확인")
+    void getBalance_충전후_잔액확인() {
+        // Given
+        String userId = "U001";
+        User user = User.create(userId, "test@example.com", "김항해");
+        userRepository.save(user);
+
+        // When - 초기 잔액 조회
+        BalanceResponse initialBalance = userService.getBalance(userId);
+        assertThat(initialBalance.getBalance()).isEqualTo(0L);
+
+        // When - 충전
+        ChargeBalanceRequest request = new ChargeBalanceRequest(500000L);
+        userService.chargeBalance(userId, request);
+
+        // Then - 충전 후 잔액 조회
+        BalanceResponse afterChargeBalance = userService.getBalance(userId);
+        assertThat(afterChargeBalance.getBalance()).isEqualTo(500000L);
     }
 }

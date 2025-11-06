@@ -237,9 +237,6 @@ public class ProductResponse {
     private Long price;
     private Integer stock;
 
-    /**
-     * Entity → Response DTO 변환
-     */
     public static ProductResponse from(Product product) {
         return new ProductResponse(
             product.getId(),

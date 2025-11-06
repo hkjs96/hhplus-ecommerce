@@ -7,15 +7,6 @@ import lombok.Getter;
 
 import java.time.LocalDateTime;
 
-/**
- * 사용자 쿠폰 엔티티 (Rich Domain Model)
- * Week 3: Pure Java Entity (JPA 어노테이션 없음)
- *
- * 비즈니스 규칙:
- * - 한 사용자는 같은 쿠폰을 1번만 발급받을 수 있음
- * - 사용 후 status를 USED로 변경
- * - 만료일이 지나면 status를 EXPIRED로 변경
- */
 @Getter
 @AllArgsConstructor
 public class UserCoupon {
@@ -28,9 +19,6 @@ public class UserCoupon {
     private LocalDateTime usedAt;
     private LocalDateTime expiresAt;
 
-    /**
-     * 사용자 쿠폰 생성 (Factory Method)
-     */
     public static UserCoupon create(String id, String userId, String couponId, LocalDateTime expiresAt) {
         validateUserId(userId);
         validateCouponId(couponId);
@@ -49,11 +37,6 @@ public class UserCoupon {
         );
     }
 
-    /**
-     * 쿠폰 사용 (비즈니스 로직)
-     *
-     * @throws BusinessException 쿠폰이 이미 사용되었거나 만료된 경우
-     */
     public void use() {
         validateAvailableForUse();
 
@@ -61,32 +44,20 @@ public class UserCoupon {
         this.usedAt = LocalDateTime.now();
     }
 
-    /**
-     * 쿠폰 만료 처리
-     */
     public void expire() {
         if (this.status == CouponStatus.AVAILABLE) {
             this.status = CouponStatus.EXPIRED;
         }
     }
 
-    /**
-     * 쿠폰 사용 가능 여부 확인
-     */
     public boolean isAvailable() {
         return this.status == CouponStatus.AVAILABLE && !isExpired();
     }
 
-    /**
-     * 쿠폰 만료 여부 확인
-     */
     public boolean isExpired() {
         return LocalDateTime.now().isAfter(this.expiresAt);
     }
 
-    /**
-     * 쿠폰 사용됨 여부 확인
-     */
     public boolean isUsed() {
         return this.status == CouponStatus.USED;
     }

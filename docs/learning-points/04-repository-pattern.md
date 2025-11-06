@@ -36,11 +36,6 @@ package io.hhplus.ecommerce.domain.product;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Repository 인터페이스는 Domain Layer에 위치
- * - Domain이 필요한 메서드만 정의
- * - 기술 세부사항 없음 (JPA, SQL 등)
- */
 public interface ProductRepository {
     Optional<Product> findById(String id);
     List<Product> findAll();
@@ -63,11 +58,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * In-Memory Repository 구현체
- * - Infrastructure Layer에 위치
- * - ConcurrentHashMap으로 Thread-safe 보장
- */
 @Repository
 public class InMemoryProductRepository implements ProductRepository {
     // Thread-safe 인메모리 저장소
@@ -210,10 +200,6 @@ import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
 
-/**
- * 애플리케이션 시작 시 초기 데이터 로딩
- * ApplicationRunner: run() 메서드가 애플리케이션 시작 후 자동 실행됨
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor

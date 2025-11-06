@@ -6,10 +6,6 @@ import lombok.Getter;
 
 import java.util.List;
 
-/**
- * 보유 쿠폰 목록 응답 DTO
- * - GET /users/{userId}/coupons
- */
 @Getter
 @Builder
 @AllArgsConstructor
