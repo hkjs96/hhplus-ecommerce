@@ -500,7 +500,7 @@ POST /orders
 
 ---
 
-### 2.2 결제 처리
+### 3.2 결제 처리
 **Endpoint:**
 ```
 POST /orders/{orderId}/payment

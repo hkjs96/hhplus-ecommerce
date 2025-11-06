@@ -2,7 +2,9 @@ package io.hhplus.ecommerce.presentation.common;
 
 import io.hhplus.ecommerce.common.exception.BusinessException;
 import io.hhplus.ecommerce.common.exception.ErrorCode;
+import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -12,51 +14,78 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    /**
-     * 비즈니스 예외 처리
-     */
     @ExceptionHandler(BusinessException.class)
-    public ResponseEntity<ApiResponse<Void>> handleBusinessException(BusinessException e) {
-        log.warn("Business exception: code={}, message={}", e.getErrorCode().getCode(), e.getMessage());
+    public ResponseEntity<ErrorResponse> handleBusinessException(BusinessException e) {
+        log.warn("Business exception occurred: code={}, message={}", e.getErrorCode().getCode(), e.getMessage());
 
-        ErrorResponse errorResponse = e.getDetails() != null
-            ? ErrorResponse.of(e.getErrorCode().getCode(), e.getErrorCode().getMessage(), e.getDetails())
-            : ErrorResponse.of(e.getErrorCode().getCode(), e.getErrorCode().getMessage());
+        ErrorResponse errorResponse = ErrorResponse.of(
+                e.getErrorCode().getCode(),
+                e.getMessage()
+        );
 
-        return ResponseEntity
-            .status(e.getErrorCode().getHttpStatus())
-            .body(ApiResponse.error(errorResponse));
+        HttpStatus status = mapErrorCodeToHttpStatus(e.getErrorCode());
+        return ResponseEntity.status(status).body(errorResponse);
     }
 
-    /**
-     * 유효성 검증 실패 예외 처리
-     */
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponse<Void>> handleValidationException(MethodArgumentNotValidException e) {
-        log.warn("Validation exception: {}", e.getMessage());
+    public ResponseEntity<ErrorResponse> handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
+        String message = e.getBindingResult().getFieldErrors().stream()
+                .map(error -> error.getDefaultMessage())
+                .findFirst()
+                .orElse("입력값이 올바르지 않습니다");
 
-        String message = e.getBindingResult().getAllErrors().get(0).getDefaultMessage();
-        ErrorResponse errorResponse = ErrorResponse.of("VALIDATION_ERROR", message);
+        log.warn("Validation exception occurred: message={}", message);
 
-        return ResponseEntity
-            .badRequest()
-            .body(ApiResponse.error(errorResponse));
+        ErrorResponse errorResponse = ErrorResponse.of(
+                ErrorCode.INVALID_INPUT.getCode(),
+                message
+        );
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
     }
 
-    /**
-     * 예상치 못한 예외 처리
-     */
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ErrorResponse> handleConstraintViolationException(ConstraintViolationException e) {
+        String message = e.getConstraintViolations().stream()
+                .map(violation -> violation.getMessage())
+                .findFirst()
+                .orElse("입력값이 올바르지 않습니다");
+
+        log.warn("Constraint violation exception occurred: message={}", message);
+
+        ErrorResponse errorResponse = ErrorResponse.of(
+                ErrorCode.INVALID_INPUT.getCode(),
+                message
+        );
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse<Void>> handleException(Exception e) {
+    public ResponseEntity<ErrorResponse> handleException(Exception e) {
         log.error("Unexpected exception occurred", e);
 
         ErrorResponse errorResponse = ErrorResponse.of(
-            ErrorCode.INTERNAL_SERVER_ERROR.getCode(),
-            ErrorCode.INTERNAL_SERVER_ERROR.getMessage()
+                ErrorCode.INTERNAL_SERVER_ERROR.getCode(),
+                ErrorCode.INTERNAL_SERVER_ERROR.getMessage()
         );
 
-        return ResponseEntity
-            .status(ErrorCode.INTERNAL_SERVER_ERROR.getHttpStatus())
-            .body(ApiResponse.error(errorResponse));
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+    }
+
+    private HttpStatus mapErrorCodeToHttpStatus(ErrorCode errorCode) {
+        return switch (errorCode) {
+            case PRODUCT_NOT_FOUND, ORDER_NOT_FOUND, USER_NOT_FOUND, CART_NOT_FOUND, CART_ITEM_NOT_FOUND ->
+                    HttpStatus.NOT_FOUND;
+            case INSUFFICIENT_STOCK, COUPON_SOLD_OUT, INSUFFICIENT_BALANCE ->
+                    HttpStatus.CONFLICT;
+            case INVALID_QUANTITY, INVALID_ORDER_STATUS, INVALID_COUPON, EXPIRED_COUPON,
+                 ALREADY_ISSUED_COUPON, INVALID_CHARGE_AMOUNT, INVALID_INPUT ->
+                    HttpStatus.BAD_REQUEST;
+            case PAYMENT_FAILED ->
+                    HttpStatus.PAYMENT_REQUIRED;
+            default ->
+                    HttpStatus.INTERNAL_SERVER_ERROR;
+        };
     }
 }

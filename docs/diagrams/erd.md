@@ -1,6 +1,144 @@
 # ERD (Entity Relationship Diagram)
 
-이커머스 시스템의 데이터베이스 설계
+## ⚠️ Week 3 Implementation Notes
+
+**중요**: 이 ERD는 **Week 4 이후 데이터베이스 연동 시** 사용될 설계입니다.
+
+### Week 3 (Step 5-6) 구현 방식
+
+**Week 3에서는 데이터베이스를 사용하지 않습니다:**
+- ❌ JPA, H2, MySQL 사용 안 함
+- ❌ @Entity, @Table, @Version 어노테이션 사용 안 함
+- ✅ **In-Memory Only**: ConcurrentHashMap, ArrayList로 모든 데이터 관리
+- ✅ **Pure Java Entity**: 순수 Java 클래스 + Lombok
+- ✅ **Thread-Safe Collections**: ConcurrentHashMap 필수
+
+### Week 3 구현 가이드
+
+**1. Entity 설계**
+```java
+// ✅ Week 3: Pure Java (JPA 어노테이션 없음)
+@Getter
+@AllArgsConstructor
+public class Product {
+    private String id;
+    private String name;
+    private Long price;
+    private Integer stock;  // Week 3: Product에 stock 직접 포함
+    private LocalDateTime createdAt;
+}
+```
+
+**2. Repository 구현**
+```java
+// Domain Layer (interface only)
+package io.hhplus.ecommerce.domain.product;
+
+public interface ProductRepository {
+    Optional<Product> findById(String id);
+    List<Product> findAll();
+    Product save(Product product);
+}
+
+// Infrastructure Layer (In-Memory implementation)
+package io.hhplus.ecommerce.infrastructure.persistence.product;
+
+@Repository
+public class InMemoryProductRepository implements ProductRepository {
+    private final Map<String, Product> storage = new ConcurrentHashMap<>();
+
+    @Override
+    public Optional<Product> findById(String id) {
+        return Optional.ofNullable(storage.get(id));
+    }
+
+    @Override
+    public Product save(Product product) {
+        storage.put(product.getId(), product);
+        return product;
+    }
+}
+```
+
+**3. 관계 표현**
+```java
+// Week 3: 객체 참조로 관계 표현 (FK 없음)
+@Getter
+@AllArgsConstructor
+public class OrderItem {
+    private String id;
+    private String orderId;     // Order 객체 ID (문자열 참조)
+    private String productId;   // Product 객체 ID (문자열 참조)
+    private Integer quantity;
+    private Long unitPrice;
+
+    // 필요시 UseCase에서 Repository로 조회
+    // Product product = productRepository.findById(productId).orElseThrow();
+}
+```
+
+**4. 동시성 제어**
+
+**Step 5**: ConcurrentHashMap만 사용
+```java
+@Repository
+public class InMemoryProductRepository implements ProductRepository {
+    private final Map<String, Product> storage = new ConcurrentHashMap<>();
+    // ConcurrentHashMap 자체가 Thread-Safe
+}
+```
+
+**Step 6**: 선착순 쿠폰만 AtomicInteger 사용
+```java
+@Getter
+@AllArgsConstructor
+public class Coupon {
+    private String id;
+    private String name;
+    private Integer totalQuantity;
+    private AtomicInteger issuedQuantity;  // AtomicInteger로 동시성 제어
+
+    public boolean tryIssue() {
+        while (true) {
+            int current = issuedQuantity.get();
+            if (current >= totalQuantity) return false;
+            if (issuedQuantity.compareAndSet(current, current + 1)) {
+                return true;
+            }
+        }
+    }
+}
+```
+
+### Week 3 vs Week 4+ 비교
+
+| 항목 | Week 3 (In-Memory) | Week 4+ (Database) |
+|------|-------------------|-------------------|
+| **Entity** | Pure Java + Lombok | @Entity, @Table, @Id |
+| **Repository** | Interface + In-Memory Impl | JpaRepository, EntityManager |
+| **Storage** | ConcurrentHashMap | MySQL, H2 |
+| **Relationship** | 객체 ID (String) 참조 | @OneToMany, @ManyToOne, FK |
+| **Concurrency** | synchronized, AtomicInteger | @Version (Optimistic Lock) |
+| **Transaction** | 수동 관리 (없음) | @Transactional |
+| **Index** | 불필요 | CREATE INDEX |
+
+### Week 3 단순화 사항
+
+아래 ERD 설계에서 Week 3 구현 시 단순화할 부분:
+
+1. **Stock 테이블 통합**: Product에 stock 필드로 포함
+2. **StockHistory 생략**: Week 3에서는 선택 사항
+3. **Relationship**: FK 대신 String ID로 참조
+4. **Concurrency**: @Version 대신 AtomicInteger 사용 (쿠폰만)
+5. **Index**: In-Memory라서 불필요
+
+**참고**: 아래 ERD는 Week 3 설계를 이해하는 참고 자료로 활용하되, 실제 구현은 In-Memory 방식을 따릅니다.
+
+**학습 자료**: [docs/learning-points/04-repository-pattern.md](../learning-points/04-repository-pattern.md)
+
+---
+
+## 이커머스 시스템의 데이터베이스 설계 (Week 4+)
 
 ---
 
