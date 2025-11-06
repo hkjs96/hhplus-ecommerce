@@ -26,6 +26,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -52,9 +53,22 @@ class OrderControllerIntegrationTest {
     @Autowired
     private UserCouponRepository userCouponRepository;
 
+    @Autowired
+    private io.hhplus.ecommerce.domain.order.OrderRepository orderRepository;
+
+    @Autowired
+    private io.hhplus.ecommerce.domain.order.OrderItemRepository orderItemRepository;
+
     @BeforeEach
     void setUp() {
-        // Clean up data (InMemory repositories are reset per test class, but this ensures clean state)
+        // Clean up data
+        if (orderRepository instanceof io.hhplus.ecommerce.infrastructure.persistence.order.InMemoryOrderRepository) {
+            ((io.hhplus.ecommerce.infrastructure.persistence.order.InMemoryOrderRepository) orderRepository).clear();
+        }
+        if (orderItemRepository instanceof io.hhplus.ecommerce.infrastructure.persistence.order.InMemoryOrderItemRepository) {
+            ((io.hhplus.ecommerce.infrastructure.persistence.order.InMemoryOrderItemRepository) orderItemRepository).clear();
+        }
+
         String userId = "U001";
         User user = User.create(userId, "test@example.com", "김항해");
         user.charge(5000000L);
@@ -252,5 +266,145 @@ class OrderControllerIntegrationTest {
                         .content(objectMapper.writeValueAsString(paymentRequest)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("O003"));
+    }
+
+    @Test
+    @DisplayName("주문 내역 조회 API - 성공")
+    void getOrders_성공() throws Exception {
+        // Given - Create 2 orders
+        OrderItemRequest item = new OrderItemRequest("P001", 1);
+        CreateOrderRequest createRequest = new CreateOrderRequest("U001", List.of(item), null);
+
+        mockMvc.perform(post("/api/orders")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(createRequest)))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/orders")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(createRequest)))
+                .andExpect(status().isCreated());
+
+        // When & Then
+        mockMvc.perform(get("/api/orders")
+                        .param("userId", "U001"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.orders").isArray())
+                .andExpect(jsonPath("$.orders.length()").value(2))
+                .andExpect(jsonPath("$.totalCount").value(2))
+                .andExpect(jsonPath("$.orders[0].userId").value("U001"))
+                .andExpect(jsonPath("$.orders[0].items").isArray())
+                .andExpect(jsonPath("$.orders[0].status").exists());
+    }
+
+    @Test
+    @DisplayName("주문 내역 조회 API - 상태 필터링 (PENDING)")
+    void getOrders_상태필터링_PENDING() throws Exception {
+        // Given - Create 2 orders, pay for 1
+        OrderItemRequest item = new OrderItemRequest("P002", 1);
+        CreateOrderRequest createRequest = new CreateOrderRequest("U001", List.of(item), null);
+
+        // Order 1 - Pay
+        MvcResult result1 = mockMvc.perform(post("/api/orders")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(createRequest)))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        String orderId1 = objectMapper.readTree(result1.getResponse().getContentAsString())
+                .get("orderId").asText();
+
+        PaymentRequest paymentRequest = new PaymentRequest("U001");
+        mockMvc.perform(post("/api/orders/" + orderId1 + "/payment")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(paymentRequest)))
+                .andExpect(status().isOk());
+
+        // Order 2 - No payment (PENDING)
+        mockMvc.perform(post("/api/orders")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(createRequest)))
+                .andExpect(status().isCreated());
+
+        // When & Then - Filter by PENDING
+        mockMvc.perform(get("/api/orders")
+                        .param("userId", "U001")
+                        .param("status", "PENDING"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.orders").isArray())
+                .andExpect(jsonPath("$.orders.length()").value(1))
+                .andExpect(jsonPath("$.orders[0].status").value("PENDING"));
+    }
+
+    @Test
+    @DisplayName("주문 내역 조회 API - 상태 필터링 (COMPLETED)")
+    void getOrders_상태필터링_COMPLETED() throws Exception {
+        // Given - Create and pay for 2 orders
+        OrderItemRequest item = new OrderItemRequest("P002", 1);
+        CreateOrderRequest createRequest = new CreateOrderRequest("U001", List.of(item), null);
+
+        for (int i = 0; i < 2; i++) {
+            MvcResult result = mockMvc.perform(post("/api/orders")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(createRequest)))
+                    .andExpect(status().isCreated())
+                    .andReturn();
+
+            String orderId = objectMapper.readTree(result.getResponse().getContentAsString())
+                    .get("orderId").asText();
+
+            PaymentRequest paymentRequest = new PaymentRequest("U001");
+            mockMvc.perform(post("/api/orders/" + orderId + "/payment")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(paymentRequest)))
+                    .andExpect(status().isOk());
+        }
+
+        // When & Then - Filter by COMPLETED
+        mockMvc.perform(get("/api/orders")
+                        .param("userId", "U001")
+                        .param("status", "COMPLETED"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.orders").isArray())
+                .andExpect(jsonPath("$.orders.length()").value(2))
+                .andExpect(jsonPath("$.orders[0].status").value("COMPLETED"))
+                .andExpect(jsonPath("$.orders[1].status").value("COMPLETED"));
+    }
+
+    @Test
+    @DisplayName("주문 내역 조회 API - 주문 없음")
+    void getOrders_주문없음() throws Exception {
+        // Given - New user with no orders
+        User newUser = User.create("U003", "new@example.com", "새로운항해");
+        userRepository.save(newUser);
+
+        // When & Then
+        mockMvc.perform(get("/api/orders")
+                        .param("userId", "U003"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.orders").isArray())
+                .andExpect(jsonPath("$.orders.length()").value(0))
+                .andExpect(jsonPath("$.totalCount").value(0));
+    }
+
+    @Test
+    @DisplayName("주문 내역 조회 API - 존재하지 않는 사용자")
+    void getOrders_실패_존재하지않는사용자() throws Exception {
+        // When & Then
+        mockMvc.perform(get("/api/orders")
+                        .param("userId", "INVALID_USER"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("U001"));
+    }
+
+    @Test
+    @DisplayName("주문 내역 조회 API - 잘못된 주문 상태")
+    void getOrders_실패_잘못된상태() throws Exception {
+        // When & Then
+        mockMvc.perform(get("/api/orders")
+                        .param("userId", "U001")
+                        .param("status", "INVALID_STATUS"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("COMMON002"));
     }
 }

@@ -269,4 +269,170 @@ class OrderServiceTest {
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_ORDER_STATUS);
     }
+
+    @Test
+    @DisplayName("주문 내역 조회 - 성공")
+    void getOrders_성공() {
+        // Given
+        String userId = "U001";
+        User user = User.create(userId, "test@example.com", "김항해");
+        user.charge(5000000L);
+        userRepository.save(user);
+
+        Product product = Product.create("P001", "노트북", "고성능", 890000L, "전자제품", 10);
+        productRepository.save(product);
+
+        // 주문 2개 생성
+        OrderItemRequest itemRequest = new OrderItemRequest("P001", 1);
+        CreateOrderRequest createRequest1 = new CreateOrderRequest(userId, List.of(itemRequest), null);
+        orderService.createOrder(createRequest1);
+
+        CreateOrderRequest createRequest2 = new CreateOrderRequest(userId, List.of(itemRequest), null);
+        orderService.createOrder(createRequest2);
+
+        // When
+        OrderListResponse response = orderService.getOrders(userId, null);
+
+        // Then
+        assertThat(response.getOrders()).hasSize(2);
+        assertThat(response.getTotalCount()).isEqualTo(2);
+        assertThat(response.getOrders().get(0).getUserId()).isEqualTo(userId);
+    }
+
+    @Test
+    @DisplayName("주문 내역 조회 - 상태 필터링 (PENDING)")
+    void getOrders_상태필터링_PENDING() {
+        // Given
+        String userId = "U001";
+        User user = User.create(userId, "test@example.com", "김항해");
+        user.charge(5000000L);
+        userRepository.save(user);
+
+        Product product = Product.create("P001", "노트북", "고성능", 890000L, "전자제품", 10);
+        productRepository.save(product);
+
+        // 주문 2개 생성
+        OrderItemRequest itemRequest = new OrderItemRequest("P001", 1);
+        CreateOrderRequest createRequest1 = new CreateOrderRequest(userId, List.of(itemRequest), null);
+        CreateOrderResponse order1 = orderService.createOrder(createRequest1);
+
+        CreateOrderRequest createRequest2 = new CreateOrderRequest(userId, List.of(itemRequest), null);
+        orderService.createOrder(createRequest2);
+
+        // 첫 번째 주문만 결제 완료
+        PaymentRequest paymentRequest = new PaymentRequest(userId);
+        orderService.processPayment(order1.getOrderId(), paymentRequest);
+
+        // When
+        OrderListResponse response = orderService.getOrders(userId, "PENDING");
+
+        // Then
+        assertThat(response.getOrders()).hasSize(1);
+        assertThat(response.getOrders().get(0).getStatus()).isEqualTo("PENDING");
+    }
+
+    @Test
+    @DisplayName("주문 내역 조회 - 상태 필터링 (COMPLETED)")
+    void getOrders_상태필터링_COMPLETED() {
+        // Given
+        String userId = "U001";
+        User user = User.create(userId, "test@example.com", "김항해");
+        user.charge(5000000L);
+        userRepository.save(user);
+
+        Product product = Product.create("P001", "노트북", "고성능", 890000L, "전자제품", 10);
+        productRepository.save(product);
+
+        // 주문 2개 생성 및 결제
+        OrderItemRequest itemRequest = new OrderItemRequest("P001", 1);
+        CreateOrderRequest createRequest1 = new CreateOrderRequest(userId, List.of(itemRequest), null);
+        CreateOrderResponse order1 = orderService.createOrder(createRequest1);
+
+        CreateOrderRequest createRequest2 = new CreateOrderRequest(userId, List.of(itemRequest), null);
+        CreateOrderResponse order2 = orderService.createOrder(createRequest2);
+
+        // 모두 결제 완료
+        PaymentRequest paymentRequest = new PaymentRequest(userId);
+        orderService.processPayment(order1.getOrderId(), paymentRequest);
+        orderService.processPayment(order2.getOrderId(), paymentRequest);
+
+        // When
+        OrderListResponse response = orderService.getOrders(userId, "COMPLETED");
+
+        // Then
+        assertThat(response.getOrders()).hasSize(2);
+        assertThat(response.getOrders()).allMatch(order -> order.getStatus().equals("COMPLETED"));
+    }
+
+    @Test
+    @DisplayName("주문 내역 조회 - 주문 없음")
+    void getOrders_주문없음() {
+        // Given
+        String userId = "U001";
+        User user = User.create(userId, "test@example.com", "김항해");
+        userRepository.save(user);
+
+        // When
+        OrderListResponse response = orderService.getOrders(userId, null);
+
+        // Then
+        assertThat(response.getOrders()).isEmpty();
+        assertThat(response.getTotalCount()).isEqualTo(0);
+    }
+
+    @Test
+    @DisplayName("주문 내역 조회 - 최신순 정렬")
+    void getOrders_최신순정렬() {
+        // Given
+        String userId = "U001";
+        User user = User.create(userId, "test@example.com", "김항해");
+        user.charge(5000000L);
+        userRepository.save(user);
+
+        Product product = Product.create("P001", "노트북", "고성능", 890000L, "전자제품", 10);
+        productRepository.save(product);
+
+        // 주문 3개 생성
+        OrderItemRequest itemRequest = new OrderItemRequest("P001", 1);
+        CreateOrderRequest createRequest1 = new CreateOrderRequest(userId, List.of(itemRequest), null);
+        CreateOrderResponse order1 = orderService.createOrder(createRequest1);
+
+        CreateOrderRequest createRequest2 = new CreateOrderRequest(userId, List.of(itemRequest), null);
+        CreateOrderResponse order2 = orderService.createOrder(createRequest2);
+
+        CreateOrderRequest createRequest3 = new CreateOrderRequest(userId, List.of(itemRequest), null);
+        CreateOrderResponse order3 = orderService.createOrder(createRequest3);
+
+        // When
+        OrderListResponse response = orderService.getOrders(userId, null);
+
+        // Then - 최신 주문이 먼저
+        assertThat(response.getOrders()).hasSize(3);
+        assertThat(response.getOrders().get(0).getOrderId()).isEqualTo(order3.getOrderId());
+        assertThat(response.getOrders().get(1).getOrderId()).isEqualTo(order2.getOrderId());
+        assertThat(response.getOrders().get(2).getOrderId()).isEqualTo(order1.getOrderId());
+    }
+
+    @Test
+    @DisplayName("주문 내역 조회 - 실패: 존재하지 않는 사용자")
+    void getOrders_실패_존재하지않는사용자() {
+        // When & Then
+        assertThatThrownBy(() -> orderService.getOrders("INVALID_USER", null))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.USER_NOT_FOUND);
+    }
+
+    @Test
+    @DisplayName("주문 내역 조회 - 실패: 잘못된 주문 상태")
+    void getOrders_실패_잘못된상태() {
+        // Given
+        String userId = "U001";
+        User user = User.create(userId, "test@example.com", "김항해");
+        userRepository.save(user);
+
+        // When & Then
+        assertThatThrownBy(() -> orderService.getOrders(userId, "INVALID_STATUS"))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);
+    }
 }

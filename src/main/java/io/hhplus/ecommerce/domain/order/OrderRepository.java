@@ -9,5 +9,7 @@ public interface OrderRepository {
 
     List<Order> findAll();
 
+    List<Order> findByUserId(String userId);
+
     Order save(Order order);
 }

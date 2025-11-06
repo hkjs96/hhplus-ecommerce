@@ -182,4 +182,69 @@ public class OrderService {
                 order.getPaidAt()
         );
     }
+
+    public OrderListResponse getOrders(String userId, String status) {
+        // 사용자 존재 확인
+        userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(
+                        ErrorCode.USER_NOT_FOUND,
+                        "사용자를 찾을 수 없습니다. userId: " + userId
+                ));
+
+        // userId로 주문 조회
+        List<Order> orders = orderRepository.findByUserId(userId);
+
+        // 상태 필터링 (optional)
+        if (status != null && !status.isEmpty()) {
+            try {
+                io.hhplus.ecommerce.domain.order.OrderStatus orderStatus =
+                        io.hhplus.ecommerce.domain.order.OrderStatus.valueOf(status.toUpperCase());
+                orders = orders.stream()
+                        .filter(order -> order.getStatus() == orderStatus)
+                        .toList();
+            } catch (IllegalArgumentException e) {
+                throw new BusinessException(
+                        ErrorCode.INVALID_INPUT,
+                        "유효하지 않은 주문 상태입니다. status: " + status
+                );
+            }
+        }
+
+        // Order -> CreateOrderResponse 변환
+        List<CreateOrderResponse> responses = orders.stream()
+                .map(order -> {
+                    // OrderItem 조회
+                    List<OrderItem> orderItems = orderItemRepository.findByOrderId(order.getId());
+
+                    List<OrderItemResponse> itemResponses = orderItems.stream()
+                            .map(item -> {
+                                Product product = productRepository.findById(item.getProductId())
+                                        .orElse(null);
+                                String productName = product != null ? product.getName() : "알 수 없음";
+
+                                return OrderItemResponse.of(
+                                        item.getProductId(),
+                                        productName,
+                                        item.getQuantity(),
+                                        item.getUnitPrice(),
+                                        item.getSubtotal()
+                                );
+                            })
+                            .toList();
+
+                    return CreateOrderResponse.of(
+                            order.getId(),
+                            order.getUserId(),
+                            itemResponses,
+                            order.getSubtotalAmount(),
+                            order.getDiscountAmount(),
+                            order.getTotalAmount(),
+                            order.getStatus().name(),
+                            order.getCreatedAt()
+                    );
+                })
+                .toList();
+
+        return OrderListResponse.of(responses);
+    }
 }

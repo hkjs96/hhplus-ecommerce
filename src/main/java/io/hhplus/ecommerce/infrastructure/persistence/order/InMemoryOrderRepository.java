@@ -25,6 +25,14 @@ public class InMemoryOrderRepository implements OrderRepository {
     }
 
     @Override
+    public List<Order> findByUserId(String userId) {
+        return storage.values().stream()
+                .filter(order -> userId.equals(order.getUserId()))
+                .sorted((o1, o2) -> o2.getCreatedAt().compareTo(o1.getCreatedAt()))  // 최신순
+                .toList();
+    }
+
+    @Override
     public Order save(Order order) {
         storage.put(order.getId(), order);
         return order;

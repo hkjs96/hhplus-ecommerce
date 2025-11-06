@@ -3,6 +3,7 @@ package io.hhplus.ecommerce.presentation.api.order;
 import io.hhplus.ecommerce.application.order.OrderService;
 import io.hhplus.ecommerce.application.order.dto.CreateOrderRequest;
 import io.hhplus.ecommerce.application.order.dto.CreateOrderResponse;
+import io.hhplus.ecommerce.application.order.dto.OrderListResponse;
 import io.hhplus.ecommerce.application.order.dto.PaymentRequest;
 import io.hhplus.ecommerce.application.order.dto.PaymentResponse;
 import jakarta.validation.Valid;
@@ -20,6 +21,15 @@ import org.springframework.web.bind.annotation.*;
 public class OrderController {
 
     private final OrderService orderService;
+
+    @GetMapping
+    public ResponseEntity<OrderListResponse> getOrders(
+            @NotBlank(message = "사용자 ID는 필수입니다") @RequestParam String userId,
+            @RequestParam(required = false) String status
+    ) {
+        OrderListResponse response = orderService.getOrders(userId, status);
+        return ResponseEntity.ok(response);
+    }
 
     @PostMapping
     public ResponseEntity<CreateOrderResponse> createOrder(@Valid @RequestBody CreateOrderRequest request) {
