@@ -1,28 +1,32 @@
 # E-Commerce Backend System
 
-항해플러스 백엔드 커리큘럼 - 이커머스 시스템 (Week 2: API Design & System Architecture)
+항해플러스 백엔드 커리큘럼 - 이커머스 시스템 (Week 4: Database Integration & Optimization)
 
 ---
 
 ## 📋 프로젝트 개요
 
-**핵심 목표**: 애플리케이션 레벨에서 가용성을 보장하는 이커머스 시스템 설계
+**핵심 목표**: 레이어드 아키텍처 기반의 데이터베이스 통합 및 성능 최적화
 
 단일 서버 환경에서 동시성 제어, 장애 대응, 성능 최적화를 고려한 REST API 설계 및 구현
 
 ---
 
-## 🎯 2주차 목표
+## 🎯 4주차 목표
 
-### 필수 과제 (Basic)
-- ✅ **API 설계**: RESTful API 엔드포인트 설계 및 문서화
-- ✅ **ERD**: 데이터베이스 설계 및 관계 정의
-- ✅ **시퀀스 다이어그램**: 핵심 플로우별 상세 시나리오
-- ✅ **가용성 패턴**: Timeout, Retry, Fallback, Async 설계
+### Step 7: Database Integration (필수)
+- ✅ **JPA Entity 변환**: Week 3 도메인 모델을 JPA Entity로 변환
+- ✅ **Repository 구현**: JPA Repository + JDBC Template 혼합 사용
+- ✅ **Transaction 관리**: @Transactional 적용 및 격리 수준 설정
+- ✅ **외부 시스템 연동**: Outbox 패턴으로 안정적인 데이터 전송
+- ✅ **통합 테스트**: Testcontainers 기반 실제 MySQL 테스트
+- ✅ **쿼리 로깅**: p6spy로 바인딩 파라미터 확인
 
-### 선택 과제 (Advanced)
-- ⚠️ **Mock API**: Spring Boot 기반 In-Memory Mock 서버 (선택)
-- ⚠️ **통합 테스트**: API 엔드포인트 테스트 (선택)
+### Step 8: Database Optimization (필수)
+- ✅ **성능 병목 식별**: Slow Query 로그, EXPLAIN 분석
+- ✅ **인덱스 설계**: Single, Composite, Covering Index 적용
+- ✅ **쿼리 최적화**: N+1 문제 해결, JOIN 최적화
+- ✅ **최적화 보고서**: Before/After 성능 비교 문서화
 
 ---
 
@@ -90,17 +94,22 @@
 ```
 docs/
 ├── api/                          # API 설계 문서
-│   ├── requirements.md           # 요구사항 명세서 ⭐
-│   ├── user-stories.md           # 사용자 스토리 (16개)
-│   ├── api-specification.md      # API 명세서 (엔드포인트, 요청/응답)
-│   ├── data-models.md            # 데이터 모델 정의
-│   ├── availability-patterns.md  # 가용성 패턴 설계
-│   └── error-codes.md            # 에러 코드 표준 ⭐
+│   ├── requirements.md           # 요구사항 명세서
+│   ├── api-specification.md      # API 명세서 (15개 엔드포인트)
+│   └── error-codes.md            # 에러 코드 표준
 │
 ├── diagrams/                     # 다이어그램
-│   ├── erd.md                    # ERD (DBML, Mermaid) ⭐
-│   ├── sequence-diagrams.md      # 시퀀스 다이어그램 (API별) ⭐
-│   └── flowcharts.md             # 플로우차트 (비즈니스 로직) ⭐
+│   ├── erd.md                    # ERD (DBML, Mermaid)
+│   └── sequence-diagrams.md      # 시퀀스 다이어그램 (API별)
+│
+├── week4/                        # Week 4 구현 가이드 ⭐
+│   ├── step7-integration-guide.md          # DB 통합 환경 설정
+│   ├── step7-implementation-examples.md    # 실전 코드 예시
+│   └── step8-optimization-report-template.md  # 최적화 보고서
+│
+├── feedback/                     # 코치 피드백
+│   └── week4/
+│       └── coach-park-jisu-feedback.md
 │
 └── PROJECT_STRUCTURE.md          # 프로젝트 구조 가이드
 ```
@@ -109,12 +118,12 @@ docs/
 
 | 문서 | 설명 | 링크 |
 |------|------|------|
-| **요구사항 명세서** | 비즈니스 요구사항 및 제약사항 | [requirements.md](docs/api/requirements.md) |
+| **Step 7 통합 가이드** | MySQL 환경 설정 및 Entity 변환 | [step7-integration-guide.md](docs/week4/step7-integration-guide.md) |
+| **Step 7 코드 예시** | Repository, Outbox, Transaction 구현 | [step7-implementation-examples.md](docs/week4/step7-implementation-examples.md) |
+| **Step 8 최적화 템플릿** | 성능 병목 분석 및 보고서 작성 | [step8-optimization-report-template.md](docs/week4/step8-optimization-report-template.md) |
 | **API 명세서** | REST API 엔드포인트 상세 | [api-specification.md](docs/api/api-specification.md) |
 | **ERD** | 데이터베이스 설계 (10개 테이블) | [erd.md](docs/diagrams/erd.md) |
-| **시퀀스 다이어그램** | API별 상세 플로우 (8개) | [sequence-diagrams.md](docs/diagrams/sequence-diagrams.md) |
-| **플로우차트** | 비즈니스 로직 흐름 (5개) | [flowcharts.md](docs/diagrams/flowcharts.md) |
-| **에러 코드** | 표준 에러 코드 체계 | [error-codes.md](docs/api/error-codes.md) |
+| **코치 피드백** | Week 4 코치 피드백 정리 | [coach-park-jisu-feedback.md](docs/feedback/week4/coach-park-jisu-feedback.md) |
 
 ---
 
@@ -151,9 +160,22 @@ docs/
 - **Framework**: Spring Boot 3.5.7
 - **Build**: Gradle
 
-### Database
-- **RDBMS**: MySQL 8.0 (Production) / H2 (Development)
-- **Cache**: Redis (선택)
+### Database & ORM
+- **RDBMS**: MySQL 8.0
+- **ORM**: JPA (Hibernate)
+- **Direct Query**: JDBC Template (복잡한 쿼리용)
+- **Migration**: SQL Scripts (DDL)
+
+### Testing
+- **Unit Test**: JUnit 5, Mockito
+- **Integration Test**: Testcontainers (MySQL 8.0)
+- **Coverage**: Jacoco (94% line coverage)
+
+### Monitoring & Debugging
+- **Query Logging**: p6spy (바인딩 파라미터 확인)
+- **Slow Query**: MySQL Slow Query Log
+- **Performance Analysis**: EXPLAIN, EXPLAIN ANALYZE
+- **Index Analysis**: Percona Toolkit (pt-duplicate-key-checker, pt-query-digest)
 
 ### 동시성 제어
 - **Pessimistic Lock**: `SELECT ... FOR UPDATE` (포인트 차감)
@@ -162,9 +184,13 @@ docs/
 
 ### 가용성 패턴
 - **Timeout**: 3초 (외부 API)
-- **Retry**: Exponential Backoff (1분 → 5분 → 30분)
-- **Fallback**: Outbox 패턴, 캐시 반환
+- **Retry**: Exponential Backoff + Outbox 패턴
+- **Fallback**: 빈 배열 반환 (서비스 중단 방지)
 - **Async**: `@Async` (비동기 외부 전송)
+
+### Development Tools
+- **Docker**: MySQL 8.0 컨테이너
+- **Docker Compose**: 개발 환경 구성
 
 ---
 
@@ -517,64 +543,102 @@ public CompletableFuture<Void> sendOrderData(Order order) {
 
 ### 사전 요구사항
 - Java 17 이상
-- MySQL 8.0 (또는 H2 사용)
+- Docker & Docker Compose
 - Gradle 8.0 이상
 
-### 빌드 및 실행
+### 1. MySQL 환경 구성 (Docker)
 
 ```bash
-# 빌드
-./gradlew build
+# Docker Compose로 MySQL 8.0 실행
+docker-compose up -d
 
-# 실행 (H2)
-./gradlew bootRun
+# 데이터베이스 생성
+docker exec -it hhplus-mysql mysql -uroot -ppassword -e "CREATE DATABASE IF NOT EXISTS ecommerce;"
 
-# 실행 (MySQL)
-./gradlew bootRun --args='--spring.profiles.active=prod'
+# DDL 실행 (스키마 생성)
+docker exec -i hhplus-mysql mysql -uroot -ppassword ecommerce < docs/sql/schema.sql
 ```
 
-### 데이터베이스 초기화
+### 2. 애플리케이션 빌드 및 실행
 
 ```bash
-# DDL 생성 (docs/diagrams/erd.md 참고)
-mysql -u root -p < schema.sql
+# 의존성 설치 및 빌드
+./gradlew clean build
 
-# 초기 데이터 (선택)
-mysql -u root -p < data.sql
+# 애플리케이션 실행
+./gradlew bootRun
+
+# 또는 JAR 실행
+java -jar build/libs/ecommerce-0.0.1-SNAPSHOT.jar
+```
+
+### 3. API 문서 확인
+
+```
+Swagger UI: http://localhost:8080/swagger-ui/index.html
+```
+
+### 4. 테스트 실행
+
+```bash
+# 전체 테스트 실행
+./gradlew test
+
+# 테스트 커버리지 리포트 생성
+./gradlew test jacocoTestReport
+
+# 리포트 확인
+open build/reports/jacoco/test/html/index.html
+```
+
+### 5. 쿼리 로깅 확인
+
+```bash
+# p6spy 로그 확인 (바인딩 파라미터 포함)
+tail -f logs/spy.log
 ```
 
 ---
 
 ## 📚 학습 포인트
 
-### Week 2에서 중점적으로 학습한 내용
+### Week 4에서 중점적으로 학습한 내용
 
-#### 1. **동시성 제어**
-- Pessimistic Lock vs Optimistic Lock 선택 기준
-- `@Version` 필드를 통한 낙관적 락 구현
-- `SELECT ... FOR UPDATE`를 통한 비관적 락 구현
-- DB Unique Constraint 활용
+#### 1. **JPA Entity 설계**
+- Week 3 도메인 모델을 JPA Entity로 변환
+- `@Entity`, `@Table`, `@Column` 매핑
+- 양방향 연관관계 설정 및 주의사항
+- Lombok 사용 시 주의사항 (`@Data`, `@ToString` 순환 참조)
 
-#### 2. **가용성 패턴**
-- Timeout 설정의 중요성 (Cascading Failure 방지)
-- Retry 전략 (Exponential Backoff)
-- Fallback 메커니즘 (서비스 중단 방지)
+#### 2. **Repository 패턴 구현**
+- JPA Repository 인터페이스 정의
+- `findByIdOrThrow()` default method 패턴
+- JDBC Template 혼합 사용 (복잡한 쿼리)
+- Testcontainers로 실제 MySQL 테스트
+
+#### 3. **Transaction 관리**
+- `@Transactional` 적용 범위 및 격리 수준
+- 트랜잭션 경계 설정 (Service Layer)
+- 외부 API 호출은 트랜잭션 밖에서 처리
+- 보상 트랜잭션 (재고 차감 실패 시 포인트 복구)
+
+#### 4. **외부 시스템 연동**
+- Outbox 패턴으로 안정적인 데이터 전송
+- 실패 시 재시도 로직 (Exponential Backoff)
 - 비동기 처리 (`@Async`)
 
-#### 3. **트랜잭션 관리**
-- 트랜잭션 범위 최소화 (성능 최적화)
-- 재고 차감 실패 시 포인트 복구 (보상 트랜잭션)
-- 외부 API 호출은 트랜잭션 밖에서 처리
+#### 5. **쿼리 성능 최적화**
+- EXPLAIN으로 실행 계획 분석
+- N+1 문제 감지 및 해결 (Fetch Join, Batch Size)
+- 인덱스 설계 (Single, Composite, Covering)
+- p6spy로 쿼리 로깅 및 바인딩 파라미터 확인
+- Percona Toolkit으로 중복 인덱스 분석
 
-#### 4. **인덱스 전략**
-- 복합 인덱스 설계 (user_id, status)
-- FK 없이 인덱스만 설정 (stock_history)
-- Unique 인덱스 활용 (1인 1매 보장)
-
-#### 5. **API 설계**
-- RESTful 원칙 준수
-- 적절한 HTTP Status Code 사용
-- 에러 응답 표준화
+#### 6. **테스트 전략**
+- Testcontainers로 실제 DB 환경 테스트
+- `@Transactional` 활용한 테스트 격리
+- 동시성 테스트 (ExecutorService + CountDownLatch)
+- 의미 있는 assertion (단순 null 체크 지양)
 
 ---
 
@@ -647,46 +711,59 @@ GROUP BY p.id ORDER BY sales_count DESC LIMIT 5;
 
 ## 📋 체크리스트
 
-### 필수 과제
-- [x] **요구사항 명세서** 작성
-- [x] **사용자 스토리** 16개 작성
-- [x] **API 명세서** 작성 (9개 엔드포인트)
-- [x] **ERD** 작성 (10개 테이블, DBML + Mermaid)
-- [x] **시퀀스 다이어그램** 작성 (8개 플로우)
-- [x] **플로우차트** 작성 (5개 비즈니스 로직)
-- [x] **에러 코드 표준화**
-- [x] **README** 작성
+### Week 3: Layered Architecture ✅
+- [x] 4계층 분리 (Presentation, Application, Domain, Infrastructure)
+- [x] Domain Entity 구현 (비즈니스 로직 캡슐화)
+- [x] Repository 패턴 (인터페이스 Domain, 구현체 Infrastructure)
+- [x] UseCase 구현 (Application Layer)
+- [x] In-Memory Repository (ConcurrentHashMap)
+- [x] 동시성 제어 (synchronized, ReentrantLock)
+- [x] 단위 테스트 (커버리지 94%)
 
-### 설계 검증
-- [x] 재고 차감 시점 (결제 완료 후)
-- [x] 쿠폰 적용 시점 (결제 단계)
-- [x] 동시성 제어 전략 (Pessimistic vs Optimistic)
-- [x] 트랜잭션 경계 명확화
-- [x] 외부 API 장애 대응 (Async, Fallback)
-- [x] 인덱스 설계
+### Week 4 Step 7: Database Integration ✅
+- [x] **JPA Entity 변환**: Week 3 도메인 모델 → JPA Entity
+- [x] **Repository 구현**: JPA Repository + JDBC Template 혼합
+- [x] **Transaction 관리**: @Transactional 적용
+- [x] **외부 시스템 연동**: Outbox 패턴 구현
+- [x] **통합 테스트**: Testcontainers 기반 MySQL 테스트
+- [x] **쿼리 로깅**: p6spy 설정 완료
+- [x] **Docker 환경**: docker-compose.yml 구성
 
-### 피드백 반영
-- [x] 인기 상품 실시간 쿼리로 단순화
-- [x] 트랜잭션 경계 명시 (시퀀스 다이어그램)
-- [x] 에러 코드 enum 정의
-- [x] FK 정책 명시 (stock_history)
-- [x] 컬럼 네이밍 직관적으로 (quantity, description)
-- [x] **시퀀스 다이어그램 개선** (피어 리뷰 반영)
-  - SQL 쿼리 제거 → 액션 의도 설명으로 대체
-  - 메서드명 제거 → "~요청", "~조회" 등 액션 설명 사용
-- [x] **ERD Unique Index 네이밍** (uidx_ 접두사 적용)
-- [x] **플로우차트 추가** (5개 비즈니스 로직 플로우)
+### Week 4 Step 8: Database Optimization 🚧
+- [ ] **Slow Query 식별**: 성능 병목 지점 파악
+- [ ] **EXPLAIN 분석**: 실행 계획 분석 및 문서화
+- [ ] **인덱스 설계**: Composite Index, Covering Index 적용
+- [ ] **N+1 문제 해결**: Fetch Join, Batch Size 적용
+- [ ] **쿼리 최적화**: JOIN 최적화, Subquery 개선
+- [ ] **최적화 보고서**: Before/After 성능 비교 작성
+
+### 코치 피드백 반영 ✅
+- [x] **findByIdOrThrow() 패턴**: Repository default method 추가
+- [x] **검증 레이어 분리**: Controller/UseCase/Entity 검증 명확화
+- [x] **동시성 제어 비교**: synchronized vs ReentrantLock vs CAS 문서화
+- [x] **테스트 품질 개선**: 의미 있는 assertion, Edge case 추가
+- [x] **문서화**: Week 4 가이드 및 코드 예시 작성
 
 ---
 
 ## 🙏 참고 자료
 
-### REST API Design
-- [REST API Best Practices](https://restfulapi.net/rest-api-best-practices/)
-- [Microsoft API Design Guide](https://learn.microsoft.com/en-us/azure/architecture/best-practices/api-design)
+### JPA & Hibernate
+- [Hibernate User Guide](https://docs.jboss.org/hibernate/orm/6.0/userguide/html_single/Hibernate_User_Guide.html)
+- [Spring Data JPA Reference](https://docs.spring.io/spring-data/jpa/docs/current/reference/html/)
+- [N+1 Problem Solutions](https://vladmihalcea.com/n-plus-1-query-problem/)
+
+### Database Optimization
+- [Use The Index, Luke](https://use-the-index-luke.com/) - 인덱스 설계 가이드
+- [MySQL Performance Tuning](https://dev.mysql.com/doc/refman/8.0/en/optimization.html)
+- [Percona Toolkit Documentation](https://docs.percona.com/percona-toolkit/)
+
+### Testing
+- [Testcontainers Documentation](https://testcontainers.com/)
+- [JUnit 5 User Guide](https://junit.org/junit5/docs/current/user-guide/)
 
 ### Resilience Patterns
-- [Microservices Patterns](https://microservices.io/patterns/index.html)
+- [Transactional Outbox Pattern](https://microservices.io/patterns/data/transactional-outbox.html)
 
 ### Concurrency Control
 - [Optimistic Locking vs Pessimistic Locking](https://stackoverflow.com/questions/129329/optimistic-vs-pessimistic-locking)
@@ -695,8 +772,14 @@ GROUP BY p.id ORDER BY sales_count DESC LIMIT 5;
 
 ## 📞 Contact
 
-프로젝트 관련 문의: [GitHub Issues](https://github.com/username/ecommerce/issues)
+프로젝트 관련 문의: [GitHub Issues](https://github.com/hkjs96/hhplus-ecommerce/issues)
 
 ---
 
-**항해플러스 백엔드 커리큘럼 Week 2** - E-Commerce System Design
+## 📄 License
+
+This project is licensed under the MIT License.
+
+---
+
+**항해플러스 백엔드 커리큘럼 Week 4** - Database Integration & Optimization
