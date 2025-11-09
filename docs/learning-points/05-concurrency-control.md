@@ -225,6 +225,340 @@ public class CouponService {
 
 ---
 
+## 🔍 synchronized vs ReentrantLock vs CAS 상세 비교 ⭐
+
+### 코치 피드백
+> synchronized 외에도 ReentrantLock이 더 나은 경우가 있습니다. 각 방식의 장단점을 비교해보세요.
+
+### 비교표
+
+| 항목 | synchronized | ReentrantLock | CAS (AtomicInteger) |
+|------|--------------|---------------|---------------------|
+| **성능** | 보통 (전체 메서드 잠금) | 보통 (명시적 잠금) | 빠름 (Lock-free) |
+| **공정성** | 보장 안 됨 | 보장 가능 (fair=true) | 보장 안 됨 |
+| **타임아웃** | 불가능 | 가능 (tryLock) | N/A |
+| **조건 변수** | wait/notify | Condition 지원 | 불가능 |
+| **복잡도** | 쉬움 | 보통 (finally 필수) | 어려움 (while loop) |
+| **사용 사례** | 간단한 동기화 | 복잡한 제어 | 단순 카운터 |
+| **경합 시 성능** | 보통 | 보통 | 우수 (스핀 락) |
+
+---
+
+### 1️⃣ synchronized의 장단점
+
+#### 장점
+- ✅ 구현이 가장 간단
+- ✅ JVM 레벨에서 최적화
+- ✅ 자동 락 해제 (메서드 종료 시)
+
+#### 단점
+- ❌ 메서드 전체를 잠금 (세밀한 제어 불가)
+- ❌ 공정성 보장 안 됨 (먼저 요청한 스레드가 먼저 획득 보장 X)
+- ❌ 타임아웃 설정 불가
+- ❌ 조건 변수 사용 제한적 (wait/notify만 가능)
+
+**사용 시기:**
+- 단순한 동기화 로직
+- 메서드 전체를 보호해야 하는 경우
+- 빠른 개발이 필요한 경우
+
+---
+
+### 2️⃣ ReentrantLock의 장점과 고급 기능
+
+#### 장점
+- ✅ 공정성 보장 가능 (FIFO 순서)
+- ✅ tryLock으로 타임아웃 설정
+- ✅ Condition을 활용한 복잡한 대기/통지
+- ✅ 락 획득/해제 시점 제어 가능
+
+#### 단점
+- ❌ finally 블록에서 unlock 필수 (실수 가능)
+- ❌ synchronized보다 복잡
+- ❌ 성능은 synchronized와 비슷
+
+---
+
+#### 고급 기능 1: 공정성 보장 (Fairness)
+
+**문제:** synchronized는 먼저 대기한 스레드가 먼저 락을 획득한다는 보장이 없음
+
+**해결:**
+```java
+public class CouponService {
+    // fair=true: FIFO 순서로 락 획득 보장
+    private final ReentrantLock lock = new ReentrantLock(true);
+    private final CouponRepository couponRepository;
+
+    public UserCoupon issueCoupon(String userId, String couponId) {
+        lock.lock();  // 먼저 대기한 스레드가 먼저 획득
+        try {
+            Coupon coupon = couponRepository.findByIdOrThrow(couponId);
+
+            if (coupon.getIssuedQuantity() >= coupon.getTotalQuantity()) {
+                throw new BusinessException(ErrorCode.COUPON_SOLD_OUT);
+            }
+
+            coupon.increaseIssuedQuantity();
+            return userCouponRepository.save(new UserCoupon(userId, couponId));
+        } finally {
+            lock.unlock();  // 반드시 unlock
+        }
+    }
+}
+```
+
+**사용 시기:**
+- 선착순 이벤트에서 대기 순서가 중요한 경우
+- 응답 시간의 일관성이 중요한 경우
+
+---
+
+#### 고급 기능 2: Condition (조건 변수)
+
+**문제:** synchronized의 wait/notify는 단일 조건만 지원
+
+**해결:**
+```java
+public class CouponService {
+    private final ReentrantLock lock = new ReentrantLock();
+    private final Condition couponAvailable = lock.newCondition();  // 조건 변수
+    private final Condition refillNeeded = lock.newCondition();     // 여러 조건 가능
+
+    // 쿠폰 발급 대기
+    public UserCoupon waitForCoupon(String userId, String couponId)
+        throws InterruptedException {
+
+        lock.lock();
+        try {
+            Coupon coupon = couponRepository.findByIdOrThrow(couponId);
+
+            // 쿠폰이 없으면 대기
+            while (coupon.getIssuedQuantity() >= coupon.getTotalQuantity()) {
+                couponAvailable.await();  // 대기 (락 해제)
+            }
+
+            // 쿠폰 발급
+            coupon.increaseIssuedQuantity();
+            return userCouponRepository.save(new UserCoupon(userId, couponId));
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    // 쿠폰 재고 보충
+    public void refillCoupon(String couponId, int quantity) {
+        lock.lock();
+        try {
+            Coupon coupon = couponRepository.findByIdOrThrow(couponId);
+            coupon.increaseTotalQuantity(quantity);
+
+            couponAvailable.signalAll();  // 대기 중인 스레드 깨우기
+        } finally {
+            lock.unlock();
+        }
+    }
+}
+```
+
+**사용 시기:**
+- 생산자-소비자 패턴
+- 여러 조건에 따른 대기/통지가 필요한 경우
+
+---
+
+#### 고급 기능 3: tryLock (타임아웃)
+
+**문제:** synchronized는 무한정 대기 (데드락 위험)
+
+**해결:**
+```java
+public UserCoupon issueCoupon(String userId, String couponId) {
+    try {
+        // 1초 내 락 획득 시도
+        if (lock.tryLock(1, TimeUnit.SECONDS)) {
+            try {
+                Coupon coupon = couponRepository.findByIdOrThrow(couponId);
+
+                if (coupon.getIssuedQuantity() >= coupon.getTotalQuantity()) {
+                    throw new BusinessException(ErrorCode.COUPON_SOLD_OUT);
+                }
+
+                coupon.increaseIssuedQuantity();
+                return userCouponRepository.save(new UserCoupon(userId, couponId));
+            } finally {
+                lock.unlock();
+            }
+        } else {
+            // 락 획득 실패 (타임아웃)
+            throw new BusinessException(
+                ErrorCode.COUPON_BUSY,
+                "쿠폰 발급 중입니다. 잠시 후 다시 시도해주세요."
+            );
+        }
+    } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new BusinessException(ErrorCode.COUPON_INTERRUPTED);
+    }
+}
+```
+
+**사용 시기:**
+- 데드락 방지가 필요한 경우
+- 일정 시간 내 응답이 필요한 경우
+- 락 대기 시간을 제한하고 싶은 경우
+
+---
+
+### 3️⃣ CAS (AtomicInteger)의 장점
+
+#### 장점
+- ✅ **Lock-free**: 스레드 블로킹 없음
+- ✅ **성능**: 경합이 낮을 때 가장 빠름
+- ✅ **데드락 없음**: 락을 사용하지 않음
+- ✅ **컨텍스트 스위칭 비용 없음**
+
+#### 단점
+- ❌ 단순 증감만 가능 (복잡한 로직 불가)
+- ❌ 경합이 높으면 스핀으로 CPU 사용
+- ❌ 공정성 보장 안 됨
+
+---
+
+#### CAS 동작 원리
+
+```java
+// CAS (Compare-And-Swap) 의사 코드
+boolean compareAndSet(int expect, int update) {
+    if (currentValue == expect) {
+        currentValue = update;
+        return true;  // 성공
+    }
+    return false;  // 실패 (다른 스레드가 변경함)
+}
+```
+
+**실제 사용:**
+```java
+public class Coupon {
+    private AtomicInteger issuedQuantity = new AtomicInteger(0);
+    private Integer totalQuantity = 100;
+
+    public boolean tryIssue() {
+        while (true) {
+            int current = issuedQuantity.get();
+
+            // 수량 초과 체크
+            if (current >= totalQuantity) {
+                return false;  // 발급 실패
+            }
+
+            // CAS 연산: current 값이 그대로면 current+1로 변경
+            if (issuedQuantity.compareAndSet(current, current + 1)) {
+                return true;  // 발급 성공
+            }
+            // CAS 실패 → 다른 스레드가 변경함 → 재시도 (스핀)
+        }
+    }
+}
+```
+
+**왜 빠른가?**
+1. **락 없음**: 스레드 블로킹이 없음
+2. **CPU 명령어**: 하드웨어 레벨에서 원자성 보장 (CMPXCHG)
+3. **경합이 낮으면**: 한 번에 성공 (재시도 없음)
+
+---
+
+### 4️⃣ 어떤 것을 선택해야 하나?
+
+#### Week 3 과제: CAS (AtomicInteger) 권장 ⭐
+
+**이유:**
+- ✅ 선착순 쿠폰 발급은 단순 카운터 증가
+- ✅ Lock-free로 가장 빠른 성능
+- ✅ 공정성이 필수가 아님 (선착순)
+- ✅ 경합이 높지 않음 (쿠폰 발급 시간이 짧음)
+
+```java
+// Week 3 과제에 가장 적합
+public class Coupon {
+    private AtomicInteger issuedQuantity = new AtomicInteger(0);
+
+    public boolean tryIssue() {
+        // CAS 기반 동시성 제어
+    }
+}
+```
+
+---
+
+#### 프로덕션 확장 시: ReentrantLock 고려
+
+**고려 상황:**
+- 복잡한 로직 (여러 검증 단계)
+- 공정성 필요 (FIFO 보장)
+- 조건 변수 필요 (대기/통지)
+- 타임아웃 제어 필요
+
+```java
+// 복잡한 비즈니스 로직 + 공정성 필요
+public class CouponService {
+    private final ReentrantLock lock = new ReentrantLock(true);  // 공정성
+
+    public UserCoupon issueCoupon(String userId, String couponId) {
+        lock.lock();
+        try {
+            // 1. 중복 발급 체크
+            // 2. 사용자 등급 확인
+            // 3. 발급 가능 시간 확인
+            // 4. 쿠폰 발급
+        } finally {
+            lock.unlock();
+        }
+    }
+}
+```
+
+---
+
+#### synchronized는 언제 사용?
+
+**사용 시기:**
+- 간단한 동기화 (메서드 전체 보호)
+- 빠른 개발이 우선
+- 성능이 크게 중요하지 않음
+
+```java
+// 간단한 케이스
+public synchronized void updateCache(String key, String value) {
+    cache.put(key, value);
+}
+```
+
+---
+
+### 선택 가이드 요약
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ 단순 카운터 증감 (쿠폰 발급량, 재고)                     │
+│ → AtomicInteger (CAS)                                   │
+└─────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────┐
+│ 복잡한 로직 + 공정성 필요 + 타임아웃 제어                │
+│ → ReentrantLock                                         │
+└─────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────┐
+│ 간단한 동기화 + 빠른 개발                                │
+│ → synchronized                                          │
+└─────────────────────────────────────────────────────────┘
+```
+
+---
+
 ## 🧪 동시성 테스트 작성
 
 ### ExecutorService + CountDownLatch 활용

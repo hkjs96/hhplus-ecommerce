@@ -67,6 +67,21 @@
 - 복합 인덱스 설계
 - 동시성 테스트 작성법
 
+### 🔟 [테스트 전략 (Week 3)](./10-testing-strategies-week3.md)
+- Week 3 테스트 전략 상세 가이드
+- F.I.R.S.T 원칙 적용
+- 테스트 격리 및 데이터 초기화
+- Mocking 전략
+
+### 1️⃣1️⃣ [JPA & Transaction Management (Week 4)](./11-jpa-transaction-management.md) 🆕
+- Week 3 → Week 4 전환 가이드
+- JPA Entity 변환 (비즈니스 로직 유지)
+- Spring Data JPA Repository
+- @Transactional 적용 전략
+- Dirty Checking (변경 감지)
+- Database 설정 (H2, MySQL)
+- JPA 테스트 전략 (@DataJpaTest)
+
 ---
 
 ## 🎯 학습 목표
