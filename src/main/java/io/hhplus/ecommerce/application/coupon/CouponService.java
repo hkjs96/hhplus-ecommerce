@@ -26,17 +26,8 @@ public class CouponService {
     public IssueCouponResponse issueCoupon(String couponId, IssueCouponRequest request) {
         String userId = request.getUserId();
 
-        userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException(
-                        ErrorCode.USER_NOT_FOUND,
-                        "사용자를 찾을 수 없습니다. userId: " + userId
-                ));
-
-        Coupon coupon = couponRepository.findById(couponId)
-                .orElseThrow(() -> new BusinessException(
-                        ErrorCode.INVALID_COUPON,
-                        "유효하지 않은 쿠폰입니다. couponId: " + couponId
-                ));
+        userRepository.findByIdOrThrow(userId);
+        Coupon coupon = couponRepository.findByIdOrThrow(couponId);
 
         coupon.validateIssuable();
 
@@ -70,11 +61,7 @@ public class CouponService {
     }
 
     public UserCouponListResponse getUserCoupons(String userId, String status) {
-        userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException(
-                        ErrorCode.USER_NOT_FOUND,
-                        "사용자를 찾을 수 없습니다. userId: " + userId
-                ));
+        userRepository.findByIdOrThrow(userId);
 
         List<UserCoupon> userCoupons = userCouponRepository.findByUserId(userId);
 
@@ -86,11 +73,7 @@ public class CouponService {
 
         List<UserCouponResponse> couponResponses = stream
                 .map(uc -> {
-                    Coupon coupon = couponRepository.findById(uc.getCouponId())
-                            .orElseThrow(() -> new BusinessException(
-                                    ErrorCode.INVALID_COUPON,
-                                    "유효하지 않은 쿠폰입니다. couponId: " + uc.getCouponId()
-                            ));
+                    Coupon coupon = couponRepository.findByIdOrThrow(uc.getCouponId());
 
                     return UserCouponResponse.of(
                             uc,

@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 @Repository
 public class InMemoryCartItemRepository implements CartItemRepository {
@@ -26,7 +25,7 @@ public class InMemoryCartItemRepository implements CartItemRepository {
     public List<CartItem> findByCartId(String cartId) {
         return storage.values().stream()
             .filter(item -> cartId.equals(item.getCartId()))
-            .collect(Collectors.toList());
+            .toList();
     }
 
     @Override

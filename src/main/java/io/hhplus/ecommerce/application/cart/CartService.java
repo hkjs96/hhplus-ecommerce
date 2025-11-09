@@ -15,7 +15,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -27,17 +26,8 @@ public class CartService {
     private final UserRepository userRepository;
 
     public CartResponse addItemToCart(AddCartItemRequest request) {
-        userRepository.findById(request.getUserId())
-            .orElseThrow(() -> new BusinessException(
-                ErrorCode.USER_NOT_FOUND,
-                "사용자를 찾을 수 없습니다. userId: " + request.getUserId()
-            ));
-
-        Product product = productRepository.findById(request.getProductId())
-            .orElseThrow(() -> new BusinessException(
-                ErrorCode.PRODUCT_NOT_FOUND,
-                "상품을 찾을 수 없습니다. productId: " + request.getProductId()
-            ));
+        userRepository.findByIdOrThrow(request.getUserId());
+        Product product = productRepository.findByIdOrThrow(request.getProductId());
 
         if (product.getStock() < request.getQuantity()) {
             throw new BusinessException(
@@ -89,11 +79,7 @@ public class CartService {
     }
 
     public CartResponse getCart(String userId) {
-        userRepository.findById(userId)
-            .orElseThrow(() -> new BusinessException(
-                ErrorCode.USER_NOT_FOUND,
-                "사용자를 찾을 수 없습니다. userId: " + userId
-            ));
+        userRepository.findByIdOrThrow(userId);
 
         Cart cart = cartRepository.findByUserId(userId).orElse(null);
 
@@ -105,24 +91,16 @@ public class CartService {
 
         List<CartItemResponse> itemResponses = cartItems.stream()
             .map(cartItem -> {
-                Product product = productRepository.findById(cartItem.getProductId())
-                    .orElseThrow(() -> new BusinessException(
-                        ErrorCode.PRODUCT_NOT_FOUND,
-                        "상품을 찾을 수 없습니다. productId: " + cartItem.getProductId()
-                    ));
+                Product product = productRepository.findByIdOrThrow(cartItem.getProductId());
                 return CartItemResponse.of(cartItem, product);
             })
-            .collect(Collectors.toList());
+            .toList();
 
         return CartResponse.of(userId, itemResponses);
     }
 
     public CartItemResponse updateCartItem(UpdateCartItemRequest request) {
-        userRepository.findById(request.getUserId())
-            .orElseThrow(() -> new BusinessException(
-                ErrorCode.USER_NOT_FOUND,
-                "사용자를 찾을 수 없습니다. userId: " + request.getUserId()
-            ));
+        userRepository.findByIdOrThrow(request.getUserId());
 
         Cart cart = cartRepository.findByUserId(request.getUserId())
             .orElseThrow(() -> new BusinessException(
@@ -143,11 +121,7 @@ public class CartService {
             return CartItemResponse.forUpdate(request.getProductId(), 0, 0L);
         }
 
-        Product product = productRepository.findById(request.getProductId())
-            .orElseThrow(() -> new BusinessException(
-                ErrorCode.PRODUCT_NOT_FOUND,
-                "상품을 찾을 수 없습니다. productId: " + request.getProductId()
-            ));
+        Product product = productRepository.findByIdOrThrow(request.getProductId());
 
         if (product.getStock() < request.getQuantity()) {
             throw new BusinessException(
@@ -168,11 +142,7 @@ public class CartService {
     }
 
     public void deleteCartItem(DeleteCartItemRequest request) {
-        userRepository.findById(request.getUserId())
-            .orElseThrow(() -> new BusinessException(
-                ErrorCode.USER_NOT_FOUND,
-                "사용자를 찾을 수 없습니다. userId: " + request.getUserId()
-            ));
+        userRepository.findByIdOrThrow(request.getUserId());
 
         Cart cart = cartRepository.findByUserId(request.getUserId())
             .orElseThrow(() -> new BusinessException(

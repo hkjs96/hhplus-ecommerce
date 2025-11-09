@@ -36,21 +36,13 @@ public class OrderService {
     private final UserCouponRepository userCouponRepository;
 
     public CreateOrderResponse createOrder(CreateOrderRequest request) {
-        User user = userRepository.findById(request.getUserId())
-                .orElseThrow(() -> new BusinessException(
-                        ErrorCode.USER_NOT_FOUND,
-                        "사용자를 찾을 수 없습니다. userId: " + request.getUserId()
-                ));
+        User user = userRepository.findByIdOrThrow(request.getUserId());
 
         List<OrderItemResponse> itemResponses = new ArrayList<>();
         long subtotalAmount = 0L;
 
         for (OrderItemRequest itemReq : request.getItems()) {
-            Product product = productRepository.findById(itemReq.getProductId())
-                    .orElseThrow(() -> new BusinessException(
-                            ErrorCode.PRODUCT_NOT_FOUND,
-                            "상품을 찾을 수 없습니다. productId: " + itemReq.getProductId()
-                    ));
+            Product product = productRepository.findByIdOrThrow(itemReq.getProductId());
 
             if (product.getStock() < itemReq.getQuantity()) {
                 throw new BusinessException(
@@ -74,11 +66,7 @@ public class OrderService {
 
         long discountAmount = 0L;
         if (request.getCouponId() != null && !request.getCouponId().isEmpty()) {
-            Coupon coupon = couponRepository.findById(request.getCouponId())
-                    .orElseThrow(() -> new BusinessException(
-                            ErrorCode.INVALID_COUPON,
-                            "유효하지 않은 쿠폰입니다. couponId: " + request.getCouponId()
-                    ));
+            Coupon coupon = couponRepository.findByIdOrThrow(request.getCouponId());
 
             coupon.validateIssuable();
 
@@ -98,7 +86,7 @@ public class OrderService {
 
         for (int i = 0; i < request.getItems().size(); i++) {
             OrderItemRequest itemReq = request.getItems().get(i);
-            Product product = productRepository.findById(itemReq.getProductId()).orElseThrow();
+            Product product = productRepository.findByIdOrThrow(itemReq.getProductId());
 
             String orderItemId = orderId + "-ITEM-" + (i + 1);
             OrderItem orderItem = OrderItem.create(
@@ -124,17 +112,8 @@ public class OrderService {
     }
 
     public PaymentResponse processPayment(String orderId, PaymentRequest request) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new BusinessException(
-                        ErrorCode.ORDER_NOT_FOUND,
-                        "주문을 찾을 수 없습니다. orderId: " + orderId
-                ));
-
-        User user = userRepository.findById(request.getUserId())
-                .orElseThrow(() -> new BusinessException(
-                        ErrorCode.USER_NOT_FOUND,
-                        "사용자를 찾을 수 없습니다. userId: " + request.getUserId()
-                ));
+        Order order = orderRepository.findByIdOrThrow(orderId);
+        User user = userRepository.findByIdOrThrow(request.getUserId());
 
         if (!order.getUserId().equals(user.getId())) {
             throw new BusinessException(
@@ -163,7 +142,7 @@ public class OrderService {
 
         List<OrderItem> orderItems = orderItemRepository.findByOrderId(orderId);
         for (OrderItem item : orderItems) {
-            Product product = productRepository.findById(item.getProductId()).orElseThrow();
+            Product product = productRepository.findByIdOrThrow(item.getProductId());
             product.decreaseStock(item.getQuantity());
             productRepository.save(product);
         }
@@ -185,11 +164,7 @@ public class OrderService {
 
     public OrderListResponse getOrders(String userId, String status) {
         // 사용자 존재 확인
-        userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException(
-                        ErrorCode.USER_NOT_FOUND,
-                        "사용자를 찾을 수 없습니다. userId: " + userId
-                ));
+        userRepository.findByIdOrThrow(userId);
 
         // userId로 주문 조회
         List<Order> orders = orderRepository.findByUserId(userId);

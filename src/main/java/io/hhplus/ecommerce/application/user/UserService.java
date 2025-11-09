@@ -20,32 +20,17 @@ public class UserService {
     private final UserRepository userRepository;
 
     public UserResponse getUser(String userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException(
-                        ErrorCode.USER_NOT_FOUND,
-                        "사용자를 찾을 수 없습니다. userId: " + userId
-                ));
-
+        User user = userRepository.findByIdOrThrow(userId);
         return UserResponse.from(user);
     }
 
     public BalanceResponse getBalance(String userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException(
-                        ErrorCode.USER_NOT_FOUND,
-                        "사용자를 찾을 수 없습니다. userId: " + userId
-                ));
-
+        User user = userRepository.findByIdOrThrow(userId);
         return BalanceResponse.of(user.getId(), user.getBalance());
     }
 
     public ChargeBalanceResponse chargeBalance(String userId, ChargeBalanceRequest request) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException(
-                        ErrorCode.USER_NOT_FOUND,
-                        "사용자를 찾을 수 없습니다. userId: " + userId
-                ));
-
+        User user = userRepository.findByIdOrThrow(userId);
         user.charge(request.getAmount());
         userRepository.save(user);
 

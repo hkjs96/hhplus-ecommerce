@@ -29,12 +29,7 @@ public class ProductService {
     private final OrderItemRepository orderItemRepository;
 
     public ProductResponse getProduct(String productId) {
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new BusinessException(
-                        ErrorCode.PRODUCT_NOT_FOUND,
-                        "상품을 찾을 수 없습니다. productId: " + productId
-                ));
-
+        Product product = productRepository.findByIdOrThrow(productId);
         return ProductResponse.from(product);
     }
 

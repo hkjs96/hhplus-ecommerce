@@ -7,7 +7,6 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 @Repository
 public class InMemoryUserCouponRepository implements UserCouponRepository {
@@ -19,7 +18,7 @@ public class InMemoryUserCouponRepository implements UserCouponRepository {
     public List<UserCoupon> findByUserId(String userId) {
         return storage.values().stream()
             .filter(userCoupon -> userId.equals(userCoupon.getUserId()))
-            .collect(Collectors.toList());
+            .toList();
     }
 
     @Override

@@ -66,8 +66,8 @@ class CartServiceTest {
         // Given
         AddCartItemRequest request = new AddCartItemRequest("U001", "P001", 2);
 
-        when(userRepository.findById("U001")).thenReturn(Optional.of(testUser));
-        when(productRepository.findById("P001")).thenReturn(Optional.of(testProduct));
+        when(userRepository.findByIdOrThrow("U001")).thenReturn(testUser);
+        when(productRepository.findByIdOrThrow("P001")).thenReturn(testProduct);
         when(cartRepository.findByUserId("U001")).thenReturn(Optional.of(testCart));
         when(cartItemRepository.findByCartIdAndProductId(anyString(), anyString()))
             .thenReturn(Optional.empty());
@@ -90,8 +90,8 @@ class CartServiceTest {
         AddCartItemRequest request = new AddCartItemRequest("U001", "P001", 2);
         CartItem existingItem = CartItem.create("ITEM-001", "CART-U001", "P001", 3);
 
-        when(userRepository.findById("U001")).thenReturn(Optional.of(testUser));
-        when(productRepository.findById("P001")).thenReturn(Optional.of(testProduct));
+        when(userRepository.findByIdOrThrow("U001")).thenReturn(testUser);
+        when(productRepository.findByIdOrThrow("P001")).thenReturn(testProduct);
         when(cartRepository.findByUserId("U001")).thenReturn(Optional.of(testCart));
         when(cartItemRepository.findByCartIdAndProductId(anyString(), eq("P001")))
             .thenReturn(Optional.of(existingItem));
@@ -114,8 +114,8 @@ class CartServiceTest {
         Cart newCart = Cart.create("CART-U001", "U001");
         CartItem newItem = CartItem.create("ITEM-NEW", "CART-U001", "P001", 2);
 
-        when(userRepository.findById("U001")).thenReturn(Optional.of(testUser));
-        when(productRepository.findById("P001")).thenReturn(Optional.of(testProduct));
+        when(userRepository.findByIdOrThrow("U001")).thenReturn(testUser);
+        when(productRepository.findByIdOrThrow("P001")).thenReturn(testProduct);
 
         // First call returns empty (no cart exists), second call returns the created cart
         when(cartRepository.findByUserId("U001"))
@@ -145,7 +145,7 @@ class CartServiceTest {
     void addItemToCart_실패_사용자없음() {
         // Given
         AddCartItemRequest request = new AddCartItemRequest("INVALID", "P001", 2);
-        when(userRepository.findById("INVALID")).thenReturn(Optional.empty());
+        when(userRepository.findByIdOrThrow("INVALID")).thenThrow(new BusinessException(ErrorCode.USER_NOT_FOUND, "사용자를 찾을 수 없습니다."));
 
         // When & Then
         assertThatThrownBy(() -> cartService.addItemToCart(request))
@@ -153,7 +153,7 @@ class CartServiceTest {
             .extracting("errorCode")
             .isEqualTo(ErrorCode.USER_NOT_FOUND);
 
-        verify(productRepository, never()).findById(anyString());
+        verify(productRepository, never()).findByIdOrThrow(anyString());
     }
 
     @Test
@@ -162,8 +162,8 @@ class CartServiceTest {
         // Given
         AddCartItemRequest request = new AddCartItemRequest("U001", "INVALID", 2);
 
-        when(userRepository.findById("U001")).thenReturn(Optional.of(testUser));
-        when(productRepository.findById("INVALID")).thenReturn(Optional.empty());
+        when(userRepository.findByIdOrThrow("U001")).thenReturn(testUser);
+        when(productRepository.findByIdOrThrow("INVALID")).thenThrow(new BusinessException(ErrorCode.PRODUCT_NOT_FOUND, "상품을 찾을 수 없습니다."));
 
         // When & Then
         assertThatThrownBy(() -> cartService.addItemToCart(request))
@@ -178,8 +178,8 @@ class CartServiceTest {
         // Given
         AddCartItemRequest request = new AddCartItemRequest("U001", "P001", 20); // 재고 10개
 
-        when(userRepository.findById("U001")).thenReturn(Optional.of(testUser));
-        when(productRepository.findById("P001")).thenReturn(Optional.of(testProduct));
+        when(userRepository.findByIdOrThrow("U001")).thenReturn(testUser);
+        when(productRepository.findByIdOrThrow("P001")).thenReturn(testProduct);
 
         // When & Then
         assertThatThrownBy(() -> cartService.addItemToCart(request))
@@ -197,8 +197,8 @@ class CartServiceTest {
         AddCartItemRequest request = new AddCartItemRequest("U001", "P001", 8);
         CartItem existingItem = CartItem.create("ITEM-001", "CART-U001", "P001", 5);
 
-        when(userRepository.findById("U001")).thenReturn(Optional.of(testUser));
-        when(productRepository.findById("P001")).thenReturn(Optional.of(testProduct));
+        when(userRepository.findByIdOrThrow("U001")).thenReturn(testUser);
+        when(productRepository.findByIdOrThrow("P001")).thenReturn(testProduct);
         when(cartRepository.findByUserId("U001")).thenReturn(Optional.of(testCart));
         when(cartItemRepository.findByCartIdAndProductId(anyString(), eq("P001")))
             .thenReturn(Optional.of(existingItem));
@@ -222,10 +222,10 @@ class CartServiceTest {
         // Given
         CartItem cartItem = CartItem.create("ITEM-001", "CART-U001", "P001", 2);
 
-        when(userRepository.findById("U001")).thenReturn(Optional.of(testUser));
+        when(userRepository.findByIdOrThrow("U001")).thenReturn(testUser);
         when(cartRepository.findByUserId("U001")).thenReturn(Optional.of(testCart));
         when(cartItemRepository.findByCartId("CART-U001")).thenReturn(List.of(cartItem));
-        when(productRepository.findById("P001")).thenReturn(Optional.of(testProduct));
+        when(productRepository.findByIdOrThrow("P001")).thenReturn(testProduct);
 
         // When
         CartResponse response = cartService.getCart("U001");
@@ -244,7 +244,7 @@ class CartServiceTest {
     @DisplayName("장바구니 조회 - 성공 (빈 장바구니)")
     void getCart_성공_빈장바구니() {
         // Given
-        when(userRepository.findById("U001")).thenReturn(Optional.of(testUser));
+        when(userRepository.findByIdOrThrow("U001")).thenReturn(testUser);
         when(cartRepository.findByUserId("U001")).thenReturn(Optional.empty());
 
         // When
@@ -264,10 +264,10 @@ class CartServiceTest {
         Product lowStockProduct = Product.create("P001", "노트북", "고성능 노트북", 890000L, "전자제품", 1);
         CartItem cartItem = CartItem.create("ITEM-001", "CART-U001", "P001", 5); // 수량 5 > 재고 1
 
-        when(userRepository.findById("U001")).thenReturn(Optional.of(testUser));
+        when(userRepository.findByIdOrThrow("U001")).thenReturn(testUser);
         when(cartRepository.findByUserId("U001")).thenReturn(Optional.of(testCart));
         when(cartItemRepository.findByCartId("CART-U001")).thenReturn(List.of(cartItem));
-        when(productRepository.findById("P001")).thenReturn(Optional.of(lowStockProduct));
+        when(productRepository.findByIdOrThrow("P001")).thenReturn(lowStockProduct);
 
         // When
         CartResponse response = cartService.getCart("U001");
@@ -281,7 +281,7 @@ class CartServiceTest {
     @DisplayName("장바구니 조회 - 실패 (사용자 없음)")
     void getCart_실패_사용자없음() {
         // Given
-        when(userRepository.findById("INVALID")).thenReturn(Optional.empty());
+        when(userRepository.findByIdOrThrow("INVALID")).thenThrow(new BusinessException(ErrorCode.USER_NOT_FOUND, "사용자를 찾을 수 없습니다."));
 
         // When & Then
         assertThatThrownBy(() -> cartService.getCart("INVALID"))
@@ -301,11 +301,11 @@ class CartServiceTest {
         UpdateCartItemRequest request = new UpdateCartItemRequest("U001", "P001", 5);
         CartItem cartItem = CartItem.create("ITEM-001", "CART-U001", "P001", 2);
 
-        when(userRepository.findById("U001")).thenReturn(Optional.of(testUser));
+        when(userRepository.findByIdOrThrow("U001")).thenReturn(testUser);
         when(cartRepository.findByUserId("U001")).thenReturn(Optional.of(testCart));
         when(cartItemRepository.findByCartIdAndProductId("CART-U001", "P001"))
             .thenReturn(Optional.of(cartItem));
-        when(productRepository.findById("P001")).thenReturn(Optional.of(testProduct));
+        when(productRepository.findByIdOrThrow("P001")).thenReturn(testProduct);
 
         // When
         CartItemResponse response = cartService.updateCartItem(request);
@@ -326,7 +326,7 @@ class CartServiceTest {
         UpdateCartItemRequest request = new UpdateCartItemRequest("U001", "P001", 0);
         CartItem cartItem = CartItem.create("ITEM-001", "CART-U001", "P001", 2);
 
-        when(userRepository.findById("U001")).thenReturn(Optional.of(testUser));
+        when(userRepository.findByIdOrThrow("U001")).thenReturn(testUser);
         when(cartRepository.findByUserId("U001")).thenReturn(Optional.of(testCart));
         when(cartItemRepository.findByCartIdAndProductId("CART-U001", "P001"))
             .thenReturn(Optional.of(cartItem));
@@ -346,7 +346,7 @@ class CartServiceTest {
         // Given
         UpdateCartItemRequest request = new UpdateCartItemRequest("U001", "P001", 5);
 
-        when(userRepository.findById("U001")).thenReturn(Optional.of(testUser));
+        when(userRepository.findByIdOrThrow("U001")).thenReturn(testUser);
         when(cartRepository.findByUserId("U001")).thenReturn(Optional.empty());
 
         // When & Then
@@ -362,7 +362,7 @@ class CartServiceTest {
         // Given
         UpdateCartItemRequest request = new UpdateCartItemRequest("U001", "P001", 5);
 
-        when(userRepository.findById("U001")).thenReturn(Optional.of(testUser));
+        when(userRepository.findByIdOrThrow("U001")).thenReturn(testUser);
         when(cartRepository.findByUserId("U001")).thenReturn(Optional.of(testCart));
         when(cartItemRepository.findByCartIdAndProductId("CART-U001", "P001"))
             .thenReturn(Optional.empty());
@@ -381,11 +381,11 @@ class CartServiceTest {
         UpdateCartItemRequest request = new UpdateCartItemRequest("U001", "P001", 20); // 재고 10개
         CartItem cartItem = CartItem.create("ITEM-001", "CART-U001", "P001", 2);
 
-        when(userRepository.findById("U001")).thenReturn(Optional.of(testUser));
+        when(userRepository.findByIdOrThrow("U001")).thenReturn(testUser);
         when(cartRepository.findByUserId("U001")).thenReturn(Optional.of(testCart));
         when(cartItemRepository.findByCartIdAndProductId("CART-U001", "P001"))
             .thenReturn(Optional.of(cartItem));
-        when(productRepository.findById("P001")).thenReturn(Optional.of(testProduct));
+        when(productRepository.findByIdOrThrow("P001")).thenReturn(testProduct);
 
         // When & Then
         assertThatThrownBy(() -> cartService.updateCartItem(request))
@@ -407,7 +407,7 @@ class CartServiceTest {
         DeleteCartItemRequest request = new DeleteCartItemRequest("U001", "P001");
         CartItem cartItem = CartItem.create("ITEM-001", "CART-U001", "P001", 2);
 
-        when(userRepository.findById("U001")).thenReturn(Optional.of(testUser));
+        when(userRepository.findByIdOrThrow("U001")).thenReturn(testUser);
         when(cartRepository.findByUserId("U001")).thenReturn(Optional.of(testCart));
         when(cartItemRepository.findByCartIdAndProductId("CART-U001", "P001"))
             .thenReturn(Optional.of(cartItem));
@@ -426,7 +426,7 @@ class CartServiceTest {
         // Given
         DeleteCartItemRequest request = new DeleteCartItemRequest("U001", "P001");
 
-        when(userRepository.findById("U001")).thenReturn(Optional.of(testUser));
+        when(userRepository.findByIdOrThrow("U001")).thenReturn(testUser);
         when(cartRepository.findByUserId("U001")).thenReturn(Optional.empty());
 
         // When & Then
@@ -442,7 +442,7 @@ class CartServiceTest {
         // Given
         DeleteCartItemRequest request = new DeleteCartItemRequest("U001", "P001");
 
-        when(userRepository.findById("U001")).thenReturn(Optional.of(testUser));
+        when(userRepository.findByIdOrThrow("U001")).thenReturn(testUser);
         when(cartRepository.findByUserId("U001")).thenReturn(Optional.of(testCart));
         when(cartItemRepository.findByCartIdAndProductId("CART-U001", "P001"))
             .thenReturn(Optional.empty());

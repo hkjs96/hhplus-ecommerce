@@ -7,7 +7,6 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 @Repository
 public class InMemoryOrderItemRepository implements OrderItemRepository {
@@ -18,7 +17,7 @@ public class InMemoryOrderItemRepository implements OrderItemRepository {
     public List<OrderItem> findByOrderId(String orderId) {
         return storage.values().stream()
             .filter(item -> orderId.equals(item.getOrderId()))
-            .collect(Collectors.toList());
+            .toList();
     }
 
     @Override
