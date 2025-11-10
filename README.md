@@ -530,7 +530,7 @@ public CompletableFuture<Void> sendOrderData(Order order) {
 
 ### 2. 서비스 통합 테스트
 - `@SpringBootTest` 활용
-- H2 In-Memory DB 사용
+- MySQL 사용
 - 트랜잭션 롤백
 
 ### 3. 동시성 테스트

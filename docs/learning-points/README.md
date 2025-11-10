@@ -79,7 +79,7 @@
 - Spring Data JPA Repository
 - @Transactional 적용 전략
 - Dirty Checking (변경 감지)
-- Database 설정 (H2, MySQL)
+- Database 설정 (MySQL)
 - JPA 테스트 전략 (@DataJpaTest)
 
 ---
