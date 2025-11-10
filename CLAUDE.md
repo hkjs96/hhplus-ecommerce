@@ -73,7 +73,7 @@ When you receive a task, **first check the relevant documentation** before start
 1. **JPA Entity 구현**: Week 3 도메인 모델을 JPA Entity로 전환
 2. **Spring Data JPA Repository**: JpaRepository 활용, In-Memory 제거
 3. **Transaction Management**: @Transactional 적용
-4. **Database 연동**: H2 (Development), MySQL (Production - optional)
+4. **Database 연동**: MySQL
 
 ### Pass 조건
 - [ ] JPA Entity 변환 (비즈니스 로직 유지)
@@ -200,7 +200,7 @@ public class OrderUseCase {
 - [ ] InMemory Repository 제거
 
 ### Database Configuration
-- [ ] application.yml 설정 (H2)
+- [ ] application.yml 설정 (MySQL)
 - [ ] 초기 데이터 로딩 (ApplicationRunner)
 
 ### Transaction Management
@@ -242,8 +242,8 @@ public class OrderUseCase {
 # Test with coverage
 ./gradlew test jacocoTestReport
 
-# H2 Console (Development)
-http://localhost:8080/h2-console
+# MySQL 접속 (Development)
+mysql -u root -p ecommerce
 ```
 
 ---
@@ -261,6 +261,6 @@ http://localhost:8080/h2-console
 Application configuration is in `src/main/resources/application.yml`.
 
 ### Key Configurations
-- **Database**: H2 (Development), MySQL (Production)
-- **JPA**: ddl-auto, show-sql, format_sql
+- **Database**: MySQL
+- **JPA**: ddl-auto, show-sql, format_sql, dialect (MySQL8)
 - **Logging**: SQL, Parameter binding
