@@ -12,7 +12,7 @@
 1. ✅ **JPA Entity 변환** (Week 3 Domain Entity → JPA Entity)
 2. ✅ **Spring Data JPA Repository** (In-Memory → JpaRepository)
 3. ✅ **Transaction Management** (@Transactional 적용)
-4. ✅ **Database 설정** (H2, MySQL)
+4. ✅ **Database 설정** (MySQL)
 
 ### Pass 조건
 - [ ] JPA Entity로 변환 (비즈니스 로직 유지!)
@@ -361,15 +361,10 @@ public void complexOperation() {
 ```yaml
 spring:
   datasource:
-    url: jdbc:h2:mem:testdb  # H2 인메모리 DB
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
-
-  h2:
-    console:
-      enabled: true  # H2 콘솔 활성화
-      path: /h2-console
+    url: jdbc:mysql://localhost:3306/ecommerce?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: root
+    password: your_password
 
   jpa:
     hibernate:
@@ -377,6 +372,7 @@ spring:
     show-sql: true  # SQL 로그 출력
     properties:
       hibernate:
+        dialect: org.hibernate.dialect.MySQL8Dialect
         format_sql: true  # SQL 포매팅
         use_sql_comments: true  # 주석 추가
     defer-datasource-initialization: true  # data.sql 실행 (ddl-auto 이후)
@@ -386,6 +382,13 @@ logging:
     org.hibernate.SQL: DEBUG  # SQL 로그
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE  # 파라미터 바인딩
 ```
+
+**MySQL 접속 정보:**
+- Host: `localhost`
+- Port: `3306`
+- Database: `ecommerce`
+- Username: `root`
+- Password: 각자 설정한 비밀번호
 
 ---
 
@@ -519,8 +522,8 @@ class OrderIntegrationTest {
 - [ ] Dirty Checking 활용 (save() 호출 최소화)
 
 ### Database 설정
-- [ ] application.yml 설정 (H2)
-- [ ] ddl-auto, show-sql 설정
+- [ ] application.yml 설정 (MySQL)
+- [ ] ddl-auto, show-sql, dialect 설정
 - [ ] 초기 데이터 로딩 (ApplicationRunner 또는 data.sql)
 
 ### Testing
