@@ -15,18 +15,18 @@
 ## 🎯 4주차 목표
 
 ### Step 7: Database Integration (필수)
-- ✅ **JPA Entity 변환**: Week 3 도메인 모델을 JPA Entity로 변환
-- ✅ **Repository 구현**: JPA Repository + JDBC Template 혼합 사용
-- ✅ **Transaction 관리**: @Transactional 적용 및 격리 수준 설정
-- ✅ **외부 시스템 연동**: Outbox 패턴으로 안정적인 데이터 전송
-- ✅ **통합 테스트**: Testcontainers 기반 실제 MySQL 테스트
-- ✅ **쿼리 로깅**: p6spy로 바인딩 파라미터 확인
+- **JPA Entity 변환**: Week 3 도메인 모델을 JPA Entity로 변환
+- **Repository 구현**: JPA Repository + JDBC Template 혼합 사용
+- **Transaction 관리**: @Transactional 적용 및 격리 수준 설정
+- **외부 시스템 연동**: Outbox 패턴으로 안정적인 데이터 전송
+- **통합 테스트**: Testcontainers 기반 실제 MySQL 테스트
+- **쿼리 로깅**: p6spy로 바인딩 파라미터 확인
 
 ### Step 8: Database Optimization (필수)
-- ✅ **성능 병목 식별**: Slow Query 로그, EXPLAIN 분석
-- ✅ **인덱스 설계**: Single, Composite, Covering Index 적용
-- ✅ **쿼리 최적화**: N+1 문제 해결, JOIN 최적화
-- ✅ **최적화 보고서**: Before/After 성능 비교 문서화
+- **성능 병목 식별**: Slow Query 로그, EXPLAIN 분석
+- **인덱스 설계**: Single, Composite, Covering Index 적용
+- **쿼리 최적화**: N+1 문제 해결, JOIN 최적화
+- **최적화 보고서**: Before/After 성능 비교 문서화
 
 ---
 
