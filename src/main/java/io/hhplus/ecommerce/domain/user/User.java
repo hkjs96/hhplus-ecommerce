@@ -2,35 +2,77 @@ package io.hhplus.ecommerce.domain.user;
 
 import io.hhplus.ecommerce.common.exception.BusinessException;
 import io.hhplus.ecommerce.common.exception.ErrorCode;
-import lombok.AllArgsConstructor;
+import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
+@Entity
+@Table(
+    name = "users",
+    indexes = {
+        @Index(name = "idx_email", columnList = "email")
+    }
+)
 @Getter
-@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class User {
 
-    private String id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(unique = true, nullable = false, length = 100)
     private String email;
+
+    @Column(nullable = false, length = 50)
     private String username;
+
+    @Column(nullable = false)
     private Long balance;  // 포인트 잔액 (내부 포인트 시스템, PG 없음)
+
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    public static User create(String id, String email, String username) {
+    public static User create(String email, String username) {
         validateEmail(email);
         validateUsername(username);
 
-        LocalDateTime now = LocalDateTime.now();
-        return new User(id, email, username, 0L, now, now);
+        User user = new User();
+        user.email = email;
+        user.username = username;
+        user.balance = 0L;
+        user.createdAt = LocalDateTime.now();
+        user.updatedAt = LocalDateTime.now();
+
+        return user;
+    }
+
+    @PrePersist
+    protected void onCreate() {
+        if (this.createdAt == null) {
+            this.createdAt = LocalDateTime.now();
+        }
+        if (this.updatedAt == null) {
+            this.updatedAt = LocalDateTime.now();
+        }
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
     }
 
     public void charge(Long amount) {
         validateChargeAmount(amount);
 
         this.balance += amount;
-        this.updatedAt = LocalDateTime.now();
+        // updatedAt은 JPA @PreUpdate에서 자동 처리
     }
 
     public void deduct(Long amount) {
@@ -38,7 +80,7 @@ public class User {
         validateSufficientBalance(amount);
 
         this.balance -= amount;
-        this.updatedAt = LocalDateTime.now();
+        // updatedAt은 JPA @PreUpdate에서 자동 처리
     }
 
     public boolean hasEnoughBalance(Long amount) {

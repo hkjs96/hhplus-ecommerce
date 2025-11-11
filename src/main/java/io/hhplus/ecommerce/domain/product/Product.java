@@ -2,30 +2,87 @@ package io.hhplus.ecommerce.domain.product;
 
 import io.hhplus.ecommerce.common.exception.BusinessException;
 import io.hhplus.ecommerce.common.exception.ErrorCode;
-import lombok.AllArgsConstructor;
+import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
+@Entity
+@Table(
+    name = "products",
+    indexes = {
+        @Index(name = "idx_product_code", columnList = "product_code"),
+        @Index(name = "idx_category_created", columnList = "category, created_at")
+    }
+)
 @Getter
-@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Product {
 
-    private String id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name = "product_code", unique = true, length = 20, nullable = false)
+    private String productCode;  // Business ID (외부 노출용, e.g., "PROD-001")
+
+    @Column(nullable = false, length = 200)
     private String name;
+
+    @Column(length = 500)
     private String description;
+
+    @Column(nullable = false)
     private Long price;
+
+    @Column(length = 50)
     private String category;
-    private Integer stock;  // Week 3: Product에 stock 직접 포함
+
+    @Column(nullable = false)
+    private Integer stock;  // Week 4: Product에 stock 직접 포함
+
+    @Version
+    private Long version;  // Optimistic Lock for concurrent stock updates
+
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    public static Product create(String id, String name, String description, Long price, String category, Integer stock) {
+    public static Product create(String productCode, String name, String description, Long price, String category, Integer stock) {
+        validateProductCode(productCode);
         validatePrice(price);
         validateStock(stock);
 
-        LocalDateTime now = LocalDateTime.now();
-        return new Product(id, name, description, price, category, stock, now, now);
+        Product product = new Product();
+        product.productCode = productCode;
+        product.name = name;
+        product.description = description;
+        product.price = price;
+        product.category = category;
+        product.stock = stock;
+        product.createdAt = LocalDateTime.now();
+        product.updatedAt = LocalDateTime.now();
+
+        return product;
+    }
+
+    @PrePersist
+    protected void onCreate() {
+        if (this.createdAt == null) {
+            this.createdAt = LocalDateTime.now();
+        }
+        if (this.updatedAt == null) {
+            this.updatedAt = LocalDateTime.now();
+        }
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
     }
 
     public void decreaseStock(int quantity) {
@@ -33,14 +90,14 @@ public class Product {
         validateSufficientStock(quantity);
 
         this.stock -= quantity;
-        this.updatedAt = LocalDateTime.now();
+        // updatedAt은 JPA @PreUpdate에서 자동 처리
     }
 
     public void increaseStock(int quantity) {
         validateQuantity(quantity);
 
         this.stock += quantity;
-        this.updatedAt = LocalDateTime.now();
+        // updatedAt은 JPA @PreUpdate에서 자동 처리
     }
 
     public boolean hasEnoughStock(int quantity) {
@@ -61,12 +118,21 @@ public class Product {
         if (category != null) {
             this.category = category;
         }
-        this.updatedAt = LocalDateTime.now();
+        // updatedAt은 JPA @PreUpdate에서 자동 처리
     }
 
     // ====================================
     // Validation Methods
     // ====================================
+
+    private static void validateProductCode(String productCode) {
+        if (productCode == null || productCode.trim().isEmpty()) {
+            throw new BusinessException(
+                ErrorCode.INVALID_INPUT,
+                "상품 코드는 필수입니다"
+            );
+        }
+    }
 
     private void validateQuantity(int quantity) {
         if (quantity <= 0) {
