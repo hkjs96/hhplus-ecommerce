@@ -6,13 +6,13 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public class OrderItemResponse {
-    private String productId;
+    private Long productId;
     private String name;
     private Integer quantity;
     private Long unitPrice;
     private Long subtotal;
 
-    public static OrderItemResponse of(String productId, String productName, Integer quantity, Long unitPrice, Long subtotal) {
+    public static OrderItemResponse of(Long productId, String productName, Integer quantity, Long unitPrice, Long subtotal) {
         return new OrderItemResponse(productId, productName, quantity, unitPrice, subtotal);
     }
 }

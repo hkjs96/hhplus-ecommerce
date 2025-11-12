@@ -39,8 +39,8 @@ public class CartService {
 
         Cart cart = cartRepository.findByUserId(request.getUserId())
             .orElseGet(() -> {
-                String cartId = "CART-" + request.getUserId();
-                Cart newCart = Cart.create(cartId, request.getUserId());
+                // Cart.create() uses auto-generated Long ID
+                Cart newCart = Cart.create(request.getUserId());
                 return cartRepository.save(newCart);
             });
 
@@ -61,9 +61,8 @@ public class CartService {
                     cartItemRepository.save(existingItem);
                 },
                 () -> {
-                    String itemId = UUID.randomUUID().toString();
+                    // CartItem.create() uses auto-generated Long ID
                     CartItem newItem = CartItem.create(
-                        itemId,
                         cart.getId(),
                         request.getProductId(),
                         request.getQuantity()
@@ -78,7 +77,7 @@ public class CartService {
         return getCart(request.getUserId());
     }
 
-    public CartResponse getCart(String userId) {
+    public CartResponse getCart(Long userId) {
         userRepository.findByIdOrThrow(userId);
 
         Cart cart = cartRepository.findByUserId(userId).orElse(null);
@@ -164,7 +163,7 @@ public class CartService {
         cartRepository.save(cart);
     }
 
-    public void clearCart(String userId) {
+    public void clearCart(Long userId) {
         Cart cart = cartRepository.findByUserId(userId).orElse(null);
         if (cart != null) {
             cartItemRepository.deleteByCartId(cart.getId());

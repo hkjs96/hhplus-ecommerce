@@ -9,7 +9,7 @@ import lombok.Getter;
 @AllArgsConstructor
 public class TopProductItem {
     private Integer rank;
-    private String productId;
+    private Long productId;
     private String name;
     private Integer salesCount;
     private Long revenue;

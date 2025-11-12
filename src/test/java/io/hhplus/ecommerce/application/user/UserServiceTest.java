@@ -30,10 +30,9 @@ class UserServiceTest {
     @DisplayName("사용자 조회 성공")
     void getUser_성공() {
         // Given
-        String userId = "U001";
-        User user = User.create(userId, "test@example.com", "김항해");
-
-        userRepository.save(user);
+        User user = User.create("test@example.com", "김항해");
+        User savedUser = userRepository.save(user);
+        Long userId = savedUser.getId();
 
         // When
         UserResponse response = userService.getUser(userId);
@@ -49,10 +48,10 @@ class UserServiceTest {
     @DisplayName("사용자 조회 실패 - 존재하지 않는 사용자")
     void getUser_실패_존재하지않는사용자() {
         // Given
-        String userId = "INVALID";
+        Long invalidUserId = 99999L;
 
         // When & Then
-        assertThatThrownBy(() -> userService.getUser(userId))
+        assertThatThrownBy(() -> userService.getUser(invalidUserId))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.USER_NOT_FOUND);
     }
@@ -61,11 +60,11 @@ class UserServiceTest {
     @DisplayName("포인트 충전 성공")
     void chargeBalance_성공() {
         // Given
-        String userId = "U001";
-        User user = User.create(userId, "test@example.com", "김항해");
-        ChargeBalanceRequest request = new ChargeBalanceRequest(500000L);
+        User user = User.create("test@example.com", "김항해");
+        User savedUser = userRepository.save(user);
+        Long userId = savedUser.getId();
 
-        userRepository.save(user);
+        ChargeBalanceRequest request = new ChargeBalanceRequest(500000L);
 
         // When
         ChargeBalanceResponse response = userService.chargeBalance(userId, request);
@@ -76,19 +75,19 @@ class UserServiceTest {
         assertThat(response.getChargedAmount()).isEqualTo(500000L);
         assertThat(response.getChargedAt()).isNotNull();
 
-        User savedUser = userRepository.findById(userId).orElseThrow();
-        assertThat(savedUser.getBalance()).isEqualTo(500000L);
+        User reloadedUser = userRepository.findById(userId).orElseThrow();
+        assertThat(reloadedUser.getBalance()).isEqualTo(500000L);
     }
 
     @Test
     @DisplayName("포인트 충전 실패 - 존재하지 않는 사용자")
     void chargeBalance_실패_존재하지않는사용자() {
         // Given
-        String userId = "INVALID";
+        Long invalidUserId = 99999L;
         ChargeBalanceRequest request = new ChargeBalanceRequest(500000L);
 
         // When & Then
-        assertThatThrownBy(() -> userService.chargeBalance(userId, request))
+        assertThatThrownBy(() -> userService.chargeBalance(invalidUserId, request))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.USER_NOT_FOUND);
     }
@@ -97,11 +96,11 @@ class UserServiceTest {
     @DisplayName("포인트 충전 실패 - 잘못된 충전 금액 (0 이하)")
     void chargeBalance_실패_잘못된금액() {
         // Given
-        String userId = "U001";
-        User user = User.create(userId, "test@example.com", "김항해");
-        ChargeBalanceRequest request = new ChargeBalanceRequest(0L);
+        User user = User.create("test@example.com", "김항해");
+        User savedUser = userRepository.save(user);
+        Long userId = savedUser.getId();
 
-        userRepository.save(user);
+        ChargeBalanceRequest request = new ChargeBalanceRequest(0L);
 
         // When & Then
         assertThatThrownBy(() -> userService.chargeBalance(userId, request))
@@ -113,11 +112,11 @@ class UserServiceTest {
     @DisplayName("포인트 충전 실패 - 음수 금액")
     void chargeBalance_실패_음수금액() {
         // Given
-        String userId = "U001";
-        User user = User.create(userId, "test@example.com", "김항해");
-        ChargeBalanceRequest request = new ChargeBalanceRequest(-1000L);
+        User user = User.create("test@example.com", "김항해");
+        User savedUser = userRepository.save(user);
+        Long userId = savedUser.getId();
 
-        userRepository.save(user);
+        ChargeBalanceRequest request = new ChargeBalanceRequest(-1000L);
 
         // When & Then
         assertThatThrownBy(() -> userService.chargeBalance(userId, request))
@@ -129,10 +128,9 @@ class UserServiceTest {
     @DisplayName("포인트 여러 번 충전 - 누적")
     void chargeBalance_여러번충전() {
         // Given
-        String userId = "U001";
-        User user = User.create(userId, "test@example.com", "김항해");
-
-        userRepository.save(user);
+        User user = User.create("test@example.com", "김항해");
+        User savedUser = userRepository.save(user);
+        Long userId = savedUser.getId();
 
         // When
         ChargeBalanceRequest request1 = new ChargeBalanceRequest(500000L);
@@ -141,8 +139,8 @@ class UserServiceTest {
         // Then
         assertThat(response1.getBalance()).isEqualTo(500000L);
 
-        User savedUser1 = userRepository.findById(userId).orElseThrow();
-        assertThat(savedUser1.getBalance()).isEqualTo(500000L);
+        User reloadedUser1 = userRepository.findById(userId).orElseThrow();
+        assertThat(reloadedUser1.getBalance()).isEqualTo(500000L);
 
         // When
         ChargeBalanceRequest request2 = new ChargeBalanceRequest(300000L);
@@ -151,18 +149,18 @@ class UserServiceTest {
         // Then
         assertThat(response2.getBalance()).isEqualTo(800000L);
 
-        User savedUser2 = userRepository.findById(userId).orElseThrow();
-        assertThat(savedUser2.getBalance()).isEqualTo(800000L);
+        User reloadedUser2 = userRepository.findById(userId).orElseThrow();
+        assertThat(reloadedUser2.getBalance()).isEqualTo(800000L);
     }
 
     @Test
     @DisplayName("포인트 조회 성공")
     void getBalance_성공() {
         // Given
-        String userId = "U001";
-        User user = User.create(userId, "test@example.com", "김항해");
+        User user = User.create("test@example.com", "김항해");
         user.charge(100000L);
-        userRepository.save(user);
+        User savedUser = userRepository.save(user);
+        Long userId = savedUser.getId();
 
         // When
         BalanceResponse response = userService.getBalance(userId);
@@ -176,10 +174,10 @@ class UserServiceTest {
     @DisplayName("포인트 조회 실패 - 존재하지 않는 사용자")
     void getBalance_실패_존재하지않는사용자() {
         // Given
-        String userId = "INVALID";
+        Long invalidUserId = 99999L;
 
         // When & Then
-        assertThatThrownBy(() -> userService.getBalance(userId))
+        assertThatThrownBy(() -> userService.getBalance(invalidUserId))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.USER_NOT_FOUND);
     }
@@ -188,9 +186,9 @@ class UserServiceTest {
     @DisplayName("포인트 조회 - 충전 후 잔액 확인")
     void getBalance_충전후_잔액확인() {
         // Given
-        String userId = "U001";
-        User user = User.create(userId, "test@example.com", "김항해");
-        userRepository.save(user);
+        User user = User.create("test@example.com", "김항해");
+        User savedUser = userRepository.save(user);
+        Long userId = savedUser.getId();
 
         // When - 초기 잔액 조회
         BalanceResponse initialBalance = userService.getBalance(userId);

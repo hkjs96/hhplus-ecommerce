@@ -9,7 +9,7 @@ import lombok.Getter;
 @Builder
 @AllArgsConstructor
 public class UserResponse {
-    private String userId;
+    private Long userId;
     private String username;
     private String email;
     private Long balance;

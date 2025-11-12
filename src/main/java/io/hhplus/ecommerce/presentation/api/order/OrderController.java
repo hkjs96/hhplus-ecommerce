@@ -24,7 +24,7 @@ public class OrderController {
 
     @GetMapping
     public ResponseEntity<OrderListResponse> getOrders(
-            @NotBlank(message = "사용자 ID는 필수입니다") @RequestParam String userId,
+            @RequestParam Long userId,
             @RequestParam(required = false) String status
     ) {
         OrderListResponse response = orderService.getOrders(userId, status);
@@ -39,7 +39,7 @@ public class OrderController {
 
     @PostMapping("/{orderId}/payment")
     public ResponseEntity<PaymentResponse> processPayment(
-            @NotBlank(message = "주문 ID는 필수입니다") @PathVariable String orderId,
+            @PathVariable Long orderId,
             @Valid @RequestBody PaymentRequest request
     ) {
         PaymentResponse response = orderService.processPayment(orderId, request);

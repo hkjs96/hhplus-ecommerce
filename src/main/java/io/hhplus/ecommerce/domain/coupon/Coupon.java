@@ -75,11 +75,24 @@ public class Coupon {
     public void issue() {
         if (issuedQuantity >= totalQuantity) {
             throw new BusinessException(
-                ErrorCode.COUPON_OUT_OF_STOCK,
+                ErrorCode.COUPON_SOLD_OUT,
                 "쿠폰이 모두 소진되었습니다. couponId: " + this.id
             );
         }
         this.issuedQuantity++;
+    }
+
+    /**
+     * 쿠폰 발급 시도 (boolean 반환)
+     * 동시성 테스트용 메서드
+     * @return true if issued successfully, false if sold out
+     */
+    public boolean tryIssue() {
+        if (issuedQuantity >= totalQuantity) {
+            return false;
+        }
+        this.issuedQuantity++;
+        return true;
     }
 
     public boolean isValid(LocalDateTime now) {

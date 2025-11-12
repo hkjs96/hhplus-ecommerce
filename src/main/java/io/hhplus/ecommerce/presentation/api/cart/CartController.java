@@ -30,7 +30,7 @@ public class CartController {
 
     @GetMapping
     public ResponseEntity<CartResponse> getCart(
-        @NotBlank(message = "사용자 ID는 필수입니다") @RequestParam String userId
+        @RequestParam Long userId
     ) {
         CartResponse response = cartService.getCart(userId);
         return ResponseEntity.ok(response);

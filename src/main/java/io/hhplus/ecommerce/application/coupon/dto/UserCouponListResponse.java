@@ -10,11 +10,11 @@ import java.util.List;
 @Builder
 @AllArgsConstructor
 public class UserCouponListResponse {
-    private String userId;
+    private Long userId;
     private List<UserCouponResponse> coupons;
     private Integer totalCount;
 
-    public static UserCouponListResponse of(String userId, List<UserCouponResponse> coupons) {
+    public static UserCouponListResponse of(Long userId, List<UserCouponResponse> coupons) {
         return UserCouponListResponse.builder()
                 .userId(userId)
                 .coupons(coupons)

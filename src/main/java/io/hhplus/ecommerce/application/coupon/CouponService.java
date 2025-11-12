@@ -23,8 +23,8 @@ public class CouponService {
     private final UserCouponRepository userCouponRepository;
     private final UserRepository userRepository;
 
-    public IssueCouponResponse issueCoupon(String couponId, IssueCouponRequest request) {
-        String userId = request.getUserId();
+    public IssueCouponResponse issueCoupon(Long couponId, IssueCouponRequest request) {
+        Long userId = request.getUserId();
 
         userRepository.findByIdOrThrow(userId);
         Coupon coupon = couponRepository.findByIdOrThrow(couponId);
@@ -38,16 +38,11 @@ public class CouponService {
             );
         }
 
-        boolean issued = coupon.tryIssue();
-        if (!issued) {
-            throw new BusinessException(
-                    ErrorCode.COUPON_SOLD_OUT,
-                    "쿠폰이 모두 소진되었습니다. couponId: " + couponId
-            );
-        }
+        // issue() 메서드가 수량 소진 시 예외를 던지므로 직접 호출
+        coupon.issue();
 
-        String userCouponId = java.util.UUID.randomUUID().toString();
-        UserCoupon userCoupon = UserCoupon.create(userCouponId, userId, couponId, coupon.getExpiresAt());
+        // UserCoupon.create() uses auto-generated Long ID
+        UserCoupon userCoupon = UserCoupon.create(userId, couponId, coupon.getExpiresAt());
         userCouponRepository.save(userCoupon);
         couponRepository.save(coupon);
 
@@ -60,7 +55,7 @@ public class CouponService {
         );
     }
 
-    public UserCouponListResponse getUserCoupons(String userId, String status) {
+    public UserCouponListResponse getUserCoupons(Long userId, String status) {
         userRepository.findByIdOrThrow(userId);
 
         List<UserCoupon> userCoupons = userCouponRepository.findByUserId(userId);

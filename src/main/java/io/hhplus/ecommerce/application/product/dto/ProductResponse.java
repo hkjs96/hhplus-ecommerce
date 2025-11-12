@@ -9,7 +9,7 @@ import lombok.Getter;
 @Builder
 @AllArgsConstructor
 public class ProductResponse {
-    private String productId;
+    private Long productId;
     private String name;
     private String description;
     private Long price;

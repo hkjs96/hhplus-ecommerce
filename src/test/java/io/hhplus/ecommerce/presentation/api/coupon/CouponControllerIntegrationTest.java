@@ -54,7 +54,7 @@ class CouponControllerIntegrationTest {
     @BeforeEach
     void setUp() {
         // Setup test user
-        User user = User.create("U001", "test@example.com", "김항해");
+        User user = User.create("test@example.com", "김항해");
         User savedUser = userRepository.save(user);
         userId1 = savedUser.getId();
 
@@ -164,7 +164,7 @@ class CouponControllerIntegrationTest {
         Long limitedCouponId = savedLimitedCoupon.getId();
 
         // Create another user
-        User user2 = User.create("U002", "user2@example.com", "다른사용자");
+        User user2 = User.create("user2@example.com", "다른사용자");
         User savedUser2 = userRepository.save(user2);
         userId2 = savedUser2.getId();
 

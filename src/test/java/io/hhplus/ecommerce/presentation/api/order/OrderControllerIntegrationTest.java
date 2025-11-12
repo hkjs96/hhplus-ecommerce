@@ -59,6 +59,10 @@ class OrderControllerIntegrationTest {
     @Autowired
     private io.hhplus.ecommerce.domain.order.OrderItemRepository orderItemRepository;
 
+    private Long testUserId;
+    private Long testProduct1Id;
+    private Long testProduct2Id;
+
     @BeforeEach
     void setUp() {
         // Clean up data
@@ -69,24 +73,26 @@ class OrderControllerIntegrationTest {
             ((io.hhplus.ecommerce.infrastructure.persistence.order.InMemoryOrderItemRepository) orderItemRepository).clear();
         }
 
-        String userId = "U001";
-        User user = User.create(userId, "test@example.com", "김항해");
+        User user = User.create("test@example.com", "김항해");
         user.charge(5000000L);
-        userRepository.save(user);
+        User savedUser = userRepository.save(user);
+        testUserId = savedUser.getId();
 
         Product product1 = Product.create("P001", "노트북", "고성능 게이밍 노트북", 1500000L, "전자제품", 50);
         Product product2 = Product.create("P002", "마우스", "무선 게이밍 마우스", 80000L, "전자제품", 100);
-        productRepository.save(product1);
-        productRepository.save(product2);
+        Product savedProduct1 = productRepository.save(product1);
+        Product savedProduct2 = productRepository.save(product2);
+        testProduct1Id = savedProduct1.getId();
+        testProduct2Id = savedProduct2.getId();
     }
 
     @Test
     @DisplayName("주문 생성 API - 성공")
     void createOrder_성공() throws Exception {
         // Given
-        OrderItemRequest item1 = new OrderItemRequest("P001", 1);
-        OrderItemRequest item2 = new OrderItemRequest("P002", 2);
-        CreateOrderRequest request = new CreateOrderRequest("U001", List.of(item1, item2), null);
+        OrderItemRequest item1 = new OrderItemRequest(testProduct1Id, 1);
+        OrderItemRequest item2 = new OrderItemRequest(testProduct2Id, 2);
+        CreateOrderRequest request = new CreateOrderRequest(testUserId, List.of(item1, item2), null);
 
         // When & Then
         mockMvc.perform(post("/api/orders")
@@ -94,7 +100,7 @@ class OrderControllerIntegrationTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.orderId").exists())
-                .andExpect(jsonPath("$.userId").value("U001"))
+                .andExpect(jsonPath("$.userId").value(testUserId))
                 .andExpect(jsonPath("$.items").isArray())
                 .andExpect(jsonPath("$.items.length()").value(2))
                 .andExpect(jsonPath("$.subtotalAmount").value(1660000L))
@@ -109,13 +115,14 @@ class OrderControllerIntegrationTest {
         // Given - Setup coupon
         LocalDateTime now = LocalDateTime.now();
         Coupon coupon = Coupon.create("C001", "10% 할인 쿠폰", 10, 100, now, now.plusDays(7));
-        couponRepository.save(coupon);
+        Coupon savedCoupon = couponRepository.save(coupon);
+        Long couponId = savedCoupon.getId();
 
-        UserCoupon userCoupon = UserCoupon.create("UC001", "U001", "C001", coupon.getExpiresAt());
+        UserCoupon userCoupon = UserCoupon.create(testUserId, couponId, savedCoupon.getExpiresAt());
         userCouponRepository.save(userCoupon);
 
-        OrderItemRequest item = new OrderItemRequest("P001", 1);
-        CreateOrderRequest request = new CreateOrderRequest("U001", List.of(item), "C001");
+        OrderItemRequest item = new OrderItemRequest(testProduct1Id, 1);
+        CreateOrderRequest request = new CreateOrderRequest(testUserId, List.of(item), couponId);
 
         // When & Then
         mockMvc.perform(post("/api/orders")
@@ -131,8 +138,8 @@ class OrderControllerIntegrationTest {
     @DisplayName("주문 생성 API - 존재하지 않는 사용자")
     void createOrder_실패_존재하지않는사용자() throws Exception {
         // Given
-        OrderItemRequest item = new OrderItemRequest("P001", 1);
-        CreateOrderRequest request = new CreateOrderRequest("INVALID_USER", List.of(item), null);
+        OrderItemRequest item = new OrderItemRequest(testProduct1Id, 1);
+        CreateOrderRequest request = new CreateOrderRequest(99999L, List.of(item), null);
 
         // When & Then
         mockMvc.perform(post("/api/orders")
@@ -146,8 +153,8 @@ class OrderControllerIntegrationTest {
     @DisplayName("주문 생성 API - 재고 부족")
     void createOrder_실패_재고부족() throws Exception {
         // Given
-        OrderItemRequest item = new OrderItemRequest("P001", 100); // Stock is only 50
-        CreateOrderRequest request = new CreateOrderRequest("U001", List.of(item), null);
+        OrderItemRequest item = new OrderItemRequest(testProduct1Id, 100); // Stock is only 50
+        CreateOrderRequest request = new CreateOrderRequest(testUserId, List.of(item), null);
 
         // When & Then
         mockMvc.perform(post("/api/orders")
@@ -161,8 +168,8 @@ class OrderControllerIntegrationTest {
     @DisplayName("결제 처리 API - 성공")
     void processPayment_성공() throws Exception {
         // Given - Create order first
-        OrderItemRequest item = new OrderItemRequest("P001", 1);
-        CreateOrderRequest createRequest = new CreateOrderRequest("U001", List.of(item), null);
+        OrderItemRequest item = new OrderItemRequest(testProduct1Id, 1);
+        CreateOrderRequest createRequest = new CreateOrderRequest(testUserId, List.of(item), null);
 
         MvcResult createResult = mockMvc.perform(post("/api/orders")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -173,7 +180,7 @@ class OrderControllerIntegrationTest {
         String orderId = objectMapper.readTree(createResult.getResponse().getContentAsString())
                 .get("orderId").asText();
 
-        PaymentRequest paymentRequest = new PaymentRequest("U001");
+        PaymentRequest paymentRequest = new PaymentRequest(testUserId);
 
         // When & Then - Process payment
         mockMvc.perform(post("/api/orders/" + orderId + "/payment")
@@ -187,7 +194,7 @@ class OrderControllerIntegrationTest {
                 .andExpect(jsonPath("$.paidAt").exists());
 
         // Verify stock decreased
-        Product product = productRepository.findById("P001").orElseThrow();
+        Product product = productRepository.findById(testProduct1Id).orElseThrow();
         assertThat(product.getStock()).isEqualTo(49);
     }
 
@@ -195,7 +202,7 @@ class OrderControllerIntegrationTest {
     @DisplayName("결제 처리 API - 존재하지 않는 주문")
     void processPayment_실패_존재하지않는주문() throws Exception {
         // Given
-        PaymentRequest paymentRequest = new PaymentRequest("U001");
+        PaymentRequest paymentRequest = new PaymentRequest(testUserId);
 
         // When & Then
         mockMvc.perform(post("/api/orders/INVALID_ORDER_ID/payment")
@@ -209,13 +216,14 @@ class OrderControllerIntegrationTest {
     @DisplayName("결제 처리 API - 잔액 부족")
     void processPayment_실패_잔액부족() throws Exception {
         // Given - Create user with low balance
-        User poorUser = User.create("U002", "poor@example.com", "가난한항해");
+        User poorUser = User.create("poor@example.com", "가난한항해");
         poorUser.charge(100000L);
-        userRepository.save(poorUser);
+        User savedPoorUser = userRepository.save(poorUser);
+        Long poorUserId = savedPoorUser.getId();
 
         // Create order
-        OrderItemRequest item = new OrderItemRequest("P001", 1);
-        CreateOrderRequest createRequest = new CreateOrderRequest("U002", List.of(item), null);
+        OrderItemRequest item = new OrderItemRequest(testProduct1Id, 1);
+        CreateOrderRequest createRequest = new CreateOrderRequest(poorUserId, List.of(item), null);
 
         MvcResult createResult = mockMvc.perform(post("/api/orders")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -226,7 +234,7 @@ class OrderControllerIntegrationTest {
         String orderId = objectMapper.readTree(createResult.getResponse().getContentAsString())
                 .get("orderId").asText();
 
-        PaymentRequest paymentRequest = new PaymentRequest("U002");
+        PaymentRequest paymentRequest = new PaymentRequest(poorUserId);
 
         // When & Then - Payment fails due to insufficient balance
         mockMvc.perform(post("/api/orders/" + orderId + "/payment")
@@ -240,8 +248,8 @@ class OrderControllerIntegrationTest {
     @DisplayName("결제 처리 API - 이미 완료된 주문")
     void processPayment_실패_이미완료된주문() throws Exception {
         // Given - Create and pay for order
-        OrderItemRequest item = new OrderItemRequest("P002", 1);
-        CreateOrderRequest createRequest = new CreateOrderRequest("U001", List.of(item), null);
+        OrderItemRequest item = new OrderItemRequest(testProduct2Id, 1);
+        CreateOrderRequest createRequest = new CreateOrderRequest(testUserId, List.of(item), null);
 
         MvcResult createResult = mockMvc.perform(post("/api/orders")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -252,7 +260,7 @@ class OrderControllerIntegrationTest {
         String orderId = objectMapper.readTree(createResult.getResponse().getContentAsString())
                 .get("orderId").asText();
 
-        PaymentRequest paymentRequest = new PaymentRequest("U001");
+        PaymentRequest paymentRequest = new PaymentRequest(testUserId);
 
         // First payment - success
         mockMvc.perform(post("/api/orders/" + orderId + "/payment")
@@ -272,8 +280,8 @@ class OrderControllerIntegrationTest {
     @DisplayName("주문 내역 조회 API - 성공")
     void getOrders_성공() throws Exception {
         // Given - Create 2 orders
-        OrderItemRequest item = new OrderItemRequest("P001", 1);
-        CreateOrderRequest createRequest = new CreateOrderRequest("U001", List.of(item), null);
+        OrderItemRequest item = new OrderItemRequest(testProduct1Id, 1);
+        CreateOrderRequest createRequest = new CreateOrderRequest(testUserId, List.of(item), null);
 
         mockMvc.perform(post("/api/orders")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -287,12 +295,12 @@ class OrderControllerIntegrationTest {
 
         // When & Then
         mockMvc.perform(get("/api/orders")
-                        .param("userId", "U001"))
+                        .param("userId", String.valueOf(testUserId)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.orders").isArray())
                 .andExpect(jsonPath("$.orders.length()").value(2))
                 .andExpect(jsonPath("$.totalCount").value(2))
-                .andExpect(jsonPath("$.orders[0].userId").value("U001"))
+                .andExpect(jsonPath("$.orders[0].userId").value(testUserId))
                 .andExpect(jsonPath("$.orders[0].items").isArray())
                 .andExpect(jsonPath("$.orders[0].status").exists());
     }
@@ -301,8 +309,8 @@ class OrderControllerIntegrationTest {
     @DisplayName("주문 내역 조회 API - 상태 필터링 (PENDING)")
     void getOrders_상태필터링_PENDING() throws Exception {
         // Given - Create 2 orders, pay for 1
-        OrderItemRequest item = new OrderItemRequest("P002", 1);
-        CreateOrderRequest createRequest = new CreateOrderRequest("U001", List.of(item), null);
+        OrderItemRequest item = new OrderItemRequest(testProduct2Id, 1);
+        CreateOrderRequest createRequest = new CreateOrderRequest(testUserId, List.of(item), null);
 
         // Order 1 - Pay
         MvcResult result1 = mockMvc.perform(post("/api/orders")
@@ -314,7 +322,7 @@ class OrderControllerIntegrationTest {
         String orderId1 = objectMapper.readTree(result1.getResponse().getContentAsString())
                 .get("orderId").asText();
 
-        PaymentRequest paymentRequest = new PaymentRequest("U001");
+        PaymentRequest paymentRequest = new PaymentRequest(testUserId);
         mockMvc.perform(post("/api/orders/" + orderId1 + "/payment")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(paymentRequest)))
@@ -328,7 +336,7 @@ class OrderControllerIntegrationTest {
 
         // When & Then - Filter by PENDING
         mockMvc.perform(get("/api/orders")
-                        .param("userId", "U001")
+                        .param("userId", String.valueOf(testUserId))
                         .param("status", "PENDING"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.orders").isArray())
@@ -340,8 +348,8 @@ class OrderControllerIntegrationTest {
     @DisplayName("주문 내역 조회 API - 상태 필터링 (COMPLETED)")
     void getOrders_상태필터링_COMPLETED() throws Exception {
         // Given - Create and pay for 2 orders
-        OrderItemRequest item = new OrderItemRequest("P002", 1);
-        CreateOrderRequest createRequest = new CreateOrderRequest("U001", List.of(item), null);
+        OrderItemRequest item = new OrderItemRequest(testProduct2Id, 1);
+        CreateOrderRequest createRequest = new CreateOrderRequest(testUserId, List.of(item), null);
 
         for (int i = 0; i < 2; i++) {
             MvcResult result = mockMvc.perform(post("/api/orders")
@@ -353,7 +361,7 @@ class OrderControllerIntegrationTest {
             String orderId = objectMapper.readTree(result.getResponse().getContentAsString())
                     .get("orderId").asText();
 
-            PaymentRequest paymentRequest = new PaymentRequest("U001");
+            PaymentRequest paymentRequest = new PaymentRequest(testUserId);
             mockMvc.perform(post("/api/orders/" + orderId + "/payment")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(paymentRequest)))
@@ -362,7 +370,7 @@ class OrderControllerIntegrationTest {
 
         // When & Then - Filter by COMPLETED
         mockMvc.perform(get("/api/orders")
-                        .param("userId", "U001")
+                        .param("userId", String.valueOf(testUserId))
                         .param("status", "COMPLETED"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.orders").isArray())
@@ -375,12 +383,13 @@ class OrderControllerIntegrationTest {
     @DisplayName("주문 내역 조회 API - 주문 없음")
     void getOrders_주문없음() throws Exception {
         // Given - New user with no orders
-        User newUser = User.create("U003", "new@example.com", "새로운항해");
-        userRepository.save(newUser);
+        User newUser = User.create("new@example.com", "새로운항해");
+        User savedNewUser = userRepository.save(newUser);
+        Long newUserId = savedNewUser.getId();
 
         // When & Then
         mockMvc.perform(get("/api/orders")
-                        .param("userId", "U003"))
+                        .param("userId", String.valueOf(newUserId)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.orders").isArray())
                 .andExpect(jsonPath("$.orders.length()").value(0))
@@ -392,7 +401,7 @@ class OrderControllerIntegrationTest {
     void getOrders_실패_존재하지않는사용자() throws Exception {
         // When & Then
         mockMvc.perform(get("/api/orders")
-                        .param("userId", "INVALID_USER"))
+                        .param("userId", String.valueOf(99999L)))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("U001"));
     }
@@ -402,7 +411,7 @@ class OrderControllerIntegrationTest {
     void getOrders_실패_잘못된상태() throws Exception {
         // When & Then
         mockMvc.perform(get("/api/orders")
-                        .param("userId", "U001")
+                        .param("userId", String.valueOf(testUserId))
                         .param("status", "INVALID_STATUS"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("COMMON002"));

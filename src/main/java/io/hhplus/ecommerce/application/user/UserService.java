@@ -19,17 +19,17 @@ public class UserService {
 
     private final UserRepository userRepository;
 
-    public UserResponse getUser(String userId) {
+    public UserResponse getUser(Long userId) {
         User user = userRepository.findByIdOrThrow(userId);
         return UserResponse.from(user);
     }
 
-    public BalanceResponse getBalance(String userId) {
+    public BalanceResponse getBalance(Long userId) {
         User user = userRepository.findByIdOrThrow(userId);
         return BalanceResponse.of(user.getId(), user.getBalance());
     }
 
-    public ChargeBalanceResponse chargeBalance(String userId, ChargeBalanceRequest request) {
+    public ChargeBalanceResponse chargeBalance(Long userId, ChargeBalanceRequest request) {
         User user = userRepository.findByIdOrThrow(userId);
         user.charge(request.getAmount());
         userRepository.save(user);

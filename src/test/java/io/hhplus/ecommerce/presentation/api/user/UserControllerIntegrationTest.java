@@ -32,6 +32,8 @@ class UserControllerIntegrationTest {
     @Autowired
     private UserRepository userRepository;
 
+    private Long testUserId;
+
     @BeforeEach
     void setUp() {
         // Clear existing data
@@ -39,17 +41,18 @@ class UserControllerIntegrationTest {
             ((io.hhplus.ecommerce.infrastructure.persistence.user.InMemoryUserRepository) userRepository).clear();
         }
 
-        User user = User.create("U001", "test@example.com", "김항해");
+        User user = User.create("test@example.com", "김항해");
         user.charge(100000L);
-        userRepository.save(user);
+        User savedUser = userRepository.save(user);
+        testUserId = savedUser.getId();
     }
 
     @Test
     @DisplayName("사용자 조회 API - 성공")
     void getUser_성공() throws Exception {
-        mockMvc.perform(get("/api/users/U001"))
+        mockMvc.perform(get("/api/users/" + testUserId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.userId").value("U001"))
+                .andExpect(jsonPath("$.userId").value(testUserId))
                 .andExpect(jsonPath("$.email").value("test@example.com"))
                 .andExpect(jsonPath("$.username").value("김항해"))
                 .andExpect(jsonPath("$.balance").value(100000L));
@@ -58,7 +61,7 @@ class UserControllerIntegrationTest {
     @Test
     @DisplayName("사용자 조회 API - 존재하지 않는 사용자")
     void getUser_실패_존재하지않는사용자() throws Exception {
-        mockMvc.perform(get("/api/users/INVALID_USER"))
+        mockMvc.perform(get("/api/users/99999"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("U001"));
     }
@@ -70,16 +73,16 @@ class UserControllerIntegrationTest {
         ChargeBalanceRequest request = new ChargeBalanceRequest(50000L);
 
         // When & Then
-        mockMvc.perform(post("/api/users/U001/balance/charge")
+        mockMvc.perform(post("/api/users/" + testUserId + "/balance/charge")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.userId").value("U001"))
+                .andExpect(jsonPath("$.userId").value(testUserId))
                 .andExpect(jsonPath("$.balance").value(150000L))
                 .andExpect(jsonPath("$.chargedAmount").value(50000L));
 
         // Verify balance updated in repository
-        User user = userRepository.findById("U001").orElseThrow();
+        User user = userRepository.findById(testUserId).orElseThrow();
         assertThat(user.getBalance()).isEqualTo(150000L);
     }
 
@@ -90,7 +93,7 @@ class UserControllerIntegrationTest {
         ChargeBalanceRequest request = new ChargeBalanceRequest(-10000L);
 
         // When & Then
-        mockMvc.perform(post("/api/users/U001/balance/charge")
+        mockMvc.perform(post("/api/users/" + testUserId + "/balance/charge")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
@@ -104,7 +107,7 @@ class UserControllerIntegrationTest {
         ChargeBalanceRequest request = new ChargeBalanceRequest(0L);
 
         // When & Then
-        mockMvc.perform(post("/api/users/U001/balance/charge")
+        mockMvc.perform(post("/api/users/" + testUserId + "/balance/charge")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
@@ -118,7 +121,7 @@ class UserControllerIntegrationTest {
         ChargeBalanceRequest request = new ChargeBalanceRequest(50000L);
 
         // When & Then
-        mockMvc.perform(post("/api/users/INVALID_USER/balance/charge")
+        mockMvc.perform(post("/api/users/99999/balance/charge")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isNotFound())
@@ -128,16 +131,16 @@ class UserControllerIntegrationTest {
     @Test
     @DisplayName("포인트 조회 API - 성공")
     void getBalance_성공() throws Exception {
-        mockMvc.perform(get("/api/users/U001/balance"))
+        mockMvc.perform(get("/api/users/" + testUserId + "/balance"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.userId").value("U001"))
+                .andExpect(jsonPath("$.userId").value(testUserId))
                 .andExpect(jsonPath("$.balance").value(100000L));
     }
 
     @Test
     @DisplayName("포인트 조회 API - 존재하지 않는 사용자")
     void getBalance_실패_존재하지않는사용자() throws Exception {
-        mockMvc.perform(get("/api/users/INVALID_USER/balance"))
+        mockMvc.perform(get("/api/users/99999/balance"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("U001"));
     }
@@ -147,19 +150,19 @@ class UserControllerIntegrationTest {
     void getBalance_충전후_잔액확인() throws Exception {
         // Given - 50000원 충전
         ChargeBalanceRequest request = new ChargeBalanceRequest(50000L);
-        mockMvc.perform(post("/api/users/U001/balance/charge")
+        mockMvc.perform(post("/api/users/" + testUserId + "/balance/charge")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk());
 
         // When & Then - 잔액 조회
-        mockMvc.perform(get("/api/users/U001/balance"))
+        mockMvc.perform(get("/api/users/" + testUserId + "/balance"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.userId").value("U001"))
+                .andExpect(jsonPath("$.userId").value(testUserId))
                 .andExpect(jsonPath("$.balance").value(150000L));  // 100000 + 50000
 
         // Verify balance in repository
-        User user = userRepository.findById("U001").orElseThrow();
+        User user = userRepository.findById(testUserId).orElseThrow();
         assertThat(user.getBalance()).isEqualTo(150000L);
     }
 }

@@ -21,7 +21,7 @@ public class CouponController {
 
     @PostMapping("/coupons/{couponId}/issue")
     public ResponseEntity<IssueCouponResponse> issueCoupon(
-            @NotBlank(message = "쿠폰 ID는 필수입니다") @PathVariable String couponId,
+            @PathVariable Long couponId,
             @Valid @RequestBody IssueCouponRequest request
     ) {
         IssueCouponResponse response = couponService.issueCoupon(couponId, request);
@@ -30,7 +30,7 @@ public class CouponController {
 
     @GetMapping("/users/{userId}/coupons")
     public ResponseEntity<UserCouponListResponse> getUserCoupons(
-            @NotBlank(message = "사용자 ID는 필수입니다") @PathVariable String userId,
+            @PathVariable Long userId,
             @RequestParam(required = false) String status
     ) {
         UserCouponListResponse response = couponService.getUserCoupons(userId, status);

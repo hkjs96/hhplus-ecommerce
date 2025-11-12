@@ -28,7 +28,7 @@ public class ProductService {
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
 
-    public ProductResponse getProduct(String productId) {
+    public ProductResponse getProduct(Long productId) {
         Product product = productRepository.findByIdOrThrow(productId);
         return ProductResponse.from(product);
     }
@@ -61,7 +61,7 @@ public class ProductService {
         LocalDateTime threeDaysAgo = LocalDateTime.now().minusDays(3);
 
         // 1. 최근 3일간 완료된 주문 조회
-        List<String> completedOrderIds = orderRepository.findAll().stream()
+        List<Long> completedOrderIds = orderRepository.findAll().stream()
                 .filter(Order::isCompleted)
                 .filter(order -> order.getPaidAt() != null && order.getPaidAt().isAfter(threeDaysAgo))
                 .map(Order::getId)
@@ -72,7 +72,7 @@ public class ProductService {
         }
 
         // 2. 해당 주문들의 OrderItem 조회 및 집계
-        Map<String, ProductSales> salesByProduct = orderItemRepository.findAll().stream()
+        Map<Long, ProductSales> salesByProduct = orderItemRepository.findAll().stream()
                 .filter(item -> completedOrderIds.contains(item.getOrderId()))
                 .collect(Collectors.groupingBy(
                         OrderItem::getProductId,
@@ -90,7 +90,7 @@ public class ProductService {
                 .sorted((e1, e2) -> Integer.compare(e2.getValue().salesCount, e1.getValue().salesCount))
                 .limit(5)
                 .map(entry -> {
-                    String productId = entry.getKey();
+                    Long productId = entry.getKey();
                     ProductSales sales = entry.getValue();
 
                     // Product 정보 조회

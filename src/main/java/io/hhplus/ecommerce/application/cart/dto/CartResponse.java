@@ -8,11 +8,11 @@ import java.util.List;
 @Getter
 @AllArgsConstructor
 public class CartResponse {
-    private String userId;
+    private Long userId;
     private List<CartItemResponse> items;
     private Long totalAmount;
 
-    public static CartResponse of(String userId, List<CartItemResponse> items) {
+    public static CartResponse of(Long userId, List<CartItemResponse> items) {
         Long totalAmount = items.stream()
             .mapToLong(CartItemResponse::getSubtotal)
             .sum();

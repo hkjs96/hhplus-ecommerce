@@ -8,7 +8,7 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public class CartItemResponse {
-    private String productId;
+    private Long productId;
     private String name;
     private Long unitPrice;
     private Integer quantity;
@@ -29,7 +29,7 @@ public class CartItemResponse {
         );
     }
 
-    public static CartItemResponse forUpdate(String productId, Integer quantity, Long subtotal) {
+    public static CartItemResponse forUpdate(Long productId, Integer quantity, Long subtotal) {
         return new CartItemResponse(
             productId,
             null,

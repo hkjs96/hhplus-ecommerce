@@ -37,15 +37,16 @@ class CouponServiceTest {
     @DisplayName("쿠폰 발급 성공")
     void issueCoupon_성공() {
         // Given
-        String userId = "U001";
-        String couponId = "C001";
-        User user = User.create(userId, "test@example.com", "김항해");
-        LocalDateTime now = LocalDateTime.now();
-        Coupon coupon = Coupon.create(couponId, "10% 할인", 10, 100, now, now.plusDays(7));
-        IssueCouponRequest request = new IssueCouponRequest(userId);
+        User user = User.create("test@example.com", "김항해");
+        User savedUser = userRepository.save(user);
+        Long userId = savedUser.getId();
 
-        userRepository.save(user);
-        couponRepository.save(coupon);
+        LocalDateTime now = LocalDateTime.now();
+        Coupon coupon = Coupon.create("C001", "10% 할인", 10, 100, now, now.plusDays(7));
+        Coupon savedCoupon = couponRepository.save(coupon);
+        Long couponId = savedCoupon.getId();
+
+        IssueCouponRequest request = new IssueCouponRequest(userId);
 
         // When
         IssueCouponResponse response = couponService.issueCoupon(couponId, request);
@@ -57,8 +58,8 @@ class CouponServiceTest {
         assertThat(response.getStatus()).isEqualTo("AVAILABLE");
         assertThat(response.getRemainingQuantity()).isEqualTo(99);
 
-        Coupon savedCoupon = couponRepository.findById(couponId).orElseThrow();
-        assertThat(savedCoupon.getIssuedQuantityValue()).isEqualTo(1);
+        Coupon reloadedCoupon = couponRepository.findById(couponId).orElseThrow();
+        assertThat(reloadedCoupon.getIssuedQuantity()).isEqualTo(1);
         assertThat(userCouponRepository.existsByUserIdAndCouponId(userId, couponId)).isTrue();
     }
 
@@ -66,12 +67,12 @@ class CouponServiceTest {
     @DisplayName("쿠폰 발급 실패 - 존재하지 않는 사용자")
     void issueCoupon_실패_존재하지않는사용자() {
         // Given
-        String userId = "INVALID";
-        String couponId = "C001";
-        IssueCouponRequest request = new IssueCouponRequest(userId);
+        Long invalidUserId = 99999L;
+        Long invalidCouponId = 99999L;
+        IssueCouponRequest request = new IssueCouponRequest(invalidUserId);
 
         // When & Then
-        assertThatThrownBy(() -> couponService.issueCoupon(couponId, request))
+        assertThatThrownBy(() -> couponService.issueCoupon(invalidCouponId, request))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.USER_NOT_FOUND);
     }
@@ -80,15 +81,15 @@ class CouponServiceTest {
     @DisplayName("쿠폰 발급 실패 - 존재하지 않는 쿠폰")
     void issueCoupon_실패_존재하지않는쿠폰() {
         // Given
-        String userId = "U001";
-        String couponId = "INVALID";
-        User user = User.create(userId, "test@example.com", "김항해");
+        User user = User.create("test@example.com", "김항해");
+        User savedUser = userRepository.save(user);
+        Long userId = savedUser.getId();
+        Long invalidCouponId = 99999L;
+
         IssueCouponRequest request = new IssueCouponRequest(userId);
 
-        userRepository.save(user);
-
         // When & Then
-        assertThatThrownBy(() -> couponService.issueCoupon(couponId, request))
+        assertThatThrownBy(() -> couponService.issueCoupon(invalidCouponId, request))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_COUPON);
     }
@@ -97,15 +98,16 @@ class CouponServiceTest {
     @DisplayName("쿠폰 발급 실패 - 만료된 쿠폰")
     void issueCoupon_실패_만료된쿠폰() {
         // Given
-        String userId = "U001";
-        String couponId = "C001";
-        User user = User.create(userId, "test@example.com", "김항해");
-        LocalDateTime now = LocalDateTime.now();
-        Coupon coupon = Coupon.create(couponId, "10% 할인", 10, 100, now.minusDays(10), now.minusDays(1));
-        IssueCouponRequest request = new IssueCouponRequest(userId);
+        User user = User.create("test@example.com", "김항해");
+        User savedUser = userRepository.save(user);
+        Long userId = savedUser.getId();
 
-        userRepository.save(user);
-        couponRepository.save(coupon);
+        LocalDateTime now = LocalDateTime.now();
+        Coupon coupon = Coupon.create("C001", "10% 할인", 10, 100, now.minusDays(10), now.minusDays(1));
+        Coupon savedCoupon = couponRepository.save(coupon);
+        Long couponId = savedCoupon.getId();
+
+        IssueCouponRequest request = new IssueCouponRequest(userId);
 
         // When & Then
         assertThatThrownBy(() -> couponService.issueCoupon(couponId, request))
@@ -117,18 +119,18 @@ class CouponServiceTest {
     @DisplayName("쿠폰 발급 실패 - 중복 발급 (1인 1매 제한)")
     void issueCoupon_실패_중복발급() {
         // Given
-        String userId = "U001";
-        String couponId = "C001";
-        User user = User.create(userId, "test@example.com", "김항해");
+        User user = User.create("test@example.com", "김항해");
+        User savedUser = userRepository.save(user);
+        Long userId = savedUser.getId();
+
         LocalDateTime now = LocalDateTime.now();
-        Coupon coupon = Coupon.create(couponId, "10% 할인", 10, 100, now, now.plusDays(7));
+        Coupon coupon = Coupon.create("C001", "10% 할인", 10, 100, now, now.plusDays(7));
+        Coupon savedCoupon = couponRepository.save(coupon);
+        Long couponId = savedCoupon.getId();
+
         IssueCouponRequest request = new IssueCouponRequest(userId);
 
-        userRepository.save(user);
-        couponRepository.save(coupon);
-
-        String userCouponId = "UC001";
-        UserCoupon userCoupon = UserCoupon.create(userCouponId, userId, couponId, coupon.getExpiresAt());
+        UserCoupon userCoupon = UserCoupon.create(userId, couponId, coupon.getExpiresAt());
         userCouponRepository.save(userCoupon);
 
         // When & Then
@@ -141,17 +143,17 @@ class CouponServiceTest {
     @DisplayName("쿠폰 발급 실패 - 수량 소진")
     void issueCoupon_실패_수량소진() {
         // Given
-        String userId = "U001";
-        String couponId = "C001";
-        User user = User.create(userId, "test@example.com", "김항해");
+        User user = User.create("test@example.com", "김항해");
+        User savedUser = userRepository.save(user);
+        Long userId = savedUser.getId();
+
         LocalDateTime now = LocalDateTime.now();
-        Coupon coupon = Coupon.create(couponId, "10% 할인", 10, 1, now, now.plusDays(7));
+        Coupon coupon = Coupon.create("C001", "10% 할인", 10, 1, now, now.plusDays(7));
+        coupon.issue();
+        Coupon savedCoupon = couponRepository.save(coupon);
+        Long couponId = savedCoupon.getId();
+
         IssueCouponRequest request = new IssueCouponRequest(userId);
-
-        coupon.tryIssue();
-
-        userRepository.save(user);
-        couponRepository.save(coupon);
 
         // When & Then
         assertThatThrownBy(() -> couponService.issueCoupon(couponId, request))
@@ -163,15 +165,16 @@ class CouponServiceTest {
     @DisplayName("보유 쿠폰 조회 성공")
     void getUserCoupons_성공() {
         // Given
-        String userId = "U001";
-        String couponId = "C001";
-        User user = User.create(userId, "test@example.com", "김항해");
-        LocalDateTime now = LocalDateTime.now();
-        Coupon coupon = Coupon.create(couponId, "10% 할인", 10, 100, now, now.plusDays(7));
-        UserCoupon userCoupon = UserCoupon.create("UC001", userId, couponId, coupon.getExpiresAt());
+        User user = User.create("test@example.com", "김항해");
+        User savedUser = userRepository.save(user);
+        Long userId = savedUser.getId();
 
-        userRepository.save(user);
-        couponRepository.save(coupon);
+        LocalDateTime now = LocalDateTime.now();
+        Coupon coupon = Coupon.create("C001", "10% 할인", 10, 100, now, now.plusDays(7));
+        Coupon savedCoupon = couponRepository.save(coupon);
+        Long couponId = savedCoupon.getId();
+
+        UserCoupon userCoupon = UserCoupon.create(userId, couponId, coupon.getExpiresAt());
         userCouponRepository.save(userCoupon);
 
         // When
@@ -193,20 +196,23 @@ class CouponServiceTest {
     @DisplayName("보유 쿠폰 조회 - 상태 필터링 (AVAILABLE)")
     void getUserCoupons_상태필터링() {
         // Given
-        String userId = "U001";
+        User user = User.create("test@example.com", "김항해");
+        User savedUser = userRepository.save(user);
+        Long userId = savedUser.getId();
+
         LocalDateTime now = LocalDateTime.now();
-        User user = User.create(userId, "test@example.com", "김항해");
-
         Coupon coupon1 = Coupon.create("C001", "10% 할인", 10, 100, now, now.plusDays(7));
-        Coupon coupon2 = Coupon.create("C002", "20% 할인", 20, 50, now, now.plusDays(7));
+        Coupon savedCoupon1 = couponRepository.save(coupon1);
+        Long couponId1 = savedCoupon1.getId();
 
-        UserCoupon userCoupon1 = UserCoupon.create("UC001", userId, "C001", coupon1.getExpiresAt());
-        UserCoupon userCoupon2 = UserCoupon.create("UC002", userId, "C002", coupon2.getExpiresAt());
+        Coupon coupon2 = Coupon.create("C002", "20% 할인", 20, 50, now, now.plusDays(7));
+        Coupon savedCoupon2 = couponRepository.save(coupon2);
+        Long couponId2 = savedCoupon2.getId();
+
+        UserCoupon userCoupon1 = UserCoupon.create(userId, couponId1, coupon1.getExpiresAt());
+        UserCoupon userCoupon2 = UserCoupon.create(userId, couponId2, coupon2.getExpiresAt());
         userCoupon2.use();
 
-        userRepository.save(user);
-        couponRepository.save(coupon1);
-        couponRepository.save(coupon2);
         userCouponRepository.save(userCoupon1);
         userCouponRepository.save(userCoupon2);
 
@@ -222,10 +228,10 @@ class CouponServiceTest {
     @DisplayName("보유 쿠폰 조회 실패 - 존재하지 않는 사용자")
     void getUserCoupons_실패_존재하지않는사용자() {
         // Given
-        String userId = "INVALID";
+        Long invalidUserId = 99999L;
 
         // When & Then
-        assertThatThrownBy(() -> couponService.getUserCoupons(userId, null))
+        assertThatThrownBy(() -> couponService.getUserCoupons(invalidUserId, null))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.USER_NOT_FOUND);
     }
@@ -234,10 +240,9 @@ class CouponServiceTest {
     @DisplayName("보유 쿠폰 조회 - 빈 목록")
     void getUserCoupons_빈목록() {
         // Given
-        String userId = "U001";
-        User user = User.create(userId, "test@example.com", "김항해");
-
-        userRepository.save(user);
+        User user = User.create("test@example.com", "김항해");
+        User savedUser = userRepository.save(user);
+        Long userId = savedUser.getId();
 
         // When
         UserCouponListResponse response = couponService.getUserCoupons(userId, null);

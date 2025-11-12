@@ -22,7 +22,7 @@ public class UserController {
 
     @GetMapping("/{userId}")
     public ResponseEntity<UserResponse> getUser(
-            @NotBlank(message = "사용자 ID는 필수입니다") @PathVariable String userId
+            @PathVariable Long userId
     ) {
         UserResponse response = userService.getUser(userId);
         return ResponseEntity.ok(response);
@@ -30,7 +30,7 @@ public class UserController {
 
     @GetMapping("/{userId}/balance")
     public ResponseEntity<BalanceResponse> getBalance(
-            @NotBlank(message = "사용자 ID는 필수입니다") @PathVariable String userId
+            @PathVariable Long userId
     ) {
         BalanceResponse response = userService.getBalance(userId);
         return ResponseEntity.ok(response);
@@ -38,7 +38,7 @@ public class UserController {
 
     @PostMapping("/{userId}/balance/charge")
     public ResponseEntity<ChargeBalanceResponse> chargeBalance(
-            @NotBlank(message = "사용자 ID는 필수입니다") @PathVariable String userId,
+            @PathVariable Long userId,
             @Valid @RequestBody ChargeBalanceRequest request
     ) {
         ChargeBalanceResponse response = userService.chargeBalance(userId, request);

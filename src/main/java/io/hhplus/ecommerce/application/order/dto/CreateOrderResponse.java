@@ -9,8 +9,8 @@ import java.util.List;
 @Getter
 @AllArgsConstructor
 public class CreateOrderResponse {
-    private String orderId;
-    private String userId;
+    private Long orderId;
+    private Long userId;
     private List<OrderItemResponse> items;
     private Long subtotalAmount;
     private Long discountAmount;
@@ -19,8 +19,8 @@ public class CreateOrderResponse {
     private LocalDateTime createdAt;
 
     public static CreateOrderResponse of(
-            String orderId,
-            String userId,
+            Long orderId,
+            Long userId,
             List<OrderItemResponse> items,
             Long subtotalAmount,
             Long discountAmount,

@@ -7,10 +7,10 @@ import lombok.Getter;
 @AllArgsConstructor
 public class BalanceResponse {
 
-    private String userId;
+    private Long userId;
     private Long balance;
 
-    public static BalanceResponse of(String userId, Long balance) {
+    public static BalanceResponse of(Long userId, Long balance) {
         return new BalanceResponse(userId, balance);
     }
 }

@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 @Getter
 @AllArgsConstructor
 public class PaymentResponse {
-    private String orderId;
+    private Long orderId;
     private Long paidAmount;
     private Long remainingBalance;
     private String status;
@@ -16,7 +16,7 @@ public class PaymentResponse {
     private LocalDateTime paidAt;
 
     public static PaymentResponse of(
-            String orderId,
+            Long orderId,
             Long paidAmount,
             Long remainingBalance,
             String status,

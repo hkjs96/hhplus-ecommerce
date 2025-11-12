@@ -10,12 +10,12 @@ import java.time.LocalDateTime;
 @Builder
 @AllArgsConstructor
 public class ChargeBalanceResponse {
-    private String userId;
+    private Long userId;
     private Long balance;
     private Long chargedAmount;
     private LocalDateTime chargedAt;
 
-    public static ChargeBalanceResponse of(String userId, Long balance, Long chargedAmount, LocalDateTime chargedAt) {
+    public static ChargeBalanceResponse of(Long userId, Long balance, Long chargedAmount, LocalDateTime chargedAt) {
         return ChargeBalanceResponse.builder()
                 .userId(userId)
                 .balance(balance)

@@ -65,7 +65,7 @@ public class OrderService {
         }
 
         long discountAmount = 0L;
-        if (request.getCouponId() != null && !request.getCouponId().isEmpty()) {
+        if (request.getCouponId() != null) {
             Coupon coupon = couponRepository.findByIdOrThrow(request.getCouponId());
 
             coupon.validateIssuable();
@@ -80,18 +80,17 @@ public class OrderService {
             discountAmount = (long) (subtotalAmount * coupon.getDiscountRate() / 100.0);
         }
 
-        String orderId = "ORDER-" + UUID.randomUUID().toString().substring(0, 8);
-        Order order = Order.create(orderId, user.getId(), subtotalAmount, discountAmount);
+        String orderNumber = "ORDER-" + UUID.randomUUID().toString().substring(0, 8);
+        Order order = Order.create(orderNumber, user.getId(), subtotalAmount, discountAmount);
         orderRepository.save(order);
 
         for (int i = 0; i < request.getItems().size(); i++) {
             OrderItemRequest itemReq = request.getItems().get(i);
             Product product = productRepository.findByIdOrThrow(itemReq.getProductId());
 
-            String orderItemId = orderId + "-ITEM-" + (i + 1);
+            // OrderItem.create() uses auto-generated Long ID, not String
             OrderItem orderItem = OrderItem.create(
-                    orderItemId,
-                    orderId,
+                    order.getId(),  // Long orderId (FK to Order)
                     product.getId(),
                     itemReq.getQuantity(),
                     product.getPrice()
@@ -111,7 +110,7 @@ public class OrderService {
         );
     }
 
-    public PaymentResponse processPayment(String orderId, PaymentRequest request) {
+    public PaymentResponse processPayment(Long orderId, PaymentRequest request) {
         Order order = orderRepository.findByIdOrThrow(orderId);
         User user = userRepository.findByIdOrThrow(request.getUserId());
 
@@ -162,7 +161,7 @@ public class OrderService {
         );
     }
 
-    public OrderListResponse getOrders(String userId, String status) {
+    public OrderListResponse getOrders(Long userId, String status) {
         // 사용자 존재 확인
         userRepository.findByIdOrThrow(userId);
 

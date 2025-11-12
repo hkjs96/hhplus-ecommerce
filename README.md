@@ -105,7 +105,8 @@ docs/
 ├── week4/                        # Week 4 구현 가이드 ⭐
 │   ├── step7-integration-guide.md          # DB 통합 환경 설정
 │   ├── step7-implementation-examples.md    # 실전 코드 예시
-│   └── step8-optimization-report-template.md  # 최적화 보고서
+│   ├── step8-optimization-report-template.md  # 최적화 보고서
+│   └── mentoring-notes-week4.md            # 평일 멘토링 노트 (11.11)
 │
 ├── feedback/                     # 코치 피드백
 │   └── week4/
@@ -121,6 +122,7 @@ docs/
 | **Step 7 통합 가이드** | MySQL 환경 설정 및 Entity 변환 | [step7-integration-guide.md](docs/week4/step7-integration-guide.md) |
 | **Step 7 코드 예시** | Repository, Outbox, Transaction 구현 | [step7-implementation-examples.md](docs/week4/step7-implementation-examples.md) |
 | **Step 8 최적화 템플릿** | 성능 병목 분석 및 보고서 작성 | [step8-optimization-report-template.md](docs/week4/step8-optimization-report-template.md) |
+| **멘토링 노트** | DB 설계, 인덱스 전략, JPA 활용 (11.11) | [mentoring-notes-week4.md](docs/week4/mentoring-notes-week4.md) |
 | **API 명세서** | REST API 엔드포인트 상세 | [api-specification.md](docs/api/api-specification.md) |
 | **ERD** | 데이터베이스 설계 (10개 테이블) | [erd.md](docs/diagrams/erd.md) |
 | **코치 피드백** | Week 4 코치 피드백 정리 | [coach-park-jisu-feedback.md](docs/feedback/week4/coach-park-jisu-feedback.md) |
@@ -627,18 +629,61 @@ tail -f logs/spy.log
 - 실패 시 재시도 로직 (Exponential Backoff)
 - 비동기 처리 (`@Async`)
 
-#### 5. **쿼리 성능 최적화**
-- EXPLAIN으로 실행 계획 분석
-- N+1 문제 감지 및 해결 (Fetch Join, Batch Size)
-- 인덱스 설계 (Single, Composite, Covering)
-- p6spy로 쿼리 로깅 및 바인딩 파라미터 확인
-- Percona Toolkit으로 중복 인덱스 분석
+#### 5. **쿼리 성능 최적화** ⭐ 멘토링 핵심 주제
+- **인덱스 설계 전략**
+  - 실시간 쿼리 성능 향상이 최우선 (조회 성능 > DML 부하)
+  - 카디널리티, 실제 쿼리 패턴, 정렬 비용 고려
+  - 단일/복합/커버링 인덱스 선택 기준
+  - 등치 조건 컬럼을 복합 인덱스 선행 컬럼으로 배치
+- **EXPLAIN 분석**
+  - 실행 계획 분석 및 문서화
+  - 인덱스 사용 여부, 스캔 방식(Index Seek vs Full Scan)
+  - Before/After 성능 측정 (추측 금지, 실측 데이터 기반)
+- **N+1 문제 해결**
+  - Fetch Join, Batch Size 적용
+  - 지연 로딩(Lazy Loading) 주의사항
+- **쿼리 로깅**
+  - p6spy로 바인딩 파라미터 확인
+  - Slow Query Log 분석
 
-#### 6. **테스트 전략**
-- Testcontainers로 실제 DB 환경 테스트
-- `@Transactional` 활용한 테스트 격리
-- 동시성 테스트 (ExecutorService + CountDownLatch)
-- 의미 있는 assertion (단순 null 체크 지양)
+#### 6. **테스트 전략** ⭐ 멘토링 핵심 주제
+- **인메모리 vs JPA 차이 이해**
+  - 인메모리 테스트 통과 ≠ 실제 동작 보장
+  - 영속성 컨텍스트, 트랜잭션, 지연 로딩 차이
+  - 불필요한 인메모리 테스트 제거
+- **동시성 테스트**
+  - ExecutorService + CountDownLatch (멀티스레드 시뮬레이션)
+  - 단일 셀 순차 쿼리는 의미 없음 (동시 접근·수정 상황 필수)
+  - @RepeatedTest로 안정성 검증
+- **통합 테스트**
+  - Testcontainers로 실제 DB 환경 테스트
+  - `@Transactional` 활용한 테스트 격리
+  - 의미 있는 assertion (단순 null 체크 지양)
+
+#### 7. **데이터베이스 설계 기본** ⭐ 멘토링 핵심 주제
+- **DDL과 Entity 매핑 검증**
+  - 마이그레이션 파일은 필수 아님 (DDL 스크립트로 충분)
+  - 컬럼 타입, Nullable, 제약조건 정확성 확인
+  - FK 관계 올바르게 설정
+- **데이터 적재 및 쿼리 실행 계획 개선**
+  - 초기 데이터 적재 방법 (DataInitializer vs SQL Scripts)
+  - EXPLAIN 결과 분석 및 문서화
+  - 인덱스 추가 전후 비교
+
+#### 8. **JPA 활용 전략** ⭐ 멘토링 핵심 주제
+- **JPA의 핵심 가치**
+  - 쿼리 효율 < 도메인 중심 비즈니스 로직 관리 + 재사용성
+  - DB 접근 비용 < 개발 생산성 향상
+  - 개발 속도 빠름, 유지보수 쉬움
+- **Projection 활용**
+  - 전체 컬럼 조회 대신 일부 컬럼만 가져오기
+  - Interface-based Projection vs Class-based Projection (DTO)
+  - 네트워크 트래픽·메모리 사용량 감소
+- **Native Query 사용 시기**
+  - 복잡한 통계 쿼리, 성능 최적화 필요 시
+  - 기본은 JPA, 성능 병목 발생 시 최적화
+
+> **멘토링 핵심 인사이트**: "실시간 서비스 쿼리 성능 향상이 가장 중요. 인덱스가 50개라도 실시간 성능 향상에 기여한다면 괜찮음. 데이터 측정 후 결정 (추측 금지)."
 
 ---
 
