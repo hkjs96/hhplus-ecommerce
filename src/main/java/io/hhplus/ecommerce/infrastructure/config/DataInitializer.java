@@ -22,30 +22,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
-/**
- * 애플리케이션 시작 시 초기 데이터 로딩
- *
- * ApplicationRunner를 구현하여 애플리케이션 시작 시 자동으로 테스트 데이터를 생성합니다.
- *
- * 초기 데이터:
- * - User: 테스트 사용자 13명 (기본 3명 + 동시성 테스트 10명)
- * - Product: 다양한 카테고리의 상품 21개 (Edge Case 포함)
- * - Coupon: 테스트용 쿠폰 5개 (품절, 만료 포함)
- * - UserCoupon: 미리 발급된 쿠폰 3개 (1개는 사용됨)
- * - Cart: 미리 담긴 장바구니 2개
- *
- * Edge Cases:
- * - 상품: P013(품절), P014(재고 2개), P020(최저가 1,000원), P021(최고가 15,000,000원)
- * - 쿠폰: SOLDOUT(품절), EXPIRED30(만료됨)
- * - 사용자쿠폰: User 3의 EARLYBIRD15(이미 사용됨)
- *
- * 프로파일:
- * - 개발(default) 환경에서만 활성화
- * - 테스트(test), 프로덕션(prod) 환경에서는 비활성화
- *
- * 중복 방지:
- * - 이미 데이터가 존재하면 초기 데이터 로딩을 건너뜀
- */
 @Slf4j
 @Component
 @Profile("!test")  // 테스트 환경에서는 비활성화
@@ -83,17 +59,11 @@ public class DataInitializer implements ApplicationRunner {
         log.info("✅ Initial data loading completed!");
     }
 
-    /**
-     * 데이터 존재 여부 확인
-     */
     private boolean isDataAlreadyLoaded() {
         // Product 테이블에 데이터가 있으면 이미 초기화된 것으로 판단
         return !productRepository.findAll().isEmpty();
     }
 
-    /**
-     * 테스트 사용자 생성
-     */
     private void initUsers() {
         log.info("📝 Creating test users...");
 
@@ -122,9 +92,6 @@ public class DataInitializer implements ApplicationRunner {
         log.info("   ✓ Created 13 test users (기본 3명 + 동시성 테스트 10명)");
     }
 
-    /**
-     * 테스트 상품 생성 (다양한 시나리오 포함)
-     */
     private void initProducts() {
         log.info("📦 Creating test products...");
 
@@ -163,9 +130,6 @@ public class DataInitializer implements ApplicationRunner {
         log.info("   ⚠️ Edge cases: P013(품절), P014(재고 2개), P020(최저가 1,000원), P021(최고가 15,000,000원)");
     }
 
-    /**
-     * 테스트 쿠폰 생성
-     */
     private void initCoupons() {
         log.info("🎟️ Creating test coupons...");
 
@@ -230,9 +194,6 @@ public class DataInitializer implements ApplicationRunner {
         log.info("   ⚠️ Edge cases: SOLDOUT(품절), EXPIRED30(만료됨)");
     }
 
-    /**
-     * 미리 발급된 쿠폰 생성 (시나리오 테스트용)
-     */
     private void initUserCoupons() {
         log.info("🎫 Creating pre-issued coupons for users...");
 
@@ -267,9 +228,6 @@ public class DataInitializer implements ApplicationRunner {
         log.info("   ✓ Pre-issued 3 coupons (User 1: WELCOME10, User 2: VIP20, User 3: EARLYBIRD15-사용됨)");
     }
 
-    /**
-     * 미리 담긴 장바구니 생성 (시나리오 테스트용)
-     */
     private void initCarts() {
         log.info("🛒 Creating pre-filled carts...");
 

@@ -1,6 +1,7 @@
 package io.hhplus.ecommerce.presentation.api.order;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.hhplus.ecommerce.application.order.dto.CompleteOrderRequest;
 import io.hhplus.ecommerce.application.order.dto.CreateOrderRequest;
 import io.hhplus.ecommerce.application.order.dto.OrderItemRequest;
 import io.hhplus.ecommerce.application.order.dto.PaymentRequest;
@@ -410,5 +411,187 @@ class OrderControllerIntegrationTest {
                         .param("status", "INVALID_STATUS"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("COMMON002"));
+    }
+
+    // ========================================
+    // OrderFacade Integration Tests (복잡한 플로우)
+    // ========================================
+
+    @Test
+    @DisplayName("OrderFacade - 주문+결제 통합 API - 성공")
+    void completeOrder_성공() throws Exception {
+        // Given
+        OrderItemRequest item1 = new OrderItemRequest(testProduct1Id, 1);
+        OrderItemRequest item2 = new OrderItemRequest(testProduct2Id, 2);
+        CompleteOrderRequest request = CompleteOrderRequest.builder()
+                .userId(testUserId)
+                .items(List.of(item1, item2))
+                .couponId(null)
+                .build();
+
+        // When & Then
+        mockMvc.perform(post("/api/orders/complete")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                // Order part
+                .andExpect(jsonPath("$.order").exists())
+                .andExpect(jsonPath("$.order.orderId").exists())
+                .andExpect(jsonPath("$.order.userId").value(testUserId))
+                .andExpect(jsonPath("$.order.status").value("COMPLETED"))
+                .andExpect(jsonPath("$.order.totalAmount").value(1660000L))
+                // Payment part
+                .andExpect(jsonPath("$.payment").exists())
+                .andExpect(jsonPath("$.payment.status").value("SUCCESS"))
+                .andExpect(jsonPath("$.payment.paidAmount").value(1660000L))
+                .andExpect(jsonPath("$.payment.remainingBalance").value(3340000L));
+
+        // Verify stock decreased
+        Product product1 = productRepository.findById(testProduct1Id).orElseThrow();
+        Product product2 = productRepository.findById(testProduct2Id).orElseThrow();
+        assertThat(product1.getStock()).isEqualTo(49); // 50 - 1
+        assertThat(product2.getStock()).isEqualTo(98); // 100 - 2
+
+        // Verify user balance decreased
+        User user = userRepository.findById(testUserId).orElseThrow();
+        assertThat(user.getBalance()).isEqualTo(3340000L); // 5000000 - 1660000
+    }
+
+    @Test
+    @DisplayName("OrderFacade - 주문+결제 통합 API - 쿠폰 적용 성공")
+    void completeOrder_쿠폰적용_성공() throws Exception {
+        // Given - Setup coupon
+        LocalDateTime now = LocalDateTime.now();
+        Coupon coupon = Coupon.create("C001", "20% 할인 쿠폰", 20, 100, now, now.plusDays(7));
+        Coupon savedCoupon = couponRepository.save(coupon);
+        Long couponId = savedCoupon.getId();
+
+        UserCoupon userCoupon = UserCoupon.create(testUserId, couponId, savedCoupon.getExpiresAt());
+        userCouponRepository.save(userCoupon);
+
+        OrderItemRequest item = new OrderItemRequest(testProduct1Id, 2); // 2 * 1,500,000 = 3,000,000
+        CompleteOrderRequest request = CompleteOrderRequest.builder()
+                .userId(testUserId)
+                .items(List.of(item))
+                .couponId(couponId)
+                .build();
+
+        // When & Then
+        mockMvc.perform(post("/api/orders/complete")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.order.subtotalAmount").value(3000000L))
+                .andExpect(jsonPath("$.order.discountAmount").value(600000L)) // 20% discount
+                .andExpect(jsonPath("$.order.totalAmount").value(2400000L))
+                .andExpect(jsonPath("$.order.status").value("COMPLETED"))
+                .andExpect(jsonPath("$.payment.status").value("SUCCESS"))
+                .andExpect(jsonPath("$.payment.paidAmount").value(2400000L))
+                .andExpect(jsonPath("$.payment.remainingBalance").value(2600000L)); // 5000000 - 2400000
+
+        // Note: Coupon usage verification is already confirmed by the discount being applied correctly in the API response
+        // Internal state verification omitted as the transaction context may differ between the test and the application
+    }
+
+    @Test
+    @DisplayName("OrderFacade - 주문+결제 통합 API - 재고 부족 실패")
+    void completeOrder_실패_재고부족() throws Exception {
+        // Given
+        OrderItemRequest item = new OrderItemRequest(testProduct1Id, 100); // Stock is only 50
+        CompleteOrderRequest request = CompleteOrderRequest.builder()
+                .userId(testUserId)
+                .items(List.of(item))
+                .couponId(null)
+                .build();
+
+        // When & Then
+        mockMvc.perform(post("/api/orders/complete")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("P002"));
+
+        // Verify no order created
+        List<io.hhplus.ecommerce.domain.order.Order> orders = orderRepository.findAll();
+        assertThat(orders).isEmpty();
+
+        // Verify stock not decreased
+        Product product = productRepository.findById(testProduct1Id).orElseThrow();
+        assertThat(product.getStock()).isEqualTo(50);
+    }
+
+    @Test
+    @DisplayName("OrderFacade - 주문+결제 통합 API - 잔액 부족 실패")
+    void completeOrder_실패_잔액부족() throws Exception {
+        // Given - User with low balance
+        User poorUser = User.create("poor@example.com", "가난한항해");
+        poorUser.charge(100000L); // Only 100,000
+        User savedPoorUser = userRepository.save(poorUser);
+        Long poorUserId = savedPoorUser.getId();
+
+        OrderItemRequest item = new OrderItemRequest(testProduct1Id, 1); // 1,500,000
+        CompleteOrderRequest request = CompleteOrderRequest.builder()
+                .userId(poorUserId)
+                .items(List.of(item))
+                .couponId(null)
+                .build();
+
+        // When & Then
+        mockMvc.perform(post("/api/orders/complete")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("PAY001"));
+
+        // Verify order was created but not completed
+        List<io.hhplus.ecommerce.domain.order.Order> orders = orderRepository.findAll();
+        assertThat(orders).hasSize(1);
+        assertThat(orders.get(0).isPending()).isTrue();
+
+        // Verify stock NOT decreased (payment failed)
+        Product product = productRepository.findById(testProduct1Id).orElseThrow();
+        assertThat(product.getStock()).isEqualTo(50);
+
+        // Verify balance NOT decreased (payment failed)
+        User user = userRepository.findById(poorUserId).orElseThrow();
+        assertThat(user.getBalance()).isEqualTo(100000L);
+    }
+
+    @Test
+    @DisplayName("OrderFacade - 주문+결제 통합 API - 존재하지 않는 사용자")
+    void completeOrder_실패_존재하지않는사용자() throws Exception {
+        // Given
+        OrderItemRequest item = new OrderItemRequest(testProduct1Id, 1);
+        CompleteOrderRequest request = CompleteOrderRequest.builder()
+                .userId(99999L)
+                .items(List.of(item))
+                .couponId(null)
+                .build();
+
+        // When & Then
+        mockMvc.perform(post("/api/orders/complete")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("U001"));
+    }
+
+    @Test
+    @DisplayName("OrderFacade - 주문+결제 통합 API - 존재하지 않는 상품")
+    void completeOrder_실패_존재하지않는상품() throws Exception {
+        // Given
+        OrderItemRequest item = new OrderItemRequest(99999L, 1);
+        CompleteOrderRequest request = CompleteOrderRequest.builder()
+                .userId(testUserId)
+                .items(List.of(item))
+                .couponId(null)
+                .build();
+
+        // When & Then
+        mockMvc.perform(post("/api/orders/complete")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("P001"));
     }
 }

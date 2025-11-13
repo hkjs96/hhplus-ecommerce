@@ -1,9 +1,10 @@
 package io.hhplus.ecommerce.presentation.api.coupon;
 
-import io.hhplus.ecommerce.application.coupon.CouponService;
 import io.hhplus.ecommerce.application.coupon.dto.IssueCouponRequest;
 import io.hhplus.ecommerce.application.coupon.dto.IssueCouponResponse;
 import io.hhplus.ecommerce.application.coupon.dto.UserCouponListResponse;
+import io.hhplus.ecommerce.application.usecase.coupon.GetUserCouponsUseCase;
+import io.hhplus.ecommerce.application.usecase.coupon.IssueCouponUseCase;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -16,14 +17,15 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class CouponController {
 
-    private final CouponService couponService;
+    private final IssueCouponUseCase issueCouponUseCase;
+    private final GetUserCouponsUseCase getUserCouponsUseCase;
 
     @PostMapping("/coupons/{couponId}/issue")
     public ResponseEntity<IssueCouponResponse> issueCoupon(
             @PathVariable Long couponId,
             @Valid @RequestBody IssueCouponRequest request
     ) {
-        IssueCouponResponse response = couponService.issueCoupon(couponId, request);
+        IssueCouponResponse response = issueCouponUseCase.execute(couponId, request);
         return ResponseEntity.ok(response);
     }
 
@@ -32,7 +34,7 @@ public class CouponController {
             @PathVariable Long userId,
             @RequestParam(required = false) String status
     ) {
-        UserCouponListResponse response = couponService.getUserCoupons(userId, status);
+        UserCouponListResponse response = getUserCouponsUseCase.execute(userId, status);
         return ResponseEntity.ok(response);
     }
 }
