@@ -18,45 +18,18 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * JpaOrderRepository 통합 테스트 (MySQL Testcontainers)
- *
- * @DataJpaTest:
- * - JPA 관련 컴포넌트만 로드 (경량 테스트)
- * - 각 테스트 메서드마다 트랜잭션 롤백 (테스트 격리)
- *
- * @Testcontainers:
- * - MySQL 8.0 Docker 컨테이너를 자동으로 시작/종료
- * - 실제 MySQL 환경에서 테스트 (H2가 아닌 실제 DB)
- *
- * @AutoConfigureTestDatabase(replace = NONE):
- * - Spring Boot의 기본 H2 설정을 사용하지 않고 Testcontainers MySQL 사용
- */
 @DataJpaTest
 @Testcontainers
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @DisplayName("JpaOrderRepository 통합 테스트 (MySQL Testcontainers)")
 class JpaOrderRepositoryTest {
 
-    /**
-     * MySQL 8.0 Testcontainer
-     *
-     * - 테스트 클래스 실행 시 자동으로 MySQL 8.0 Docker 컨테이너 시작
-     * - 모든 테스트가 완료되면 자동으로 컨테이너 종료
-     * - 테스트 간 데이터 격리는 @Transactional로 보장 (각 테스트마다 롤백)
-     */
     @Container
     static MySQLContainer<?> mysql = new MySQLContainer<>("mysql:8.0")
             .withDatabaseName("ecommerce_test")
             .withUsername("test")
             .withPassword("test");
 
-    /**
-     * Testcontainers의 MySQL 접속 정보를 Spring에 동적으로 주입
-     *
-     * - Testcontainers가 랜덤 포트로 MySQL을 시작하므로
-     * - 런타임에 동적으로 접속 정보를 설정해야 함
-     */
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
         registry.add("spring.datasource.url", mysql::getJdbcUrl);

@@ -491,13 +491,6 @@ public interface ProductRepository {
 
     Product save(Product product);
 
-    /**
-     * ID로 Product를 조회하고, 존재하지 않으면 예외를 발생시킵니다.
-     *
-     * @param id Product ID
-     * @return Product 엔티티
-     * @throws BusinessException 상품을 찾을 수 없을 때
-     */
     default Product findByIdOrThrow(String id) {
         return findById(id)
             .orElseThrow(() -> new BusinessException(
@@ -684,9 +677,6 @@ public class Product {
     private Long price;
     private Integer stock;
 
-    /**
-     * 재고 검증 (도메인 규칙)
-     */
     public void validateStock(int quantity) {
         if (quantity <= 0) {
             throw new BusinessException(
@@ -703,17 +693,11 @@ public class Product {
         }
     }
 
-    /**
-     * 재고 차감 (도메인 로직)
-     */
     public void decreaseStock(int quantity) {
         validateStock(quantity);  // 먼저 검증
         this.stock -= quantity;    // 도메인 규칙 적용
     }
 
-    /**
-     * 재고 복구
-     */
     public void restoreStock(int quantity) {
         this.stock += quantity;
     }

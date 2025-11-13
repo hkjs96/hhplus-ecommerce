@@ -67,11 +67,6 @@ public class Coupon {
         return coupon;
     }
 
-    /**
-     * JPA @Version을 활용한 쿠폰 발급
-     * Service 레이어에서 @Transactional과 함께 사용 시 동시성 보장
-     * OptimisticLockException 발생 시 재시도 로직은 Service에서 처리
-     */
     public void issue() {
         if (issuedQuantity >= totalQuantity) {
             throw new BusinessException(
@@ -82,11 +77,6 @@ public class Coupon {
         this.issuedQuantity++;
     }
 
-    /**
-     * 쿠폰 발급 시도 (boolean 반환)
-     * 동시성 테스트용 메서드
-     * @return true if issued successfully, false if sold out
-     */
     public boolean tryIssue() {
         if (issuedQuantity >= totalQuantity) {
             return false;

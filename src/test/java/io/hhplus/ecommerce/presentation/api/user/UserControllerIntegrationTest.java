@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -21,6 +22,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
+@ActiveProfiles("test")
+@org.springframework.test.annotation.DirtiesContext(classMode = org.springframework.test.annotation.DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
 class UserControllerIntegrationTest {
 
     @Autowired
@@ -36,11 +39,6 @@ class UserControllerIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        // Clear existing data
-        if (userRepository instanceof io.hhplus.ecommerce.infrastructure.persistence.user.InMemoryUserRepository) {
-            ((io.hhplus.ecommerce.infrastructure.persistence.user.InMemoryUserRepository) userRepository).clear();
-        }
-
         User user = User.create("test@example.com", "김항해");
         user.charge(100000L);
         User savedUser = userRepository.save(user);

@@ -12,9 +12,6 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
-/**
- * InMemory Product Repository (Legacy)
- */
 @Repository
 @Profile("inmemory")
 public class InMemoryProductRepository implements ProductRepository {

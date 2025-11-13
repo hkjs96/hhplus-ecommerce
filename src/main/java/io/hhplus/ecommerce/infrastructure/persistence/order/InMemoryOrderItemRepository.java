@@ -10,12 +10,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
-/**
- * InMemory OrderItem Repository (Legacy)
- *
- * Week 3에서 사용하던 InMemory 구현체입니다.
- * Week 4부터는 JpaOrderItemRepository를 사용하므로, @Profile("inmemory")로 분리되었습니다.
- */
 @Repository
 @Profile("inmemory")
 public class InMemoryOrderItemRepository implements OrderItemRepository {

@@ -36,10 +36,11 @@ public class Cart {
     public static Cart create(Long userId) {
         validateUserId(userId);
 
+        LocalDateTime now = LocalDateTime.now();
         Cart cart = new Cart();
         cart.userId = userId;
-        cart.createdAt = LocalDateTime.now();
-        cart.updatedAt = LocalDateTime.now();
+        cart.createdAt = now;
+        cart.updatedAt = now;
 
         return cart;
     }
@@ -60,7 +61,7 @@ public class Cart {
     }
 
     public void updateTimestamp() {
-        // updatedAt은 JPA @PreUpdate에서 자동 처리
+        this.updatedAt = LocalDateTime.now();
     }
 
     private static void validateUserId(Long userId) {

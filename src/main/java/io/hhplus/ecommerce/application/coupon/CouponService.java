@@ -11,6 +11,7 @@ import io.hhplus.ecommerce.domain.coupon.UserCouponRepository;
 import io.hhplus.ecommerce.domain.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Stream;
@@ -23,6 +24,7 @@ public class CouponService {
     private final UserCouponRepository userCouponRepository;
     private final UserRepository userRepository;
 
+    @Transactional
     public IssueCouponResponse issueCoupon(Long couponId, IssueCouponRequest request) {
         Long userId = request.getUserId();
 
@@ -55,6 +57,7 @@ public class CouponService {
         );
     }
 
+    @Transactional(readOnly = true)
     public UserCouponListResponse getUserCoupons(Long userId, String status) {
         userRepository.findByIdOrThrow(userId);
 

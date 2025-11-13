@@ -19,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
@@ -33,6 +34,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
+@ActiveProfiles("test")
+@org.springframework.test.annotation.DirtiesContext(classMode = org.springframework.test.annotation.DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
 class OrderControllerIntegrationTest {
 
     @Autowired
@@ -65,14 +68,6 @@ class OrderControllerIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        // Clean up data
-        if (orderRepository instanceof io.hhplus.ecommerce.infrastructure.persistence.order.InMemoryOrderRepository) {
-            ((io.hhplus.ecommerce.infrastructure.persistence.order.InMemoryOrderRepository) orderRepository).clear();
-        }
-        if (orderItemRepository instanceof io.hhplus.ecommerce.infrastructure.persistence.order.InMemoryOrderItemRepository) {
-            ((io.hhplus.ecommerce.infrastructure.persistence.order.InMemoryOrderItemRepository) orderItemRepository).clear();
-        }
-
         User user = User.create("test@example.com", "김항해");
         user.charge(5000000L);
         User savedUser = userRepository.save(user);
@@ -205,7 +200,7 @@ class OrderControllerIntegrationTest {
         PaymentRequest paymentRequest = new PaymentRequest(testUserId);
 
         // When & Then
-        mockMvc.perform(post("/api/orders/INVALID_ORDER_ID/payment")
+        mockMvc.perform(post("/api/orders/99999/payment")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(paymentRequest)))
                 .andExpect(status().isNotFound())

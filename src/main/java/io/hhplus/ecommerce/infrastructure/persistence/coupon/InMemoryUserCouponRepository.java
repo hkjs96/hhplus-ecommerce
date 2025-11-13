@@ -10,9 +10,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
-/**
- * InMemory UserCoupon Repository (Legacy)
- */
 @Repository
 @Profile("inmemory")
 public class InMemoryUserCouponRepository implements UserCouponRepository {

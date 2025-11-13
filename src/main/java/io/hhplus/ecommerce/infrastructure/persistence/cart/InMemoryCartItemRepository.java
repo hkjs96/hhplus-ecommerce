@@ -12,9 +12,6 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
-/**
- * InMemory CartItem Repository (Legacy)
- */
 @Repository
 @Profile("inmemory")
 public class InMemoryCartItemRepository implements CartItemRepository {

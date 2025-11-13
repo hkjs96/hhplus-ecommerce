@@ -299,9 +299,6 @@ public class JdbcProductRepository implements ProductRepository {
         jdbcTemplate.update("DELETE FROM products WHERE id = ?", id);
     }
 
-    /**
-     * 인기 상품 조회 (최근 3일, Top 5)
-     */
     public List<ProductSalesDTO> findTopSelling(LocalDateTime startDate, int limit) {
         return jdbcTemplate.query(
                 """
@@ -492,9 +489,6 @@ public class DataTransmissionService {
             ? System.getenv("DATA_PLATFORM_URL")
             : "http://localhost:4000";
 
-    /**
-     * 외부 데이터 플랫폼으로 주문 데이터를 전송
-     */
     public Map<String, Object> send(Map<String, Object> orderData) {
         try {
             HttpHeaders headers = new HttpHeaders();
@@ -520,9 +514,6 @@ public class DataTransmissionService {
         }
     }
 
-    /**
-     * Outbox 테이블에 실패 기록 저장
-     */
     public void saveToOutbox(Map<String, Object> orderData) {
         try {
             String payload = objectMapper.writeValueAsString(orderData);
@@ -539,9 +530,6 @@ public class DataTransmissionService {
         }
     }
 
-    /**
-     * Outbox에 남은 PENDING 데이터 재시도 처리
-     */
     public void retryPendingTransmissions() {
         List<Map<String, Object>> pending = jdbcTemplate.queryForList(
                 """
@@ -608,9 +596,6 @@ public class MockDataPlatformServer {
     private final List<Map<String, Object>> receivedOrders = new ArrayList<>();
     private final Random random = new Random();
 
-    /**
-     * 주문 데이터 수신 API (간헐적 실패 시뮬레이션)
-     */
     @PostMapping
     public Map<String, Object> receiveOrder(@RequestBody Map<String, Object> body) {
         // 간헐적 실패 (20% 확률)
@@ -626,9 +611,6 @@ public class MockDataPlatformServer {
         );
     }
 
-    /**
-     * 테스트용 - 수신된 주문 전체 조회
-     */
     @GetMapping
     public List<Map<String, Object>> getOrders() {
         return receivedOrders;
