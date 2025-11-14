@@ -4,7 +4,7 @@ import java.util.List;
 
 public interface OrderItemRepository {
 
-    List<OrderItem> findByOrderId(String orderId);
+    List<OrderItem> findByOrderId(Long orderId);
 
     List<OrderItem> findAll();
 

@@ -25,7 +25,7 @@ class CouponTest {
 
         // Then
         assertThat(result).isTrue();
-        assertThat(coupon.getIssuedQuantityValue()).isEqualTo(1);
+        assertThat(coupon.getIssuedQuantity()).isEqualTo(1);
         assertThat(coupon.getRemainingQuantity()).isEqualTo(99);
     }
 
@@ -44,7 +44,7 @@ class CouponTest {
         // Then - 4번째는 실패
         boolean result = coupon.tryIssue();
         assertThat(result).isFalse();
-        assertThat(coupon.getIssuedQuantityValue()).isEqualTo(3);
+        assertThat(coupon.getIssuedQuantity()).isEqualTo(3);
         assertThat(coupon.getRemainingQuantity()).isEqualTo(0);
     }
 
@@ -84,7 +84,7 @@ class CouponTest {
         // Then - 정확히 100개만 발급되어야 함
         assertThat(successCount.get()).isEqualTo(100);
         assertThat(failCount.get()).isEqualTo(100);
-        assertThat(coupon.getIssuedQuantityValue()).isEqualTo(100);
+        assertThat(coupon.getIssuedQuantity()).isEqualTo(100);
         assertThat(coupon.getRemainingQuantity()).isEqualTo(0);
     }
 

@@ -2,39 +2,72 @@ package io.hhplus.ecommerce.domain.coupon;
 
 import io.hhplus.ecommerce.common.exception.BusinessException;
 import io.hhplus.ecommerce.common.exception.ErrorCode;
-import lombok.AllArgsConstructor;
+import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
+@Entity
+@Table(
+    name = "user_coupons",
+    uniqueConstraints = {
+        @UniqueConstraint(name = "uk_user_coupon", columnNames = {"user_id", "coupon_id"})
+    },
+    indexes = {
+        @Index(name = "idx_user_status", columnList = "user_id, status"),
+        @Index(name = "idx_coupon_id", columnList = "coupon_id")
+    }
+)
 @Getter
-@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class UserCoupon {
 
-    private String id;
-    private String userId;
-    private String couponId;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name = "user_id", nullable = false)
+    private Long userId;  // FK to users
+
+    @Column(name = "coupon_id", nullable = false)
+    private Long couponId;  // FK to coupons
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
     private CouponStatus status;
+
+    @Column(name = "issued_at", nullable = false, updatable = false)
     private LocalDateTime issuedAt;
+
+    @Column(name = "used_at")
     private LocalDateTime usedAt;
+
+    @Column(name = "expires_at", nullable = false)
     private LocalDateTime expiresAt;
 
-    public static UserCoupon create(String id, String userId, String couponId, LocalDateTime expiresAt) {
+    public static UserCoupon create(Long userId, Long couponId, LocalDateTime expiresAt) {
         validateUserId(userId);
         validateCouponId(couponId);
         validateExpiresAt(expiresAt);
 
-        LocalDateTime now = LocalDateTime.now();
+        UserCoupon userCoupon = new UserCoupon();
+        userCoupon.userId = userId;
+        userCoupon.couponId = couponId;
+        userCoupon.status = CouponStatus.AVAILABLE;
+        userCoupon.issuedAt = LocalDateTime.now();
+        userCoupon.usedAt = null;  // 사용 시 설정
+        userCoupon.expiresAt = expiresAt;
 
-        return new UserCoupon(
-            id,
-            userId,
-            couponId,
-            CouponStatus.AVAILABLE,
-            now,
-            null,  // usedAt은 사용 시 설정
-            expiresAt
-        );
+        return userCoupon;
+    }
+
+    @PrePersist
+    protected void onCreate() {
+        if (this.issuedAt == null) {
+            this.issuedAt = LocalDateTime.now();
+        }
     }
 
     public void use() {
@@ -79,8 +112,8 @@ public class UserCoupon {
         }
     }
 
-    private static void validateUserId(String userId) {
-        if (userId == null || userId.trim().isEmpty()) {
+    private static void validateUserId(Long userId) {
+        if (userId == null) {
             throw new BusinessException(
                 ErrorCode.INVALID_INPUT,
                 "사용자 ID는 필수입니다"
@@ -88,8 +121,8 @@ public class UserCoupon {
         }
     }
 
-    private static void validateCouponId(String couponId) {
-        if (couponId == null || couponId.trim().isEmpty()) {
+    private static void validateCouponId(Long couponId) {
+        if (couponId == null) {
             throw new BusinessException(
                 ErrorCode.INVALID_INPUT,
                 "쿠폰 ID는 필수입니다"

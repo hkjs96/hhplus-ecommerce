@@ -1,22 +1,17 @@
 package io.hhplus.ecommerce.application.order.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-
 import java.time.LocalDateTime;
 
-@Getter
-@AllArgsConstructor
-public class PaymentResponse {
-    private String orderId;
-    private Long paidAmount;
-    private Long remainingBalance;
-    private String status;
-    private String dataTransmission;
-    private LocalDateTime paidAt;
-
+public record PaymentResponse(
+    Long orderId,
+    Long paidAmount,
+    Long remainingBalance,
+    String status,
+    String dataTransmission,
+    LocalDateTime paidAt
+) {
     public static PaymentResponse of(
-            String orderId,
+            Long orderId,
             Long paidAmount,
             Long remainingBalance,
             String status,

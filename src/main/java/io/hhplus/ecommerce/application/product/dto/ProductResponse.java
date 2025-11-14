@@ -1,29 +1,23 @@
 package io.hhplus.ecommerce.application.product.dto;
 
 import io.hhplus.ecommerce.domain.product.Product;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
 
-@Getter
-@Builder
-@AllArgsConstructor
-public class ProductResponse {
-    private String productId;
-    private String name;
-    private String description;
-    private Long price;
-    private Integer stock;
-    private String category;
-
+public record ProductResponse(
+    Long productId,
+    String name,
+    String description,
+    Long price,
+    Integer stock,
+    String category
+) {
     public static ProductResponse from(Product product) {
-        return ProductResponse.builder()
-                .productId(product.getId())
-                .name(product.getName())
-                .description(product.getDescription())
-                .price(product.getPrice())
-                .stock(product.getStock())
-                .category(product.getCategory())
-                .build();
+        return new ProductResponse(
+            product.getId(),
+            product.getName(),
+            product.getDescription(),
+            product.getPrice(),
+            product.getStock(),
+            product.getCategory()
+        );
     }
 }

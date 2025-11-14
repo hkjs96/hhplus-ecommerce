@@ -13,7 +13,7 @@ class UserTest {
     @DisplayName("포인트 충전 성공")
     void charge_성공() {
         // Given
-        User user = User.create("U001", "test@example.com", "테스터");
+        User user = User.create("test@example.com", "테스터");
         assertThat(user.getBalance()).isEqualTo(0L);
 
         // When
@@ -27,7 +27,7 @@ class UserTest {
     @DisplayName("포인트 충전 실패 - 충전 금액이 0")
     void charge_금액0_예외발생() {
         // Given
-        User user = User.create("U001", "test@example.com", "테스터");
+        User user = User.create("test@example.com", "테스터");
 
         // When & Then
         assertThatThrownBy(() -> user.charge(0L))
@@ -39,7 +39,7 @@ class UserTest {
     @DisplayName("포인트 충전 실패 - 충전 금액이 음수")
     void charge_금액음수_예외발생() {
         // Given
-        User user = User.create("U001", "test@example.com", "테스터");
+        User user = User.create("test@example.com", "테스터");
 
         // When & Then
         assertThatThrownBy(() -> user.charge(-1000L))
@@ -51,7 +51,7 @@ class UserTest {
     @DisplayName("포인트 차감 성공")
     void deduct_성공() {
         // Given
-        User user = User.create("U001", "test@example.com", "테스터");
+        User user = User.create("test@example.com", "테스터");
         user.charge(10000L);
 
         // When
@@ -65,7 +65,7 @@ class UserTest {
     @DisplayName("포인트 차감 실패 - 잔액 부족")
     void deduct_잔액부족_예외발생() {
         // Given
-        User user = User.create("U001", "test@example.com", "테스터");
+        User user = User.create("test@example.com", "테스터");
         user.charge(5000L);
 
         // When & Then
@@ -81,7 +81,7 @@ class UserTest {
     @DisplayName("포인트 차감 실패 - 차감 금액이 0")
     void deduct_금액0_예외발생() {
         // Given
-        User user = User.create("U001", "test@example.com", "테스터");
+        User user = User.create("test@example.com", "테스터");
         user.charge(10000L);
 
         // When & Then
@@ -94,7 +94,7 @@ class UserTest {
     @DisplayName("포인트 차감 실패 - 차감 금액이 음수")
     void deduct_금액음수_예외발생() {
         // Given
-        User user = User.create("U001", "test@example.com", "테스터");
+        User user = User.create("test@example.com", "테스터");
         user.charge(10000L);
 
         // When & Then
@@ -107,7 +107,7 @@ class UserTest {
     @DisplayName("잔액 확인 - 충분함")
     void hasEnoughBalance_충분함() {
         // Given
-        User user = User.create("U001", "test@example.com", "테스터");
+        User user = User.create("test@example.com", "테스터");
         user.charge(10000L);
 
         // When & Then
@@ -119,7 +119,7 @@ class UserTest {
     @DisplayName("잔액 확인 - 부족함")
     void hasEnoughBalance_부족함() {
         // Given
-        User user = User.create("U001", "test@example.com", "테스터");
+        User user = User.create("test@example.com", "테스터");
         user.charge(10000L);
 
         // When & Then
@@ -130,10 +130,10 @@ class UserTest {
     @DisplayName("사용자 생성 성공")
     void create_성공() {
         // When
-        User user = User.create("U001", "test@example.com", "테스터");
+        User user = User.create("test@example.com", "테스터");
 
         // Then
-        assertThat(user.getId()).isEqualTo("U001");
+        assertThat(user.getId()).isNull(); // ID는 JPA에 의해 자동 생성됨
         assertThat(user.getEmail()).isEqualTo("test@example.com");
         assertThat(user.getUsername()).isEqualTo("테스터");
         assertThat(user.getBalance()).isEqualTo(0L);
@@ -145,7 +145,7 @@ class UserTest {
     @DisplayName("사용자 생성 실패 - 이메일이 null")
     void create_이메일null_예외발생() {
         // When & Then
-        assertThatThrownBy(() -> User.create("U001", null, "테스터"))
+        assertThatThrownBy(() -> User.create(null, "테스터"))
             .isInstanceOf(BusinessException.class)
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);
     }
@@ -154,7 +154,7 @@ class UserTest {
     @DisplayName("사용자 생성 실패 - 이메일이 빈 문자열")
     void create_이메일빈문자열_예외발생() {
         // When & Then
-        assertThatThrownBy(() -> User.create("U001", "", "테스터"))
+        assertThatThrownBy(() -> User.create("", "테스터"))
             .isInstanceOf(BusinessException.class)
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);
     }
@@ -163,7 +163,7 @@ class UserTest {
     @DisplayName("사용자 생성 실패 - 이메일이 공백")
     void create_이메일공백_예외발생() {
         // When & Then
-        assertThatThrownBy(() -> User.create("U001", "   ", "테스터"))
+        assertThatThrownBy(() -> User.create("   ", "테스터"))
             .isInstanceOf(BusinessException.class)
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);
     }
@@ -172,7 +172,7 @@ class UserTest {
     @DisplayName("사용자 생성 실패 - 이메일 형식이 잘못됨 (@없음)")
     void create_이메일형식오류_예외발생() {
         // When & Then
-        assertThatThrownBy(() -> User.create("U001", "testexample.com", "테스터"))
+        assertThatThrownBy(() -> User.create("testexample.com", "테스터"))
             .isInstanceOf(BusinessException.class)
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);
     }
@@ -181,7 +181,7 @@ class UserTest {
     @DisplayName("사용자 생성 실패 - 사용자명이 null")
     void create_사용자명null_예외발생() {
         // When & Then
-        assertThatThrownBy(() -> User.create("U001", "test@example.com", null))
+        assertThatThrownBy(() -> User.create("test@example.com", null))
             .isInstanceOf(BusinessException.class)
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);
     }
@@ -190,7 +190,7 @@ class UserTest {
     @DisplayName("사용자 생성 실패 - 사용자명이 빈 문자열")
     void create_사용자명빈문자열_예외발생() {
         // When & Then
-        assertThatThrownBy(() -> User.create("U001", "test@example.com", ""))
+        assertThatThrownBy(() -> User.create("test@example.com", ""))
             .isInstanceOf(BusinessException.class)
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);
     }
@@ -199,7 +199,7 @@ class UserTest {
     @DisplayName("사용자 생성 실패 - 사용자명이 공백")
     void create_사용자명공백_예외발생() {
         // When & Then
-        assertThatThrownBy(() -> User.create("U001", "test@example.com", "   "))
+        assertThatThrownBy(() -> User.create("test@example.com", "   "))
             .isInstanceOf(BusinessException.class)
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);
     }
@@ -208,7 +208,7 @@ class UserTest {
     @DisplayName("포인트 충전 실패 - 충전 금액이 null")
     void charge_금액null_예외발생() {
         // Given
-        User user = User.create("U001", "test@example.com", "테스터");
+        User user = User.create("test@example.com", "테스터");
 
         // When & Then
         assertThatThrownBy(() -> user.charge(null))
@@ -220,7 +220,7 @@ class UserTest {
     @DisplayName("포인트 차감 실패 - 차감 금액이 null")
     void deduct_금액null_예외발생() {
         // Given
-        User user = User.create("U001", "test@example.com", "테스터");
+        User user = User.create("test@example.com", "테스터");
         user.charge(10000L);
 
         // When & Then
