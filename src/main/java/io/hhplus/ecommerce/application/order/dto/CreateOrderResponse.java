@@ -1,42 +1,32 @@
 package io.hhplus.ecommerce.application.order.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
+import io.hhplus.ecommerce.domain.order.Order;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
-@Getter
-@AllArgsConstructor
-public class CreateOrderResponse {
-    private Long orderId;
-    private Long userId;
-    private List<OrderItemResponse> items;
-    private Long subtotalAmount;
-    private Long discountAmount;
-    private Long totalAmount;
-    private String status;
-    private LocalDateTime createdAt;
-
-    public static CreateOrderResponse of(
-            Long orderId,
-            Long userId,
-            List<OrderItemResponse> items,
-            Long subtotalAmount,
-            Long discountAmount,
-            Long totalAmount,
-            String status,
-            LocalDateTime createdAt
-    ) {
+public record CreateOrderResponse(
+    Long orderId,
+    Long userId,
+    String orderNumber,
+    List<OrderItemResponse> items,
+    Long subtotalAmount,
+    Long discountAmount,
+    Long totalAmount,
+    String status,
+    LocalDateTime createdAt
+) {
+    public static CreateOrderResponse of(Order order, List<OrderItemResponse> items) {
         return new CreateOrderResponse(
-                orderId,
-                userId,
+                order.getId(),
+                order.getUserId(),
+                order.getOrderNumber(),
                 items,
-                subtotalAmount,
-                discountAmount,
-                totalAmount,
-                status,
-                createdAt
+                order.getSubtotalAmount(),
+                order.getDiscountAmount(),
+                order.getTotalAmount(),
+                order.getStatus().name(),
+                order.getCreatedAt()
         );
     }
 }

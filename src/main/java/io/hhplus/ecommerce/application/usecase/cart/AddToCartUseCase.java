@@ -29,34 +29,34 @@ public class AddToCartUseCase {
 
     @Transactional
     public CartResponse execute(AddCartItemRequest request) {
-        log.info("Adding item to cart for user: {}, product: {}", request.getUserId(), request.getProductId());
+        log.info("Adding item to cart for user: {}, product: {}", request.userId(), request.productId());
 
         // 1. 사용자 검증
-        userRepository.findByIdOrThrow(request.getUserId());
+        userRepository.findByIdOrThrow(request.userId());
 
         // 2. 상품 검증 및 재고 확인
-        Product product = productRepository.findByIdOrThrow(request.getProductId());
+        Product product = productRepository.findByIdOrThrow(request.productId());
 
-        if (product.getStock() < request.getQuantity()) {
+        if (product.getStock() < request.quantity()) {
             throw new BusinessException(
                 ErrorCode.INSUFFICIENT_STOCK,
                 String.format("재고가 부족합니다. 상품: %s (요청: %d개, 재고: %d개)",
-                    product.getName(), request.getQuantity(), product.getStock())
+                    product.getName(), request.quantity(), product.getStock())
             );
         }
 
         // 3. 장바구니 조회 또는 생성
-        Cart cart = cartRepository.findByUserId(request.getUserId())
+        Cart cart = cartRepository.findByUserId(request.userId())
             .orElseGet(() -> {
-                Cart newCart = Cart.create(request.getUserId());
+                Cart newCart = Cart.create(request.userId());
                 return cartRepository.save(newCart);
             });
 
         // 4. 장바구니 아이템 추가 또는 수량 증가
-        cartItemRepository.findByCartIdAndProductId(cart.getId(), request.getProductId())
+        cartItemRepository.findByCartIdAndProductId(cart.getId(), request.productId())
             .ifPresentOrElse(
                 existingItem -> {
-                    int newQuantity = existingItem.getQuantity() + request.getQuantity();
+                    int newQuantity = existingItem.getQuantity() + request.quantity();
 
                     if (product.getStock() < newQuantity) {
                         throw new BusinessException(
@@ -73,8 +73,8 @@ public class AddToCartUseCase {
                 () -> {
                     CartItem newItem = CartItem.create(
                         cart.getId(),
-                        request.getProductId(),
-                        request.getQuantity()
+                        request.productId(),
+                        request.quantity()
                     );
                     cartItemRepository.save(newItem);
                     log.debug("Created new cart item: {}", newItem.getId());
@@ -86,6 +86,6 @@ public class AddToCartUseCase {
         cartRepository.save(cart);
 
         // 6. 장바구니 조회 후 반환
-        return getCartUseCase.execute(request.getUserId());
+        return getCartUseCase.execute(request.userId());
     }
 }

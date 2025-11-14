@@ -29,55 +29,55 @@ public class UpdateCartItemUseCase {
     @Transactional
     public CartItemResponse execute(UpdateCartItemRequest request) {
         log.info("Updating cart item for user: {}, product: {}, new quantity: {}",
-            request.getUserId(), request.getProductId(), request.getQuantity());
+            request.userId(), request.productId(), request.quantity());
 
         // 1. 사용자 검증
-        userRepository.findByIdOrThrow(request.getUserId());
+        userRepository.findByIdOrThrow(request.userId());
 
         // 2. 장바구니 조회
-        Cart cart = cartRepository.findByUserId(request.getUserId())
+        Cart cart = cartRepository.findByUserId(request.userId())
             .orElseThrow(() -> new BusinessException(
                 ErrorCode.CART_NOT_FOUND,
-                "장바구니를 찾을 수 없습니다. userId: " + request.getUserId()
+                "장바구니를 찾을 수 없습니다. userId: " + request.userId()
             ));
 
         // 3. 장바구니 아이템 조회
         CartItem cartItem = cartItemRepository.findByCartIdAndProductId(
             cart.getId(),
-            request.getProductId()
+            request.productId()
         ).orElseThrow(() -> new BusinessException(
             ErrorCode.CART_ITEM_NOT_FOUND,
-            "장바구니에 해당 상품이 없습니다. productId: " + request.getProductId()
+            "장바구니에 해당 상품이 없습니다. productId: " + request.productId()
         ));
 
         // 4. 수량이 0 이하면 아이템 삭제
-        if (request.getQuantity() <= 0) {
+        if (request.quantity() <= 0) {
             cartItemRepository.deleteById(cartItem.getId());
             log.debug("Deleted cart item: {}", cartItem.getId());
-            return CartItemResponse.forUpdate(request.getProductId(), 0, 0L);
+            return CartItemResponse.forUpdate(request.productId(), 0, 0L);
         }
 
         // 5. 상품 재고 확인
-        Product product = productRepository.findByIdOrThrow(request.getProductId());
+        Product product = productRepository.findByIdOrThrow(request.productId());
 
-        if (product.getStock() < request.getQuantity()) {
+        if (product.getStock() < request.quantity()) {
             throw new BusinessException(
                 ErrorCode.INSUFFICIENT_STOCK,
                 String.format("재고가 부족합니다. 상품: %s (요청: %d개, 재고: %d개)",
-                    product.getName(), request.getQuantity(), product.getStock())
+                    product.getName(), request.quantity(), product.getStock())
             );
         }
 
         // 6. 수량 업데이트
-        cartItem.updateQuantity(request.getQuantity());
+        cartItem.updateQuantity(request.quantity());
         cartItemRepository.save(cartItem);
 
         // 7. 장바구니 업데이트 시간 갱신
         cart.updateTimestamp();
         cartRepository.save(cart);
 
-        Long subtotal = product.getPrice() * request.getQuantity();
-        log.debug("Updated cart item: {}, quantity: {}, subtotal: {}", cartItem.getId(), request.getQuantity(), subtotal);
-        return CartItemResponse.forUpdate(request.getProductId(), request.getQuantity(), subtotal);
+        Long subtotal = product.getPrice() * request.quantity();
+        log.debug("Updated cart item: {}, quantity: {}, subtotal: {}", cartItem.getId(), request.quantity(), subtotal);
+        return CartItemResponse.forUpdate(request.productId(), request.quantity(), subtotal);
     }
 }

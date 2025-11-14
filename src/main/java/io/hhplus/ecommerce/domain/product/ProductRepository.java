@@ -16,6 +16,12 @@ public interface ProductRepository {
 
     Product save(Product product);
 
+    /**
+     * 인기 상품 조회 (최근 3일간 판매량 기준 Top 5)
+     * STEP 08 성능 최적화 Native Query
+     */
+    List<TopProductProjection> findTopProductsByPeriod();
+
     default Product findByIdOrThrow(Long id) {
         return findById(id)
             .orElseThrow(() -> new BusinessException(

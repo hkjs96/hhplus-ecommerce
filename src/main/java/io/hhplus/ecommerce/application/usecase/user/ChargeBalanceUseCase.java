@@ -20,13 +20,13 @@ public class ChargeBalanceUseCase {
 
     @Transactional
     public ChargeBalanceResponse execute(Long userId, ChargeBalanceRequest request) {
-        log.info("Charging balance for userId: {}, amount: {}", userId, request.getAmount());
+        log.info("Charging balance for userId: {}, amount: {}", userId, request.amount());
 
         // 1. 사용자 조회
         User user = userRepository.findByIdOrThrow(userId);
 
         // 2. 잔액 충전
-        user.charge(request.getAmount());
+        user.charge(request.amount());
         userRepository.save(user);
 
         log.debug("Balance charged successfully. userId: {}, new balance: {}", userId, user.getBalance());
@@ -35,7 +35,7 @@ public class ChargeBalanceUseCase {
         return ChargeBalanceResponse.of(
             user.getId(),
             user.getBalance(),
-            request.getAmount(),
+            request.amount(),
             LocalDateTime.now()
         );
     }

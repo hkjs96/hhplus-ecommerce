@@ -1,24 +1,13 @@
 package io.hhplus.ecommerce.application.coupon.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-
 import java.util.List;
 
-@Getter
-@Builder
-@AllArgsConstructor
-public class UserCouponListResponse {
-    private Long userId;
-    private List<UserCouponResponse> coupons;
-    private Integer totalCount;
-
+public record UserCouponListResponse(
+    Long userId,
+    List<UserCouponResponse> coupons,
+    Integer totalCount
+) {
     public static UserCouponListResponse of(Long userId, List<UserCouponResponse> coupons) {
-        return UserCouponListResponse.builder()
-                .userId(userId)
-                .coupons(coupons)
-                .totalCount(coupons.size())
-                .build();
+        return new UserCouponListResponse(userId, coupons, coupons.size());
     }
 }

@@ -171,7 +171,8 @@ docs/
 ### Testing
 - **Unit Test**: JUnit 5, Mockito
 - **Integration Test**: Testcontainers (MySQL 8.0)
-- **Coverage**: Jacoco (94% line coverage)
+- **Coverage**: Jacoco (64% line coverage)
+- **Performance Test**: MySQL Testcontainer 기반 EXPLAIN 분석
 
 ### Monitoring & Debugging
 - **Query Logging**: p6spy (바인딩 파라미터 확인)
@@ -774,13 +775,14 @@ GROUP BY p.id ORDER BY sales_count DESC LIMIT 5;
 - [x] **쿼리 로깅**: p6spy 설정 완료
 - [x] **Docker 환경**: docker-compose.yml 구성
 
-### Week 4 Step 8: Database Optimization 🚧
-- [ ] **Slow Query 식별**: 성능 병목 지점 파악
-- [ ] **EXPLAIN 분석**: 실행 계획 분석 및 문서화
-- [ ] **인덱스 설계**: Composite Index, Covering Index 적용
-- [ ] **N+1 문제 해결**: Fetch Join, Batch Size 적용
-- [ ] **쿼리 최적화**: JOIN 최적화, Subquery 개선
-- [ ] **최적화 보고서**: Before/After 성능 비교 작성
+### Week 4 Step 8: Database Optimization ✅
+- [x] **Slow Query 식별**: 4개 UseCase N+1 문제 파악 (인기 상품, 쿠폰, 주문, 장바구니)
+- [x] **EXPLAIN 분석**: MySQL Testcontainer로 9개 쿼리 실행 계획 분석
+- [x] **인덱스 설계**: 15개 인덱스 적용 (Composite, Covering Index 포함)
+- [x] **N+1 문제 해결**: Native Query + Projection으로 완전 해결
+- [x] **쿼리 최적화**: 4개 UseCase 리팩토링 (다중 쿼리 → 단일 JOIN 쿼리)
+- [x] **최적화 보고서**: Before/After 성능 비교 문서화 (평균 92% 개선)
+  - [docs/week4/step8-db-optimization-report.md](docs/week4/step8-db-optimization-report.md)
 
 ### 코치 피드백 반영 ✅
 - [x] **findByIdOrThrow() 패턴**: Repository default method 추가

@@ -19,45 +19,40 @@ public class OrderFacade {
     private final OrderRepository orderRepository;
 
     public CompleteOrderResponse createAndPayOrder(CompleteOrderRequest request) {
-        log.info("Facade: Create and pay order for user: {}", request.getUserId());
+        log.info("Facade: Create and pay order for user: {}", request.userId());
 
         // 1. 주문 생성
-        CreateOrderRequest createRequest = CreateOrderRequest.builder()
-                .userId(request.getUserId())
-                .items(request.getItems())
-                .couponId(request.getCouponId())
-                .build();
+        CreateOrderRequest createRequest = new CreateOrderRequest(
+                request.userId(),
+                request.items(),
+                request.couponId()
+        );
 
         CreateOrderResponse order = createOrderUseCase.execute(createRequest);
-        log.debug("Order created: {}", order.getOrderId());
+        log.debug("Order created: {}", order.orderId());
 
         // 2. 즉시 결제
-        PaymentRequest paymentRequest = PaymentRequest.builder()
-                .userId(request.getUserId())
-                .build();
+        PaymentRequest paymentRequest = new PaymentRequest(request.userId());
 
-        PaymentResponse payment = processPaymentUseCase.execute(order.getOrderId(), paymentRequest);
-        log.debug("Payment processed: {}", payment.getStatus());
+        PaymentResponse payment = processPaymentUseCase.execute(order.orderId(), paymentRequest);
+        log.debug("Payment processed: {}", payment.status());
 
-        // 3. 결제 후 최신 주문 상태를 가진 응답 생성
-        // CreateOrderResponse의 모든 필드를 유지하되, status만 업데이트
-        Order updatedOrder = orderRepository.findByIdOrThrow(order.getOrderId());
-        CreateOrderResponse updatedOrderResponse = CreateOrderResponse.of(
-                order.getOrderId(),
-                order.getUserId(),
-                order.getItems(),
-                order.getSubtotalAmount(),
-                order.getDiscountAmount(),
-                order.getTotalAmount(),
-                updatedOrder.getStatus().name(),  // 업데이트된 status (COMPLETED)
-                order.getCreatedAt()
+        // 3. 결제 후 최신 주문 상태 반영
+        Order updatedOrder = orderRepository.findByIdOrThrow(order.orderId());
+        CreateOrderResponse updatedOrderResponse = new CreateOrderResponse(
+                updatedOrder.getId(),
+                updatedOrder.getUserId(),
+                updatedOrder.getOrderNumber(),
+                order.items(),  // items는 그대로 사용
+                updatedOrder.getSubtotalAmount(),
+                updatedOrder.getDiscountAmount(),
+                updatedOrder.getTotalAmount(),
+                updatedOrder.getStatus().name(),  // COMPLETED로 변경됨
+                updatedOrder.getCreatedAt()
         );
 
         // 4. 통합 응답
-        return CompleteOrderResponse.builder()
-                .order(updatedOrderResponse)
-                .payment(payment)
-                .build();
+        return new CompleteOrderResponse(updatedOrderResponse, payment);
     }
 }
 

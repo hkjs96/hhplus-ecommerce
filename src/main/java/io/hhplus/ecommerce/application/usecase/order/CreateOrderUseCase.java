@@ -40,34 +40,34 @@ public class CreateOrderUseCase {
 
     @Transactional
     public CreateOrderResponse execute(CreateOrderRequest request) {
-        log.debug("Creating order for user: {}", request.getUserId());
+        log.debug("Creating order for user: {}", request.userId());
 
         // 1. 사용자 검증
-        User user = userRepository.findByIdOrThrow(request.getUserId());
+        User user = userRepository.findByIdOrThrow(request.userId());
 
         // 2. 상품 재고 확인 및 금액 계산
         List<OrderItemResponse> itemResponses = new ArrayList<>();
         long subtotalAmount = 0L;
 
-        for (OrderItemRequest itemReq : request.getItems()) {
-            Product product = productRepository.findByIdOrThrow(itemReq.getProductId());
+        for (OrderItemRequest itemReq : request.items()) {
+            Product product = productRepository.findByIdOrThrow(itemReq.productId());
 
             // 재고 확인
-            if (product.getStock() < itemReq.getQuantity()) {
+            if (product.getStock() < itemReq.quantity()) {
                 throw new BusinessException(
                         ErrorCode.INSUFFICIENT_STOCK,
                         String.format("재고가 부족합니다. 상품: %s, 요청: %d, 재고: %d",
-                                product.getName(), itemReq.getQuantity(), product.getStock())
+                                product.getName(), itemReq.quantity(), product.getStock())
                 );
             }
 
-            long itemSubtotal = product.getPrice() * itemReq.getQuantity();
+            long itemSubtotal = product.getPrice() * itemReq.quantity();
             subtotalAmount += itemSubtotal;
 
             itemResponses.add(OrderItemResponse.of(
                     product.getId(),
                     product.getName(),
-                    itemReq.getQuantity(),
+                    itemReq.quantity(),
                     product.getPrice(),
                     itemSubtotal
             ));
@@ -75,8 +75,8 @@ public class CreateOrderUseCase {
 
         // 3. 쿠폰 검증 및 할인 계산
         long discountAmount = 0L;
-        if (request.getCouponId() != null) {
-            Coupon coupon = couponRepository.findByIdOrThrow(request.getCouponId());
+        if (request.couponId() != null) {
+            Coupon coupon = couponRepository.findByIdOrThrow(request.couponId());
 
             coupon.validateIssuable();
 
@@ -96,14 +96,14 @@ public class CreateOrderUseCase {
         orderRepository.save(order);
 
         // 5. 주문 아이템 생성
-        for (int i = 0; i < request.getItems().size(); i++) {
-            OrderItemRequest itemReq = request.getItems().get(i);
-            Product product = productRepository.findByIdOrThrow(itemReq.getProductId());
+        for (int i = 0; i < request.items().size(); i++) {
+            OrderItemRequest itemReq = request.items().get(i);
+            Product product = productRepository.findByIdOrThrow(itemReq.productId());
 
             OrderItem orderItem = OrderItem.create(
                     order.getId(),
                     product.getId(),
-                    itemReq.getQuantity(),
+                    itemReq.quantity(),
                     product.getPrice()
             );
             orderItemRepository.save(orderItem);
@@ -111,15 +111,6 @@ public class CreateOrderUseCase {
 
         log.info("Order created successfully. orderId: {}, userId: {}", order.getId(), user.getId());
 
-        return CreateOrderResponse.of(
-                order.getId(),
-                order.getUserId(),
-                itemResponses,
-                order.getSubtotalAmount(),
-                order.getDiscountAmount(),
-                order.getTotalAmount(),
-                order.getStatus().name(),
-                order.getCreatedAt()
-        );
+        return CreateOrderResponse.of(order, itemResponses);
     }
 }

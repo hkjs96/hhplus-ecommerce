@@ -24,25 +24,25 @@ public class RemoveFromCartUseCase {
 
     @Transactional
     public void execute(DeleteCartItemRequest request) {
-        log.info("Removing item from cart for user: {}, product: {}", request.getUserId(), request.getProductId());
+        log.info("Removing item from cart for user: {}, product: {}", request.userId(), request.productId());
 
         // 1. 사용자 검증
-        userRepository.findByIdOrThrow(request.getUserId());
+        userRepository.findByIdOrThrow(request.userId());
 
         // 2. 장바구니 조회
-        Cart cart = cartRepository.findByUserId(request.getUserId())
+        Cart cart = cartRepository.findByUserId(request.userId())
             .orElseThrow(() -> new BusinessException(
                 ErrorCode.CART_NOT_FOUND,
-                "장바구니를 찾을 수 없습니다. userId: " + request.getUserId()
+                "장바구니를 찾을 수 없습니다. userId: " + request.userId()
             ));
 
         // 3. 장바구니 아이템 조회
         CartItem cartItem = cartItemRepository.findByCartIdAndProductId(
             cart.getId(),
-            request.getProductId()
+            request.productId()
         ).orElseThrow(() -> new BusinessException(
             ErrorCode.CART_ITEM_NOT_FOUND,
-            "장바구니에 해당 상품이 없습니다. productId: " + request.getProductId()
+            "장바구니에 해당 상품이 없습니다. productId: " + request.productId()
         ));
 
         // 4. 아이템 삭제

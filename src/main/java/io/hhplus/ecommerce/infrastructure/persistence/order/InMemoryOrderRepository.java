@@ -2,9 +2,11 @@ package io.hhplus.ecommerce.infrastructure.persistence.order;
 
 import io.hhplus.ecommerce.domain.order.Order;
 import io.hhplus.ecommerce.domain.order.OrderRepository;
+import io.hhplus.ecommerce.domain.order.OrderWithItemsProjection;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -60,6 +62,12 @@ public class InMemoryOrderRepository implements OrderRepository {
         storage.put(order.getId(), order);
         orderNumberIndex.put(order.getOrderNumber(), order);
         return order;
+    }
+
+    @Override
+    public List<OrderWithItemsProjection> findOrdersWithItemsByUserId(Long userId, String status) {
+        // InMemory에서는 빈 리스트 반환 (실제 구현은 JPA에서만 사용)
+        return Collections.emptyList();
     }
 
     public void clear() {

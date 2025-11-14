@@ -14,3 +14,5 @@ build/
 ### VS Code ###
 .vscode/
 cart-implementation-gap-analysis.md
+PULL_REQUEST.md
+performance-test-output.log

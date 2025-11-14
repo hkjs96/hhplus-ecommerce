@@ -423,11 +423,11 @@ class OrderControllerIntegrationTest {
         // Given
         OrderItemRequest item1 = new OrderItemRequest(testProduct1Id, 1);
         OrderItemRequest item2 = new OrderItemRequest(testProduct2Id, 2);
-        CompleteOrderRequest request = CompleteOrderRequest.builder()
-                .userId(testUserId)
-                .items(List.of(item1, item2))
-                .couponId(null)
-                .build();
+        CompleteOrderRequest request = new CompleteOrderRequest(
+                testUserId,
+                List.of(item1, item2),
+                null
+        );
 
         // When & Then
         mockMvc.perform(post("/api/orders/complete")
@@ -470,11 +470,11 @@ class OrderControllerIntegrationTest {
         userCouponRepository.save(userCoupon);
 
         OrderItemRequest item = new OrderItemRequest(testProduct1Id, 2); // 2 * 1,500,000 = 3,000,000
-        CompleteOrderRequest request = CompleteOrderRequest.builder()
-                .userId(testUserId)
-                .items(List.of(item))
-                .couponId(couponId)
-                .build();
+        CompleteOrderRequest request = new CompleteOrderRequest(
+                testUserId,
+                List.of(item),
+                couponId
+        );
 
         // When & Then
         mockMvc.perform(post("/api/orders/complete")
@@ -498,11 +498,11 @@ class OrderControllerIntegrationTest {
     void completeOrder_실패_재고부족() throws Exception {
         // Given
         OrderItemRequest item = new OrderItemRequest(testProduct1Id, 100); // Stock is only 50
-        CompleteOrderRequest request = CompleteOrderRequest.builder()
-                .userId(testUserId)
-                .items(List.of(item))
-                .couponId(null)
-                .build();
+        CompleteOrderRequest request = new CompleteOrderRequest(
+                testUserId,
+                List.of(item),
+                null
+        );
 
         // When & Then
         mockMvc.perform(post("/api/orders/complete")
@@ -530,11 +530,11 @@ class OrderControllerIntegrationTest {
         Long poorUserId = savedPoorUser.getId();
 
         OrderItemRequest item = new OrderItemRequest(testProduct1Id, 1); // 1,500,000
-        CompleteOrderRequest request = CompleteOrderRequest.builder()
-                .userId(poorUserId)
-                .items(List.of(item))
-                .couponId(null)
-                .build();
+        CompleteOrderRequest request = new CompleteOrderRequest(
+                poorUserId,
+                List.of(item),
+                null
+        );
 
         // When & Then
         mockMvc.perform(post("/api/orders/complete")
@@ -562,11 +562,11 @@ class OrderControllerIntegrationTest {
     void completeOrder_실패_존재하지않는사용자() throws Exception {
         // Given
         OrderItemRequest item = new OrderItemRequest(testProduct1Id, 1);
-        CompleteOrderRequest request = CompleteOrderRequest.builder()
-                .userId(99999L)
-                .items(List.of(item))
-                .couponId(null)
-                .build();
+        CompleteOrderRequest request = new CompleteOrderRequest(
+                99999L,
+                List.of(item),
+                null
+        );
 
         // When & Then
         mockMvc.perform(post("/api/orders/complete")
@@ -581,11 +581,11 @@ class OrderControllerIntegrationTest {
     void completeOrder_실패_존재하지않는상품() throws Exception {
         // Given
         OrderItemRequest item = new OrderItemRequest(99999L, 1);
-        CompleteOrderRequest request = CompleteOrderRequest.builder()
-                .userId(testUserId)
-                .items(List.of(item))
-                .couponId(null)
-                .build();
+        CompleteOrderRequest request = new CompleteOrderRequest(
+                testUserId,
+                List.of(item),
+                null
+        );
 
         // When & Then
         mockMvc.perform(post("/api/orders/complete")

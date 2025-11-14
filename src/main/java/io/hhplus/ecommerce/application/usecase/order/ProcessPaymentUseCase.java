@@ -31,11 +31,11 @@ public class ProcessPaymentUseCase {
 
     @Transactional
     public PaymentResponse execute(Long orderId, PaymentRequest request) {
-        log.debug("Processing payment for order: {}, user: {}", orderId, request.getUserId());
+        log.debug("Processing payment for order: {}, user: {}", orderId, request.userId());
 
         // 1. 주문 및 사용자 조회
         Order order = orderRepository.findByIdOrThrow(orderId);
-        User user = userRepository.findByIdOrThrow(request.getUserId());
+        User user = userRepository.findByIdOrThrow(request.userId());
 
         // 2. 주문 소유자 검증
         if (!order.getUserId().equals(user.getId())) {

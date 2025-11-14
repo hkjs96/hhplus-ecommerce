@@ -6,18 +6,15 @@ import io.hhplus.ecommerce.application.order.dto.OrderListResponse;
 import io.hhplus.ecommerce.application.usecase.UseCase;
 import io.hhplus.ecommerce.common.exception.BusinessException;
 import io.hhplus.ecommerce.common.exception.ErrorCode;
-import io.hhplus.ecommerce.domain.order.Order;
-import io.hhplus.ecommerce.domain.order.OrderItem;
-import io.hhplus.ecommerce.domain.order.OrderItemRepository;
 import io.hhplus.ecommerce.domain.order.OrderRepository;
-import io.hhplus.ecommerce.domain.product.Product;
-import io.hhplus.ecommerce.domain.product.ProductRepository;
+import io.hhplus.ecommerce.domain.order.OrderWithItemsProjection;
 import io.hhplus.ecommerce.domain.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @UseCase
@@ -26,27 +23,27 @@ import java.util.List;
 public class GetOrdersUseCase {
 
     private final OrderRepository orderRepository;
-    private final OrderItemRepository orderItemRepository;
-    private final ProductRepository productRepository;
     private final UserRepository userRepository;
 
+    /**
+     * 사용자 주문 목록 조회 (주문 상세 포함)
+     * STEP 08 최적화:
+     * - 기존: findByUserId() + N번 findByOrderId() + M번 findById() (N+1+M 문제)
+     * - 개선: Native Query로 orders + order_items + products JOIN 조회 (1 query)
+     * - 성능 향상: 예상 90%+ (N+1+M queries → 1 query)
+     */
     public OrderListResponse execute(Long userId, String status) {
-        log.debug("Getting orders for user: {}, status: {}", userId, status);
+        log.info("Getting orders for user: {} with status: {} using optimized Native Query", userId, status);
 
         // 1. 사용자 존재 확인
         userRepository.findByIdOrThrow(userId);
 
-        // 2. userId로 주문 조회
-        List<Order> orders = orderRepository.findByUserId(userId);
-
-        // 3. 상태 필터링 (optional)
+        // 2. 상태 검증 (optional)
+        String statusParam = null;
         if (status != null && !status.isEmpty()) {
             try {
-                io.hhplus.ecommerce.domain.order.OrderStatus orderStatus =
-                        io.hhplus.ecommerce.domain.order.OrderStatus.valueOf(status.toUpperCase());
-                orders = orders.stream()
-                        .filter(order -> order.getStatus() == orderStatus)
-                        .toList();
+                io.hhplus.ecommerce.domain.order.OrderStatus.valueOf(status.toUpperCase());
+                statusParam = status.toUpperCase();
             } catch (IllegalArgumentException e) {
                 throw new BusinessException(
                         ErrorCode.INVALID_INPUT,
@@ -55,43 +52,53 @@ public class GetOrdersUseCase {
             }
         }
 
-        // 4. Order -> CreateOrderResponse 변환
-        List<CreateOrderResponse> responses = orders.stream()
-                .map(order -> {
-                    // OrderItem 조회
-                    List<OrderItem> orderItems = orderItemRepository.findByOrderId(order.getId());
+        // 3. Native Query로 주문 + 주문 상세 조회 (Single Query)
+        List<OrderWithItemsProjection> projectionsFromDb =
+            orderRepository.findOrdersWithItemsByUserId(userId, statusParam);
 
-                    List<OrderItemResponse> itemResponses = orderItems.stream()
-                            .map(item -> {
-                                Product product = productRepository.findById(item.getProductId())
-                                        .orElse(null);
-                                String productName = product != null ? product.getName() : "알 수 없음";
+        if (projectionsFromDb.isEmpty()) {
+            log.debug("No orders found for user: {} with status: {}", userId, statusParam);
+            return OrderListResponse.of(List.of());
+        }
 
-                                return OrderItemResponse.of(
-                                        item.getProductId(),
-                                        productName,
-                                        item.getQuantity(),
-                                        item.getUnitPrice(),
-                                        item.getSubtotal()
-                                );
-                            })
-                            .toList();
+        // 4. Flat Projection 결과를 Order 단위로 그룹핑
+        Map<Long, List<OrderWithItemsProjection>> groupedByOrder = projectionsFromDb.stream()
+            .collect(Collectors.groupingBy(OrderWithItemsProjection::getOrderId));
 
-                    return CreateOrderResponse.of(
-                            order.getId(),
-                            order.getUserId(),
-                            itemResponses,
-                            order.getSubtotalAmount(),
-                            order.getDiscountAmount(),
-                            order.getTotalAmount(),
-                            order.getStatus().name(),
-                            order.getCreatedAt()
-                    );
-                })
-                .toList();
+        // 5. 각 주문별로 CreateOrderResponse 생성
+        List<CreateOrderResponse> responses = groupedByOrder.entrySet().stream()
+            .map(entry -> {
+                // 첫 번째 Projection에서 주문 정보 추출 (모든 row의 주문 정보는 동일)
+                OrderWithItemsProjection firstProj = entry.getValue().get(0);
 
-        log.debug("Found {} orders for user: {}", responses.size(), userId);
+                // OrderItem 리스트 생성
+                List<OrderItemResponse> items = entry.getValue().stream()
+                    .map(proj -> new OrderItemResponse(
+                        proj.getProductId(),
+                        proj.getProductName(),
+                        proj.getQuantity(),
+                        proj.getUnitPrice(),
+                        proj.getSubtotal()
+                    ))
+                    .toList();
 
+                // CreateOrderResponse 생성
+                return new CreateOrderResponse(
+                    firstProj.getOrderId(),
+                    firstProj.getUserId(),
+                    firstProj.getOrderNumber(),
+                    items,
+                    firstProj.getSubtotalAmount(),
+                    firstProj.getDiscountAmount(),
+                    firstProj.getTotalAmount(),
+                    firstProj.getStatus(),
+                    firstProj.getCreatedAt()
+                );
+            })
+            .sorted(Comparator.comparing(CreateOrderResponse::createdAt).reversed())  // 최신순 정렬
+            .toList();
+
+        log.info("Found {} orders for user: {} using optimized query", responses.size(), userId);
         return OrderListResponse.of(responses);
     }
 }

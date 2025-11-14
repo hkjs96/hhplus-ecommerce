@@ -25,7 +25,7 @@ public class IssueCouponUseCase {
 
     @Transactional
     public IssueCouponResponse execute(Long couponId, IssueCouponRequest request) {
-        Long userId = request.getUserId();
+        Long userId = request.userId();
         log.info("Issuing coupon for user: {}, coupon: {}", userId, couponId);
 
         // 1. 사용자 검증

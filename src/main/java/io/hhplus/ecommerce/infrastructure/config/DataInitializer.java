@@ -168,15 +168,16 @@ public class DataInitializer implements ApplicationRunner {
         );
         couponRepository.save(coupon3);
 
-        // Coupon 4: 품절 쿠폰 (Edge Case: 수량 0)
+        // Coupon 4: 품절 쿠폰 (Edge Case: 수량 1로 생성 후 발급하여 품절 처리)
         Coupon soldOutCoupon = Coupon.create(
                 "SOLDOUT",
                 "품절 테스트용 쿠폰",
                 25,  // 25% 할인
-                0,  // ⚠️ 남은 수량 0 (품절)
+                1,  // 초기 수량 1개로 생성
                 now,
                 now.plusMonths(1)
         );
+        soldOutCoupon.issue();  // 1개 발급하여 품절 처리
         couponRepository.save(soldOutCoupon);
 
         // Coupon 5: 만료된 쿠폰 (Edge Case: 이미 만료)

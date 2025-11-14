@@ -1,10 +1,12 @@
 package io.hhplus.ecommerce.infrastructure.persistence.coupon;
 
 import io.hhplus.ecommerce.domain.coupon.UserCoupon;
+import io.hhplus.ecommerce.domain.coupon.UserCouponProjection;
 import io.hhplus.ecommerce.domain.coupon.UserCouponRepository;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -48,6 +50,12 @@ public class InMemoryUserCouponRepository implements UserCouponRepository {
         String key = makeKey(userCoupon.getUserId(), userCoupon.getCouponId());
         userCouponIndex.put(key, userCoupon.getId());
         return userCoupon;
+    }
+
+    @Override
+    public List<UserCouponProjection> findUserCouponsWithDetails(Long userId, String status) {
+        // InMemory에서는 빈 리스트 반환 (실제 구현은 JPA에서만 사용)
+        return Collections.emptyList();
     }
 
     private String makeKey(Long userId, Long couponId) {
