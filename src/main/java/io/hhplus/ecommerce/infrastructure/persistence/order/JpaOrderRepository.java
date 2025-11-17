@@ -42,20 +42,6 @@ public interface JpaOrderRepository extends JpaRepository<Order, Long>, OrderRep
     // Performance Optimization: Native Query for Orders with Items
     // ============================================================
 
-    /**
-     * 주문 내역 조회 (주문 + 주문 상세 + 상품 정보 포함)
-     *
-     * <p>최적화 전략:
-     * <ul>
-     *   <li>N+1 문제 해결: 단일 JOIN 쿼리로 모든 데이터 조회</li>
-     *   <li>인덱스 사용: idx_user_created, idx_order_id, PRIMARY KEY</li>
-     *   <li>예상 성능: 401 queries → 1 query (99.75% 개선)</li>
-     * </ul>
-     *
-     * @param userId 사용자 ID
-     * @param status 주문 상태 (null 가능)
-     * @return 주문 + 주문 상세 + 상품 정보 목록
-     */
     @Query(value = """
         SELECT
             o.id AS orderId,

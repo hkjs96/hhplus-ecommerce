@@ -239,12 +239,12 @@ public class DataInitializer implements ApplicationRunner {
 
         // 노트북 1개 담기
         Product product1 = productRepository.findByProductCode("P001").orElseThrow();
-        CartItem cartItem1 = CartItem.create(savedCart1.getId(), product1.getId(), 1);
+        CartItem cartItem1 = CartItem.create(savedCart1.getId(), product1, 1);  // Product 엔티티 직접 전달
         cartItemRepository.save(cartItem1);
 
         // 마우스 2개 담기
         Product product2 = productRepository.findByProductCode("P002").orElseThrow();
-        CartItem cartItem2 = CartItem.create(savedCart1.getId(), product2.getId(), 2);
+        CartItem cartItem2 = CartItem.create(savedCart1.getId(), product2, 2);  // Product 엔티티 직접 전달
         cartItemRepository.save(cartItem2);
 
         // User 2 (이플러스)의 장바구니
@@ -254,7 +254,7 @@ public class DataInitializer implements ApplicationRunner {
 
         // 키보드 1개 담기
         Product product3 = productRepository.findByProductCode("P003").orElseThrow();
-        CartItem cartItem3 = CartItem.create(savedCart2.getId(), product3.getId(), 1);
+        CartItem cartItem3 = CartItem.create(savedCart2.getId(), product3, 1);  // Product 엔티티 직접 전달
         cartItemRepository.save(cartItem3);
 
         log.info("   ✓ Created 2 pre-filled carts (User 1: 2 items, User 2: 1 item)");

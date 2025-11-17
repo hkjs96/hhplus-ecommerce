@@ -20,16 +20,6 @@ public class GetTopProductsUseCase {
 
     private final ProductRepository productRepository;
 
-    /**
-     * 인기 상품 조회 (최근 3일간 판매량 기준 Top 5)
-     *
-     * <p>STEP 08 최적화:
-     * <ul>
-     *   <li>기존: findAll() + Java 필터링/집계 (2,543ms 예상)</li>
-     *   <li>개선: Native Query로 DB 집계 (87ms 예상)</li>
-     *   <li>성능 향상: 96.6%</li>
-     * </ul>
-     */
     public TopProductResponse execute() {
         log.info("Getting top products (last 3 days) using optimized Native Query");
 

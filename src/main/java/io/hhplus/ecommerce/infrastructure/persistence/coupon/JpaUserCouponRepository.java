@@ -28,20 +28,6 @@ public interface JpaUserCouponRepository extends JpaRepository<UserCoupon, Long>
     // Performance Optimization: Native Query for User Coupons
     // ============================================================
 
-    /**
-     * 사용자 쿠폰 조회 (사용자 쿠폰 + 쿠폰 정보 포함)
-     *
-     * <p>최적화 전략:
-     * <ul>
-     *   <li>N+1 문제 해결: 단일 JOIN 쿼리로 모든 데이터 조회</li>
-     *   <li>인덱스 사용: idx_user_coupons_user_status, idx_user_coupons_coupon_id</li>
-     *   <li>예상 성능: 500ms → 50ms (90% 개선)</li>
-     * </ul>
-     *
-     * @param userId 사용자 ID
-     * @param status 쿠폰 상태 (null 가능)
-     * @return 사용자 쿠폰 + 쿠폰 정보 목록
-     */
     @Query(value = """
         SELECT
             uc.id AS userCouponId,

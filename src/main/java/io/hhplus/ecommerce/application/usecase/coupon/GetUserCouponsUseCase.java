@@ -21,17 +21,6 @@ public class GetUserCouponsUseCase {
     private final UserCouponRepository userCouponRepository;
     private final UserRepository userRepository;
 
-    /**
-     * 사용자 쿠폰 조회 (쿠폰 상세 정보 포함)
-     * STEP 08 최적화:
-     * - 기존: findByUserId() + N번 findById() (N+1 문제, 11 queries 예상)
-     * - 개선: Native Query로 JOIN 조회 (1 query)
-     * - 성능 향상: 90.9% (11 queries → 1 query)
-     *
-     * Note: status가 null이거나 empty인 경우, Native Query의 WHERE 조건에서
-     *       (:status IS NULL OR uc.status = :status) 부분이 항상 TRUE가 되어
-     *       모든 상태의 쿠폰을 조회합니다.
-     */
     public UserCouponListResponse execute(Long userId, String status) {
         log.info("Getting coupons for user: {} with status: {} using optimized Native Query", userId, status);
 

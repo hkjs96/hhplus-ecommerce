@@ -2,13 +2,25 @@ package io.hhplus.ecommerce.domain.product;
 
 import io.hhplus.ecommerce.common.exception.BusinessException;
 import io.hhplus.ecommerce.common.exception.ErrorCode;
+import io.hhplus.ecommerce.domain.common.BaseTimeEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
-
+/**
+ * Product Entity
+ *
+ * JPA Entity 생성자가 protected인 이유:
+ * 1. JPA 스펙 요구사항: 리플렉션을 통한 인스턴스 생성을 위해 기본 생성자 필요
+ * 2. 도메인 무결성 보호: public 생성자 노출 방지로 정적 팩토리 메서드(create)를 통한 생성 강제
+ * 3. 프록시 생성 지원: Hibernate가 지연 로딩 프록시 객체 생성 시 사용
+ *
+ * Product와 OrderItem/CartItem 관계:
+ * - Product 1 : N OrderItem (하나의 상품이 여러 주문에 포함될 수 있음)
+ * - Product 1 : N CartItem (하나의 상품이 여러 장바구니에 담길 수 있음)
+ * - 양방향 연관관계는 조회 최적화를 위해 선택적으로 사용 (현재는 단방향 유지)
+ */
 @Entity
 @Table(
     name = "products",
@@ -19,7 +31,7 @@ import java.time.LocalDateTime;
 )
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Product {
+public class Product extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -46,12 +58,6 @@ public class Product {
     @Version
     private Long version;  // Optimistic Lock for concurrent stock updates
 
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-
-    @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
-
     public static Product create(String productCode, String name, String description, Long price, String category, Integer stock) {
         validateProductCode(productCode);
         validatePrice(price);
@@ -64,25 +70,9 @@ public class Product {
         product.price = price;
         product.category = category;
         product.stock = stock;
-        product.createdAt = LocalDateTime.now();
-        product.updatedAt = LocalDateTime.now();
+        // createdAt, updatedAt은 JPA Auditing이 자동 처리
 
         return product;
-    }
-
-    @PrePersist
-    protected void onCreate() {
-        if (this.createdAt == null) {
-            this.createdAt = LocalDateTime.now();
-        }
-        if (this.updatedAt == null) {
-            this.updatedAt = LocalDateTime.now();
-        }
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        this.updatedAt = LocalDateTime.now();
     }
 
     public void decreaseStock(int quantity) {
@@ -90,14 +80,14 @@ public class Product {
         validateSufficientStock(quantity);
 
         this.stock -= quantity;
-        // updatedAt은 JPA @PreUpdate에서 자동 처리
+        // updatedAt은 JPA Auditing이 자동 처리
     }
 
     public void increaseStock(int quantity) {
         validateQuantity(quantity);
 
         this.stock += quantity;
-        // updatedAt은 JPA @PreUpdate에서 자동 처리
+        // updatedAt은 JPA Auditing이 자동 처리
     }
 
     public boolean hasEnoughStock(int quantity) {
@@ -118,7 +108,7 @@ public class Product {
         if (category != null) {
             this.category = category;
         }
-        // updatedAt은 JPA @PreUpdate에서 자동 처리
+        // updatedAt은 JPA Auditing이 자동 처리
     }
 
     // ====================================

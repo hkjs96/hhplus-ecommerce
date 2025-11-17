@@ -73,7 +73,7 @@ public class AddToCartUseCase {
                 () -> {
                     CartItem newItem = CartItem.create(
                         cart.getId(),
-                        request.productId(),
+                        product,  // Product 엔티티 직접 전달
                         request.quantity()
                     );
                     cartItemRepository.save(newItem);

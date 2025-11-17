@@ -101,8 +101,8 @@ public class CreateOrderUseCase {
             Product product = productRepository.findByIdOrThrow(itemReq.productId());
 
             OrderItem orderItem = OrderItem.create(
-                    order.getId(),
-                    product.getId(),
+                    order,         // Order 엔티티 직접 전달
+                    product,       // Product 엔티티 직접 전달
                     itemReq.quantity(),
                     product.getPrice()
             );

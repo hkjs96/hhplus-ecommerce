@@ -25,13 +25,6 @@ public class GetOrdersUseCase {
     private final OrderRepository orderRepository;
     private final UserRepository userRepository;
 
-    /**
-     * 사용자 주문 목록 조회 (주문 상세 포함)
-     * STEP 08 최적화:
-     * - 기존: findByUserId() + N번 findByOrderId() + M번 findById() (N+1+M 문제)
-     * - 개선: Native Query로 orders + order_items + products JOIN 조회 (1 query)
-     * - 성능 향상: 예상 90%+ (N+1+M queries → 1 query)
-     */
     public OrderListResponse execute(Long userId, String status) {
         log.info("Getting orders for user: {} with status: {} using optimized Native Query", userId, status);
 

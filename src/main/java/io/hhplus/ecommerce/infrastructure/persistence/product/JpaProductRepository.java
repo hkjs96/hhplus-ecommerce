@@ -33,17 +33,19 @@ public interface JpaProductRepository extends JpaRepository<Product, Long>, Prod
     // ============================================================
 
     /**
-     * 인기 상품 조회 (최근 3일간 판매량 기준 Top 5)
+     * 인기 상품 조회 (실시간 집계 방식)
      *
-     * <p>최적화 전략:
-     * <ul>
-     *   <li>Native Query로 DB에서 집계 수행 (Java 필터링 제거)</li>
-     *   <li>Covering Index 사용: idx_status_paid_at, idx_order_product_covering</li>
-     *   <li>예상 성능: 2,543ms → 87ms (96.6% 개선)</li>
-     * </ul>
+     * 주의사항:
+     * - COUNT(*) + ORDER BY 조합은 인덱스를 효율적으로 활용할 수 없음
+     * - 매번 order_items 전체를 스캔하므로 데이터가 많을 경우 성능 저하
      *
-     * @return Top 5 인기 상품 목록 (판매량 내림차순)
+     * 권장 사항:
+     * - 실무에서는 ProductSalesAggregate (집계 테이블) 사용 권장
+     * - 배치로 사전 집계 후 인덱스를 활용한 빠른 조회
+     *
+     * @deprecated Use ProductSalesAggregateRepository.findTopProductsByDateRange instead
      */
+    @Deprecated
     @Query(value = """
         SELECT
             oi.product_id AS productId,

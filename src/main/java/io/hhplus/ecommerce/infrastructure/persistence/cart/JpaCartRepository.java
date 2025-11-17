@@ -26,19 +26,6 @@ public interface JpaCartRepository extends JpaRepository<Cart, Long>, CartReposi
     // Performance Optimization: Native Query for Cart with Items
     // ============================================================
 
-    /**
-     * 장바구니 조회 (장바구니 + 아이템 + 상품 정보 포함)
-     *
-     * <p>최적화 전략:
-     * <ul>
-     *   <li>N+1 문제 해결: 단일 JOIN 쿼리로 모든 데이터 조회</li>
-     *   <li>인덱스 사용: idx_carts_user_id, idx_cart_items_cart_id, idx_cart_items_product_id</li>
-     *   <li>예상 성능: 800ms → 80ms (90% 개선)</li>
-     * </ul>
-     *
-     * @param userId 사용자 ID
-     * @return 장바구니 + 아이템 + 상품 정보 목록
-     */
     @Query(value = """
         SELECT
             c.id AS cartId,

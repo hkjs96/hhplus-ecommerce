@@ -2,13 +2,24 @@ package io.hhplus.ecommerce.domain.order;
 
 import io.hhplus.ecommerce.common.exception.BusinessException;
 import io.hhplus.ecommerce.common.exception.ErrorCode;
+import io.hhplus.ecommerce.domain.common.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
+/**
+ * Order Entity
+ *
+ * JPA Entity 생성자가 protected인 이유:
+ * 1. JPA 스펙 요구사항: 리플렉션을 통한 인스턴스 생성을 위해 기본 생성자 필요
+ * 2. 도메인 무결성 보호: public 생성자 노출 방지로 정적 팩토리 메서드(create)를 통한 생성 강제
+ * 3. 프록시 생성 지원: Hibernate가 지연 로딩 프록시 객체 생성 시 사용
+ */
 @Entity
 @Table(
     name = "orders",
@@ -20,7 +31,7 @@ import java.time.LocalDateTime;
 )
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Order {
+public class Order extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -31,6 +42,16 @@ public class Order {
 
     @Column(name = "user_id", nullable = false)
     private Long userId;  // FK to users
+
+    /**
+     * Order-OrderItem 양방향 연관관계 (1:N)
+     * - mappedBy: OrderItem의 order 필드가 연관관계 주인
+     * - cascade: Order 저장/삭제 시 OrderItem도 함께 처리
+     * - orphanRemoval: Order에서 제거된 OrderItem 자동 삭제
+     * - fetch: LAZY로 설정하여 필요할 때만 조회 (N+1 방지는 fetch join 또는 batch size로 해결)
+     */
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<OrderItem> orderItems = new ArrayList<>();
 
     @Column(name = "subtotal_amount", nullable = false)
     private Long subtotalAmount;   // 소계 (할인 전 금액)
@@ -44,9 +65,6 @@ public class Order {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private OrderStatus status;
-
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
 
     @Column(name = "paid_at")
     private LocalDateTime paidAt;
@@ -65,17 +83,10 @@ public class Order {
         order.discountAmount = discountAmount;
         order.totalAmount = totalAmount;
         order.status = OrderStatus.PENDING;
-        order.createdAt = LocalDateTime.now();
         order.paidAt = null;  // 결제 완료 시 설정
+        // createdAt은 JPA Auditing이 자동 처리
 
         return order;
-    }
-
-    @PrePersist
-    protected void onCreate() {
-        if (this.createdAt == null) {
-            this.createdAt = LocalDateTime.now();
-        }
     }
 
     public void complete() {

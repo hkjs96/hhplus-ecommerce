@@ -21,13 +21,6 @@ public class GetCartUseCase {
     private final CartRepository cartRepository;
     private final UserRepository userRepository;
 
-    /**
-     * 사용자 장바구니 조회 (상품 정보 포함)
-     * STEP 08 최적화:
-     * - 기존: findByUserId() + findByCartId() + N번 findById() (N+1 문제)
-     * - 개선: Native Query로 carts + cart_items + products JOIN 조회 (1 query)
-     * - 성능 향상: 예상 90%+ (N+1 queries → 1 query)
-     */
     public CartResponse execute(Long userId) {
         log.info("Getting cart for user: {} using optimized Native Query", userId);
 

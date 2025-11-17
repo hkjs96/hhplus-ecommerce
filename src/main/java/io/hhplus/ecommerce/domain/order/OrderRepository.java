@@ -21,10 +21,6 @@ public interface OrderRepository {
 
     Order save(Order order);  // Declared for InMemoryOrderRepository compatibility
 
-    /**
-     * 주문 내역 조회 (주문 + 주문 상세 + 상품 정보 포함)
-     * STEP 08 성능 최적화 Native Query - N+1 문제 해결
-     */
     List<OrderWithItemsProjection> findOrdersWithItemsByUserId(Long userId, String status);
 
     default Order findByIdOrThrow(Long id) {
