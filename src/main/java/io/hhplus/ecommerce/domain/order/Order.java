@@ -12,14 +12,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Order Entity
- *
- * JPA Entity 생성자가 protected인 이유:
- * 1. JPA 스펙 요구사항: 리플렉션을 통한 인스턴스 생성을 위해 기본 생성자 필요
- * 2. 도메인 무결성 보호: public 생성자 노출 방지로 정적 팩토리 메서드(create)를 통한 생성 강제
- * 3. 프록시 생성 지원: Hibernate가 지연 로딩 프록시 객체 생성 시 사용
- */
 @Entity
 @Table(
     name = "orders",
@@ -30,7 +22,7 @@ import java.util.List;
     }
 )
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@NoArgsConstructor
 public class Order extends BaseEntity {
 
     @Id
@@ -43,13 +35,6 @@ public class Order extends BaseEntity {
     @Column(name = "user_id", nullable = false)
     private Long userId;  // FK to users
 
-    /**
-     * Order-OrderItem 양방향 연관관계 (1:N)
-     * - mappedBy: OrderItem의 order 필드가 연관관계 주인
-     * - cascade: Order 저장/삭제 시 OrderItem도 함께 처리
-     * - orphanRemoval: Order에서 제거된 OrderItem 자동 삭제
-     * - fetch: LAZY로 설정하여 필요할 때만 조회 (N+1 방지는 fetch join 또는 batch size로 해결)
-     */
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<OrderItem> orderItems = new ArrayList<>();
 

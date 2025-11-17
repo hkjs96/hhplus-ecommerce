@@ -164,7 +164,7 @@ public class Product {
 @Entity
 @Table(name = "products")
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@NoArgsConstructor
 public class Product {
 
     @Id
@@ -218,7 +218,7 @@ public class Product {
 **주요 변경 사항:**
 1. `@Entity` 추가
 2. PK를 String → Long으로 변경 (Auto Increment)
-3. `@NoArgsConstructor(access = AccessLevel.PROTECTED)` 추가 (JPA 필수)
+3. `@NoArgsConstructor` 추가 (JPA 필수)
 4. `@CreatedDate`, `@LastModifiedDate` 추가 (Auditing)
 5. **비즈니스 로직 메서드는 그대로 유지**
 
@@ -230,7 +230,7 @@ public class Product {
 @Entity
 @Table(name = "orders")
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@NoArgsConstructor
 public class Order {
 
     @Id

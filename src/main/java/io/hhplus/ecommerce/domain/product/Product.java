@@ -8,19 +8,6 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-/**
- * Product Entity
- *
- * JPA Entity 생성자가 protected인 이유:
- * 1. JPA 스펙 요구사항: 리플렉션을 통한 인스턴스 생성을 위해 기본 생성자 필요
- * 2. 도메인 무결성 보호: public 생성자 노출 방지로 정적 팩토리 메서드(create)를 통한 생성 강제
- * 3. 프록시 생성 지원: Hibernate가 지연 로딩 프록시 객체 생성 시 사용
- *
- * Product와 OrderItem/CartItem 관계:
- * - Product 1 : N OrderItem (하나의 상품이 여러 주문에 포함될 수 있음)
- * - Product 1 : N CartItem (하나의 상품이 여러 장바구니에 담길 수 있음)
- * - 양방향 연관관계는 조회 최적화를 위해 선택적으로 사용 (현재는 단방향 유지)
- */
 @Entity
 @Table(
     name = "products",
@@ -30,7 +17,7 @@ import lombok.NoArgsConstructor;
     }
 )
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@NoArgsConstructor
 public class Product extends BaseTimeEntity {
 
     @Id

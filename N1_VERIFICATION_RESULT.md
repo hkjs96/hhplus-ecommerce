@@ -1,4 +1,4 @@
-# N+1 문제 해결 검증 결과
+# N+1 문제 해결 검증 결과 (Fetch Join 방식)
 
 ## ✅ 코드 레벨 확인 완료
 
@@ -40,20 +40,32 @@ private Product product;
 
 ---
 
-### 3. Batch Fetch Size 설정
+### 3. Fetch Join 쿼리 (N+1 완전 해결)
 
-**application.yml:**
-```yaml
-spring:
-  jpa:
-    properties:
-      hibernate:
-        default_batch_fetch_size: 100  # N+1 문제 방지
+**JpaOrderRepository.java:**
+```java
+@Query("SELECT DISTINCT o FROM Order o " +
+       "LEFT JOIN FETCH o.orderItems oi " +
+       "LEFT JOIN FETCH oi.product " +
+       "WHERE o.userId = :userId " +
+       "ORDER BY o.createdAt DESC")
+List<Order> findByUserIdWithItems(@Param("userId") Long userId);
 ```
 
-✅ **동작 방식:**
-- OrderItem을 로딩할 때 최대 100개씩 묶어서 `IN (?, ?, ...)` 쿼리 실행
-- Product를 로딩할 때도 최대 100개씩 묶어서 실행
+**JpaCartItemRepository.java:**
+```java
+@Query("SELECT ci FROM CartItem ci " +
+       "LEFT JOIN FETCH ci.product " +
+       "WHERE ci.cartId = :cartId " +
+       "ORDER BY ci.createdAt DESC")
+List<CartItem> findByCartIdWithProduct(@Param("cartId") Long cartId);
+```
+
+✅ **Fetch Join 장점:**
+- **한 번의 쿼리**로 Order + OrderItem + Product 모두 조회
+- **명시적 제어**: 필요한 곳에만 적용
+- **즉시 로딩**: Lazy Loading 추가 쿼리 발생 없음
+- **DISTINCT**: 일대다 관계에서 중복 제거
 
 ---
 

@@ -10,21 +10,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Component;
 
-/**
- * OrderPaymentFacade
- *
- * 낙관적 락 예외 처리 및 재시도 로직을 담당하는 Facade
- *
- * 왜 UseCase 안에서 처리하지 않나요?
- * - OptimisticLockingFailureException은 트랜잭션 커밋 시점에 발생
- * - @Transactional 메서드 내부에서는 예외를 잡을 수 없음
- * - 트랜잭션 AOP가 예외를 먼저 처리하므로 UseCase 내부 try-catch는 작동하지 않음
- *
- * Facade 패턴의 역할:
- * - @Transactional 경계 바깥에서 예외 catch
- * - 재시도 로직 구현 (최대 3회)
- * - 동시성 충돌 시 사용자에게 명확한 에러 메시지 제공
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -35,14 +20,6 @@ public class OrderPaymentFacade {
 
     private final ProcessPaymentUseCase processPaymentUseCase;
 
-    /**
-     * 결제 처리 with 낙관적 락 재시도
-     *
-     * 재시도 전략:
-     * 1. OptimisticLockingFailureException 발생 시 최대 3회 재시도
-     * 2. 재시도 간격: 100ms (Exponential Backoff 적용 가능)
-     * 3. 최종 실패 시 사용자 친화적 에러 메시지 반환
-     */
     public PaymentResponse processPaymentWithRetry(Long orderId, PaymentRequest request) {
         int attemptCount = 0;
 

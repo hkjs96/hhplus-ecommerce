@@ -9,14 +9,6 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-/**
- * CartItem Entity
- *
- * JPA Entity 생성자가 protected인 이유:
- * 1. JPA 스펙 요구사항: 리플렉션을 통한 인스턴스 생성을 위해 기본 생성자 필요
- * 2. 도메인 무결성 보호: public 생성자 노출 방지로 정적 팩토리 메서드(create)를 통한 생성 강제
- * 3. 프록시 생성 지원: Hibernate가 지연 로딩 프록시 객체 생성 시 사용
- */
 @Entity
 @Table(
     name = "cart_items",
@@ -29,7 +21,7 @@ import lombok.NoArgsConstructor;
     }
 )
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@NoArgsConstructor
 public class CartItem extends BaseEntity {
 
     @Id
@@ -39,11 +31,6 @@ public class CartItem extends BaseEntity {
     @Column(name = "cart_id", nullable = false)
     private Long cartId;  // FK to carts (Cart 엔티티 미구현으로 ID만 사용)
 
-    /**
-     * CartItem-Product 다대일 연관관계
-     * - fetch: LAZY로 설정하여 필요할 때만 조회
-     * - optional: false로 설정하여 Product는 필수
-     */
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "product_id", nullable = false, foreignKey = @ForeignKey(name = "fk_cart_item_product"))
     private Product product;
@@ -51,9 +38,6 @@ public class CartItem extends BaseEntity {
     @Column(nullable = false)
     private Integer quantity;
 
-    /**
-     * CartItem 생성 (Entity 기반 - 권장)
-     */
     public static CartItem create(Long cartId, Product product, Integer quantity) {
         validateCartId(cartId);
         validateProduct(product);
@@ -68,16 +52,10 @@ public class CartItem extends BaseEntity {
         return cartItem;
     }
 
-    /**
-     * Product ID 조회 (하위 호환성)
-     */
     public Long getProductId() {
         return product != null ? product.getId() : null;
     }
 
-    /**
-     * Added At 조회 (하위 호환성 - createdAt을 addedAt으로 노출)
-     */
     public java.time.LocalDateTime getAddedAt() {
         return getCreatedAt();
     }

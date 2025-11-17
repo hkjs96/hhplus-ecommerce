@@ -43,13 +43,6 @@ public class OrderController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    /**
-     * 주문 결제 처리 (낙관적 락 재시도 포함)
-     *
-     * OrderPaymentFacade를 사용하여:
-     * - OptimisticLockingFailureException 처리
-     * - 동시성 충돌 시 자동 재시도 (최대 3회)
-     */
     @PostMapping("/{orderId}/payment")
     public ResponseEntity<PaymentResponse> processPayment(
             @PathVariable Long orderId,

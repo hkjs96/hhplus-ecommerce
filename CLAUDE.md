@@ -106,7 +106,7 @@ public class Product {
 // Week 4: JPA Entity (비즈니스 로직 유지!)
 @Entity
 @Table(name = "products")
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@NoArgsConstructor
 public class Product {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

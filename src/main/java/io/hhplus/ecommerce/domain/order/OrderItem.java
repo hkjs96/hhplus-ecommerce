@@ -8,14 +8,6 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-/**
- * OrderItem Entity
- *
- * JPA Entity 생성자가 protected인 이유:
- * 1. JPA 스펙 요구사항: 리플렉션을 통한 인스턴스 생성을 위해 기본 생성자 필요
- * 2. 도메인 무결성 보호: public 생성자 노출 방지로 정적 팩토리 메서드(create)를 통한 생성 강제
- * 3. 프록시 생성 지원: Hibernate가 지연 로딩 프록시 객체 생성 시 사용
- */
 @Entity
 @Table(
     name = "order_items",
@@ -25,27 +17,17 @@ import lombok.NoArgsConstructor;
     }
 )
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@NoArgsConstructor
 public class OrderItem {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /**
-     * OrderItem-Order 다대일 연관관계 (연관관계 주인)
-     * - fetch: LAZY로 설정하여 필요할 때만 조회
-     * - optional: false로 설정하여 Order는 필수
-     */
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "order_id", nullable = false, foreignKey = @ForeignKey(name = "fk_order_item_order"))
     private Order order;
 
-    /**
-     * OrderItem-Product 다대일 연관관계
-     * - fetch: LAZY로 설정하여 필요할 때만 조회
-     * - optional: false로 설정하여 Product는 필수
-     */
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "product_id", nullable = false, foreignKey = @ForeignKey(name = "fk_order_item_product"))
     private Product product;
@@ -59,10 +41,6 @@ public class OrderItem {
     @Column(nullable = false)
     private Long subtotal;        // 소계 (unitPrice * quantity)
 
-    /**
-     * OrderItem 생성 (Entity 기반 - 권장)
-     * 연관관계를 명시적으로 설정
-     */
     public static OrderItem create(Order order, Product product, Integer quantity, Long unitPrice) {
         validateOrder(order);
         validateProduct(product);
@@ -81,9 +59,6 @@ public class OrderItem {
         return orderItem;
     }
 
-    /**
-     * 연관관계 편의 메서드: Order 설정
-     */
     public void setOrder(Order order) {
         this.order = order;
         if (order != null && !order.getOrderItems().contains(this)) {
@@ -91,23 +66,14 @@ public class OrderItem {
         }
     }
 
-    /**
-     * 연관관계 편의 메서드: Product 설정
-     */
     public void setProduct(Product product) {
         this.product = product;
     }
 
-    /**
-     * Product ID 조회 (하위 호환성)
-     */
     public Long getProductId() {
         return product != null ? product.getId() : null;
     }
 
-    /**
-     * Order ID 조회 (하위 호환성)
-     */
     public Long getOrderId() {
         return order != null ? order.getId() : null;
     }
