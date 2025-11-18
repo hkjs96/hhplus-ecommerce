@@ -66,15 +66,8 @@ public class ProcessPaymentUseCase {
         user.deduct(order.getTotalAmount());
         userRepository.save(user);
 
-        // 6. 재고 차감
-        List<OrderItem> orderItems = orderItemRepository.findByOrderId(orderId);
-        for (OrderItem item : orderItems) {
-            Product product = productRepository.findByIdOrThrow(item.getProductId());
-            product.decreaseStock(item.getQuantity());
-            productRepository.save(product);
-        }
-
-        // 7. 주문 완료 처리
+        // 6. 주문 완료 처리
+        // Note: 재고는 CreateOrderUseCase에서 이미 차감되었음 (주문 생성 시 재고 예약)
         order.complete();
         orderRepository.save(order);
 
