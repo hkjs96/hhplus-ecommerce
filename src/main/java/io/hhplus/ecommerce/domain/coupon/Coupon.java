@@ -77,7 +77,7 @@ public class Coupon {
         this.issuedQuantity++;
     }
 
-    public boolean tryIssue() {
+    public synchronized boolean tryIssue() {
         if (issuedQuantity >= totalQuantity) {
             return false;
         }
