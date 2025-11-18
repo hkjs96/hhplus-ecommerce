@@ -121,23 +121,21 @@ class ProductControllerIntegrationTest {
         Order savedOrder1 = orderRepository.save(order1);
         Long orderId1 = savedOrder1.getId();
 
-        OrderItem item1 = OrderItem.create(orderId1, productId1, 5, 1500000L);  // 노트북 5개
+        OrderItem item1 = OrderItem.create(savedOrder1, productRepository.findById(productId1).orElseThrow(), 5, 1500000L);  // 노트북 5개
         orderItemRepository.save(item1);
 
         Order order2 = Order.create("O002", 1L, 240000L, 0L);
         order2.complete();
         Order savedOrder2 = orderRepository.save(order2);
-        Long orderId2 = savedOrder2.getId();
 
-        OrderItem item2 = OrderItem.create(orderId2, productId3, 2, 120000L);  // 키보드 2개
+        OrderItem item2 = OrderItem.create(savedOrder2, productRepository.findById(productId3).orElseThrow(), 2, 120000L);  // 키보드 2개
         orderItemRepository.save(item2);
 
         Order order3 = Order.create("O003", 1L, 320000L, 0L);
         order3.complete();
         Order savedOrder3 = orderRepository.save(order3);
-        Long orderId3 = savedOrder3.getId();
 
-        OrderItem item3 = OrderItem.create(orderId3, productId2, 4, 80000L);  // 마우스 4개
+        OrderItem item3 = OrderItem.create(savedOrder3, productRepository.findById(productId2).orElseThrow(), 4, 80000L);  // 마우스 4개
         orderItemRepository.save(item3);
 
         // When & Then

@@ -237,8 +237,8 @@ public class PerformanceTestDataGenerator {
                 Integer quantity = 1 + random.nextInt(4); // 1~5개
 
                 OrderItem orderItem = OrderItem.create(
-                    order.getId(),
-                    product.getId(),
+                    order,
+                    product,
                     quantity,
                     product.getPrice()
                 );
@@ -298,8 +298,8 @@ public class PerformanceTestDataGenerator {
                 Integer quantity = 1 + random.nextInt(4); // 1~5개
 
                 CartItem cartItem = CartItem.create(
-                    cart.getId(),
-                    product.getId(),
+                    cart,
+                    product,
                     quantity
                 );
                 cartItems.add(cartItemRepository.save(cartItem));
