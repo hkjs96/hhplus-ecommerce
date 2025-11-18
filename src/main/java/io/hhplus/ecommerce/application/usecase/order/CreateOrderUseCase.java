@@ -95,10 +95,14 @@ public class CreateOrderUseCase {
         Order order = Order.create(orderNumber, user.getId(), subtotalAmount, discountAmount);
         orderRepository.save(order);
 
-        // 5. 주문 아이템 생성
+        // 5. 주문 아이템 생성 및 재고 감소
         for (int i = 0; i < request.items().size(); i++) {
             OrderItemRequest itemReq = request.items().get(i);
             Product product = productRepository.findByIdOrThrow(itemReq.productId());
+
+            // 재고 감소 (동시성 제어: @Version 사용)
+            product.decreaseStock(itemReq.quantity());
+            productRepository.save(product);
 
             OrderItem orderItem = OrderItem.create(
                     order,         // Order 엔티티 직접 전달
