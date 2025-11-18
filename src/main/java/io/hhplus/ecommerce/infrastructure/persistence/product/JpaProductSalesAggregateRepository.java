@@ -1,6 +1,7 @@
 package io.hhplus.ecommerce.infrastructure.persistence.product;
 
 import io.hhplus.ecommerce.domain.product.ProductSalesAggregate;
+import io.hhplus.ecommerce.domain.product.ProductSalesAggregateRepository;
 import io.hhplus.ecommerce.domain.product.TopProductProjection;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -12,7 +13,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface JpaProductSalesAggregateRepository extends JpaRepository<ProductSalesAggregate, Long> {
+public interface JpaProductSalesAggregateRepository extends JpaRepository<ProductSalesAggregate, Long>, ProductSalesAggregateRepository {
 
     Optional<ProductSalesAggregate> findByProductIdAndAggregationDate(Long productId, LocalDate aggregationDate);
 
