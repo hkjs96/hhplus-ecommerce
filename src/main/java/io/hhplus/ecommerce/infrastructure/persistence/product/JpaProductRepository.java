@@ -29,7 +29,23 @@ public interface JpaProductRepository extends JpaRepository<Product, Long>, Prod
     Optional<Product> findByProductCode(String productCode);
 
     // ============================================================
-    // Performance Optimization: Native Query for Top Products
+    // ⚠️ DEPRECATED: 실시간 집계 쿼리 (성능 이슈)
+    // ============================================================
+    // 문제점:
+    // 1. DATE_SUB(NOW(), INTERVAL 3 DAY) → 함수 사용으로 인덱스 미활용
+    // 2. GROUP BY로 매번 실시간 집계 → 데이터 증가 시 성능 저하
+    // 3. ORDER BY salesCount → 계산 컬럼이므로 인덱스 사용 불가
+    //
+    // 해결책:
+    // ProductSalesAggregate ROLLUP 테이블 사용 (JpaProductSalesAggregateRepository)
+    // - 사전 집계된 데이터 조회 → 빠른 응답
+    // - 인덱스 활용 가능한 쿼리 → idx_date_sales
+    // - 원본 테이블 부하 없음
+    //
+    // 대체 메서드:
+    // - JpaProductSalesAggregateRepository.findTopProductsByDate()
+    // - JpaProductSalesAggregateRepository.findTopProductsByDates()
+    // - JpaProductSalesAggregateRepository.findTopProductsByDateRange()
     // ============================================================
 
     @Deprecated

@@ -178,7 +178,34 @@ public class OrderPaymentFacade {
 
 ---
 
-## 4. ✅ 인기 상품 쿼리 / ROLLUP 전략
+## 4. ✅ 인기 상품 쿼리 / ROLLUP 전략 + 쿼리 최적화
+
+### 쿼리 최적화 핵심 원칙
+
+#### ✅ 함수 사용 제거 (인덱스 활용)
+```sql
+-- ❌ Before: 함수 사용으로 인덱스 미활용
+WHERE o.paid_at >= DATE_SUB(NOW(), INTERVAL 3 DAY)
+
+-- ✅ After: 파라미터 사용으로 인덱스 활용
+WHERE aggregation_date = :date              -- 동등 조건 (최고 성능)
+WHERE aggregation_date IN :dates            -- IN 조건 (여러 동등 조건)
+WHERE aggregation_date BETWEEN :start AND :end  -- 범위 조건 (필요시)
+```
+
+#### ✅ 동등 조건 우선 사용
+- `= :date` → 인덱스 100% 활용
+- `IN (:dates)` → 여러 동등 조건의 집합
+- `BETWEEN :start AND :end` → 필요한 경우에만
+
+#### ✅ 계산 컬럼 정렬 방지
+```sql
+-- ❌ Before: 계산 컬럼 정렬 (인덱스 미사용)
+ORDER BY COUNT(*) DESC
+
+-- ✅ After: 사전 집계된 컬럼 정렬 (인덱스 활용)
+ORDER BY sales_count DESC  -- idx_date_sales 인덱스 사용
+```
 
 ### ProductSalesAggregate (집계 테이블)
 
@@ -345,8 +372,10 @@ public void aggregateDailySales() {
 - `N1_FETCH_JOIN_GUIDE.md` - Fetch Join 완벽 가이드
 - `EXPLAIN_ANALYZE_GUIDE.md` - 쿼리 실행 계획 분석
 - `STOCK_DECREASE_VERIFICATION.md` - 재고 감소 검증
+- `QUERY_OPTIMIZATION_SUMMARY.md` - **쿼리 최적화 요약** (함수 제거, 동등 조건)
 - `OrderPaymentFacade.java` - 낙관적 락 재시도 패턴
 - `ProductSalesAggregate.java` - ROLLUP 테이블 설계
+- `JpaProductSalesAggregateRepository.java` - 최적화된 쿼리 메서드
 
 ---
 
