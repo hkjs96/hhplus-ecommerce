@@ -6,7 +6,7 @@ spring:
   jpa:
     open-in-view: false
     hibernate:
-      ddl-auto: update  # 개발 시 update, 프로덕션에서는 none
+      ddl-auto: create  # 개발 시 create (테스트 데이터 재생성용), 프로덕션에서는 none
     properties:
       hibernate:
         format_sql: true

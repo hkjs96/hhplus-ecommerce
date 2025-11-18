@@ -10,6 +10,10 @@ import io.hhplus.ecommerce.domain.coupon.UserCoupon;
 import io.hhplus.ecommerce.domain.coupon.UserCouponRepository;
 import io.hhplus.ecommerce.domain.product.Product;
 import io.hhplus.ecommerce.domain.product.ProductRepository;
+import io.hhplus.ecommerce.domain.order.Order;
+import io.hhplus.ecommerce.domain.order.OrderItem;
+import io.hhplus.ecommerce.domain.order.OrderRepository;
+import io.hhplus.ecommerce.domain.order.OrderStatus;
 import io.hhplus.ecommerce.domain.user.User;
 import io.hhplus.ecommerce.domain.user.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +38,7 @@ public class DataInitializer implements ApplicationRunner {
     private final UserCouponRepository userCouponRepository;
     private final CartRepository cartRepository;
     private final CartItemRepository cartItemRepository;
+    private final OrderRepository orderRepository;
 
     @Override
     @Transactional
@@ -54,7 +59,7 @@ public class DataInitializer implements ApplicationRunner {
         // 2. 관계 데이터 생성 (시나리오 테스트용)
         initUserCoupons();      // 미리 발급된 쿠폰
         initCarts();            // 미리 담긴 장바구니
-        // initOrders();        // 주문 내역 (Order는 JPA화 안 했으므로 주석 처리)
+        initOrders();           // 주문 내역
 
         log.info("✅ Initial data loading completed!");
     }
@@ -258,5 +263,44 @@ public class DataInitializer implements ApplicationRunner {
         cartItemRepository.save(cartItem3);
 
         log.info("   ✓ Created 2 pre-filled carts (User 1: 2 items, User 2: 1 item)");
+    }
+
+    private void initOrders() {
+        log.info("📦 Creating test orders...");
+
+        // User 1 (김항해)의 주문 1: 완료된 주문
+        User user1 = userRepository.findByEmail("hanghae@example.com").orElseThrow();
+        Product laptop = productRepository.findByProductCode("P001").orElseThrow();
+        Product mouse = productRepository.findByProductCode("P002").orElseThrow();
+
+        Long subtotal1 = laptop.getPrice() + (mouse.getPrice() * 2);  // 노트북 1개 + 마우스 2개
+        Order order1 = Order.create("ORD-20250118-001", user1.getId(), subtotal1, 0L);
+        OrderItem orderItem1 = OrderItem.create(order1, laptop, 1, laptop.getPrice());
+        OrderItem orderItem2 = OrderItem.create(order1, mouse, 2, mouse.getPrice());
+
+        order1.complete();  // 완료 상태로 변경
+        orderRepository.save(order1);
+
+        // User 1 (김항해)의 주문 2: 대기 중인 주문
+        Product keyboard = productRepository.findByProductCode("P003").orElseThrow();
+        Long subtotal2 = keyboard.getPrice();
+        Order order2 = Order.create("ORD-20250118-002", user1.getId(), subtotal2, 0L);
+        OrderItem orderItem3 = OrderItem.create(order2, keyboard, 1, keyboard.getPrice());
+
+        orderRepository.save(order2);  // PENDING 상태 유지
+
+        // User 2 (이플러스)의 주문: 완료된 주문
+        User user2 = userRepository.findByEmail("plus@example.com").orElseThrow();
+        Product monitor = productRepository.findByProductCode("P004").orElseThrow();
+
+        Long subtotal3 = monitor.getPrice();
+        Order order3 = Order.create("ORD-20250118-003", user2.getId(), subtotal3, 0L);
+        OrderItem orderItem4 = OrderItem.create(order3, monitor, 1, monitor.getPrice());
+
+        order3.complete();
+        orderRepository.save(order3);
+
+        log.info("   ✓ Created 3 test orders (User 1: 2 orders, User 2: 1 order)");
+        log.info("   ℹ️ Status: Order 1 (COMPLETED), Order 2 (PENDING), Order 3 (COMPLETED)");
     }
 }
