@@ -43,7 +43,8 @@ public interface JpaCartItemRepository extends JpaRepository<CartItem, Long>, Ca
     List<CartItem> findByCartIdWithProduct(@Param("cartId") Long cartId);
 
     @Override
-    Optional<CartItem> findByCartIdAndProductId(Long cartId, Long productId);
+    @Query("SELECT ci FROM CartItem ci WHERE ci.cartId = :cartId AND ci.product.id = :productId")
+    Optional<CartItem> findByCartIdAndProductId(@Param("cartId") Long cartId, @Param("productId") Long productId);
 
     @Override
     void deleteByCartId(Long cartId);

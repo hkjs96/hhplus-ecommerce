@@ -15,7 +15,7 @@ import java.util.List;
 public interface JpaOrderItemRepository extends JpaRepository<OrderItem, Long>, OrderItemRepository {
 
     @Override
-    @Query("SELECT oi FROM OrderItem oi WHERE oi.orderId = :orderId")
+    @Query("SELECT oi FROM OrderItem oi WHERE oi.order.id = :orderId")
     List<OrderItem> findByOrderId(@Param("orderId") Long orderId);
 
     // JpaRepository에서 이미 제공하는 메서드들:
