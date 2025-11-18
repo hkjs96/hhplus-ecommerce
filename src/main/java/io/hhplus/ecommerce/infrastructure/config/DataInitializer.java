@@ -10,6 +10,8 @@ import io.hhplus.ecommerce.domain.coupon.UserCoupon;
 import io.hhplus.ecommerce.domain.coupon.UserCouponRepository;
 import io.hhplus.ecommerce.domain.product.Product;
 import io.hhplus.ecommerce.domain.product.ProductRepository;
+import io.hhplus.ecommerce.domain.product.ProductSalesAggregate;
+import io.hhplus.ecommerce.domain.product.ProductSalesAggregateRepository;
 import io.hhplus.ecommerce.domain.order.Order;
 import io.hhplus.ecommerce.domain.order.OrderItem;
 import io.hhplus.ecommerce.domain.order.OrderRepository;
@@ -24,6 +26,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Slf4j
@@ -39,6 +42,7 @@ public class DataInitializer implements ApplicationRunner {
     private final CartRepository cartRepository;
     private final CartItemRepository cartItemRepository;
     private final OrderRepository orderRepository;
+    private final ProductSalesAggregateRepository aggregateRepository;
 
     @Override
     @Transactional
@@ -60,6 +64,9 @@ public class DataInitializer implements ApplicationRunner {
         initUserCoupons();      // 미리 발급된 쿠폰
         initCarts();            // 미리 담긴 장바구니
         initOrders();           // 주문 내역
+
+        // 3. 쿼리 최적화를 위한 ROLLUP 테이블 데이터 생성
+        initProductSalesAggregates();  // 인기 상품 집계 데이터
 
         log.info("✅ Initial data loading completed!");
     }
@@ -375,5 +382,48 @@ public class DataInitializer implements ApplicationRunner {
         log.info("   ℹ️ Average 3-4 items per order for realistic N+1 demonstration");
         log.info("   📊 Expected queries WITHOUT Fetch Join: ~55+ queries");
         log.info("   📊 Expected queries WITH Fetch Join: 1 query");
+    }
+
+    private void initProductSalesAggregates() {
+        log.info("📊 Creating product sales aggregates (ROLLUP table)...");
+
+        LocalDate today = LocalDate.now();
+        LocalDate yesterday = today.minusDays(1);
+        LocalDate twoDaysAgo = today.minusDays(2);
+
+        // 상품별 3일간 집계 데이터 생성
+        // 노트북 (Product ID: 1) - 가장 인기
+        aggregateRepository.save(ProductSalesAggregate.create(1L, "노트북", twoDaysAgo, 15, 22500000L));
+        aggregateRepository.save(ProductSalesAggregate.create(1L, "노트북", yesterday, 20, 30000000L));
+        aggregateRepository.save(ProductSalesAggregate.create(1L, "노트북", today, 25, 37500000L));
+
+        // 무선 마우스 (Product ID: 2) - 2위
+        aggregateRepository.save(ProductSalesAggregate.create(2L, "무선 마우스", twoDaysAgo, 25, 625000L));
+        aggregateRepository.save(ProductSalesAggregate.create(2L, "무선 마우스", yesterday, 30, 750000L));
+        aggregateRepository.save(ProductSalesAggregate.create(2L, "무선 마우스", today, 35, 875000L));
+
+        // 기계식 키보드 (Product ID: 3) - 3위
+        aggregateRepository.save(ProductSalesAggregate.create(3L, "기계식 키보드", twoDaysAgo, 20, 2000000L));
+        aggregateRepository.save(ProductSalesAggregate.create(3L, "기계식 키보드", yesterday, 22, 2200000L));
+        aggregateRepository.save(ProductSalesAggregate.create(3L, "기계식 키보드", today, 28, 2800000L));
+
+        // 무선 헤드셋 (Product ID: 5) - 4위
+        aggregateRepository.save(ProductSalesAggregate.create(5L, "무선 헤드셋", twoDaysAgo, 18, 2700000L));
+        aggregateRepository.save(ProductSalesAggregate.create(5L, "무선 헤드셋", yesterday, 15, 2250000L));
+        aggregateRepository.save(ProductSalesAggregate.create(5L, "무선 헤드셋", today, 20, 3000000L));
+
+        // 27인치 모니터 (Product ID: 4) - 5위
+        aggregateRepository.save(ProductSalesAggregate.create(4L, "27인치 모니터", twoDaysAgo, 10, 3000000L));
+        aggregateRepository.save(ProductSalesAggregate.create(4L, "27인치 모니터", yesterday, 12, 3600000L));
+        aggregateRepository.save(ProductSalesAggregate.create(4L, "27인치 모니터", today, 15, 4500000L));
+
+        log.info("   ✓ Created 15 sales aggregates (5 products × 3 days)");
+        log.info("   📈 Top Products (3-day total):");
+        log.info("      1. 무선 마우스: 90건 / 2,250,000원");
+        log.info("      2. 기계식 키보드: 70건 / 7,000,000원");
+        log.info("      3. 노트북: 60건 / 90,000,000원");
+        log.info("      4. 무선 헤드셋: 53건 / 7,950,000원");
+        log.info("      5. 27인치 모니터: 37건 / 11,100,000원");
+        log.info("   ℹ️ Use GET /api/products/top to verify optimized query");
     }
 }
