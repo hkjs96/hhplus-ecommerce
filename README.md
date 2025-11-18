@@ -108,16 +108,12 @@ docs/
 ├── week4/                        # Week 4 구현 가이드 ⭐ (현재)
 │   ├── README.md                 # Week 4 전체 가이드
 │   ├── verification/             # 검증 문서
-│   │   ├── README.md             # 검증 가이드
-│   │   ├── N1_VERIFICATION_RESULT.md          # N+1 검증 결과
-│   │   ├── N1_TEST_GUIDE.md                   # N+1 테스트 가이드
-│   │   ├── N1_FETCH_JOIN_GUIDE.md             # Fetch Join 해결
-│   │   ├── EXPLAIN_ANALYZE_GUIDE.md           # 쿼리 분석
-│   │   ├── QUERY_OPTIMIZATION_SUMMARY.md      # 최적화 종합
-│   │   ├── STOCK_DECREASE_VERIFICATION.md     # 재고 플로우 검증
-│   │   ├── TOP_PRODUCTS_QUERY_VERIFICATION.md # 인기 상품 검증
-│   │   ├── YULMU_FEEDBACK_STATUS.md           # 피드백 진행 상황
-│   │   └── YULMU_FEEDBACK_IMPROVEMENTS.md     # 피드백 개선 사항
+│   │   ├── README.md                           # 검증 가이드
+│   │   ├── N1_PROBLEM_SOLUTION.md              # N+1 문제 완전 가이드
+│   │   ├── EXPLAIN_ANALYZE_GUIDE.md            # 쿼리 분석
+│   │   ├── QUERY_OPTIMIZATION_SUMMARY.md       # 최적화 종합
+│   │   ├── STOCK_DECREASE_VERIFICATION.md      # 재고 플로우 검증
+│   │   └── TOP_PRODUCTS_QUERY_VERIFICATION.md  # 인기 상품 검증
 │   ├── step7-integration-guide.md          # DB 통합 환경 설정
 │   ├── step7-implementation-examples.md    # 실전 코드 예시
 │   ├── step8-db-optimization-report.md     # 최적화 보고서
@@ -159,9 +155,9 @@ docs/
 |------|------|------|
 | **Week 4 README** | Week 4 전체 가이드 (JPA, N+1, 최적화) | [docs/week4/README.md](docs/week4/README.md) |
 | **검증 문서 INDEX** | 검증 가이드 및 전체 문서 목록 | [docs/week4/verification/README.md](docs/week4/verification/README.md) |
-| **N+1 검증 결과** | 전체 API N+1 문제 해결 상태 | [N1_VERIFICATION_RESULT.md](docs/week4/verification/N1_VERIFICATION_RESULT.md) |
-| **쿼리 최적화 종합** | EXPLAIN, Index, Fetch Join 가이드 | [QUERY_OPTIMIZATION_SUMMARY.md](docs/week4/verification/QUERY_OPTIMIZATION_SUMMARY.md) |
-| **Yulmu 피드백 상태** | Step 9-10 코치 피드백 진행 상황 | [YULMU_FEEDBACK_STATUS.md](docs/week4/verification/YULMU_FEEDBACK_STATUS.md) |
+| **N+1 문제 해결** | N+1 문제 완전 가이드 (문제, 해결, 검증) | [N1_PROBLEM_SOLUTION.md](docs/week4/verification/N1_PROBLEM_SOLUTION.md) |
+| **쿼리 최적화 종합** | EXPLAIN, Index, Rollup 전략 | [QUERY_OPTIMIZATION_SUMMARY.md](docs/week4/verification/QUERY_OPTIMIZATION_SUMMARY.md) |
+| **Yulmu 코치 피드백** | Step 9-10 코치 피드백 개선 사항 | [yulmu-coach-improvements.md](docs/feedback/yulmu-coach-improvements.md) |
 
 #### 설계 문서
 | 문서 | 설명 | 링크 |

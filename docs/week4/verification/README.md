@@ -4,20 +4,18 @@
 
 ## 📋 문서 목록
 
-### N+1 문제 검증
+### N+1 문제 해결
 
 | 문서 | 설명 | 주요 내용 |
 |------|------|-----------|
-| [`N1_VERIFICATION_RESULT.md`](./N1_VERIFICATION_RESULT.md) | N+1 문제 최종 검증 결과 | 전체 API 엔드포인트 N+1 발생 여부 확인 |
-| [`N1_TEST_GUIDE.md`](./N1_TEST_GUIDE.md) | N+1 문제 테스트 작성 가이드 | JUnit으로 N+1 자동 검증하는 방법 |
-| [`N1_FETCH_JOIN_GUIDE.md`](./N1_FETCH_JOIN_GUIDE.md) | Fetch Join 해결 가이드 | LEFT JOIN FETCH 사용법 및 주의사항 |
+| [`N1_PROBLEM_SOLUTION.md`](./N1_PROBLEM_SOLUTION.md) | N+1 문제 완전 가이드 | 문제 이해, Fetch Join 구현, 검증 방법, 성능 비교 |
 
 ### 쿼리 최적화
 
 | 문서 | 설명 | 주요 내용 |
 |------|------|-----------|
 | [`EXPLAIN_ANALYZE_GUIDE.md`](./EXPLAIN_ANALYZE_GUIDE.md) | EXPLAIN ANALYZE 사용 가이드 | MySQL 쿼리 실행 계획 분석 방법 |
-| [`QUERY_OPTIMIZATION_SUMMARY.md`](./QUERY_OPTIMIZATION_SUMMARY.md) | 쿼리 최적화 종합 가이드 | Index, Fetch Join, Batch Size 등 |
+| [`QUERY_OPTIMIZATION_SUMMARY.md`](./QUERY_OPTIMIZATION_SUMMARY.md) | 쿼리 최적화 종합 가이드 | Index, Rollup 전략, 쿼리 개선 기법 |
 
 ### 비즈니스 로직 검증
 
@@ -26,12 +24,7 @@
 | [`STOCK_DECREASE_VERIFICATION.md`](./STOCK_DECREASE_VERIFICATION.md) | 재고 차감 플로우 검증 | 주문 생성 vs 결제 시점 재고 차감 |
 | [`TOP_PRODUCTS_QUERY_VERIFICATION.md`](./TOP_PRODUCTS_QUERY_VERIFICATION.md) | 인기 상품 쿼리 검증 | ProductSalesAggregate 롤업 전략 |
 
-### 코치 피드백 반영
-
-| 문서 | 설명 | 주요 내용 |
-|------|------|-----------|
-| [`YULMU_FEEDBACK_STATUS.md`](./YULMU_FEEDBACK_STATUS.md) | Yulmu 코치 피드백 진행 상황 | Step 9-10 피드백 항목별 진행도 |
-| [`YULMU_FEEDBACK_IMPROVEMENTS.md`](./YULMU_FEEDBACK_IMPROVEMENTS.md) | 피드백 기반 개선 사항 | 실제 적용한 개선 내역 |
+> **코치 피드백 문서**: Yulmu 코치 피드백은 [`docs/feedback/yulmu-coach-improvements.md`](../../feedback/yulmu-coach-improvements.md)에서 확인하세요.
 
 ## 🎯 검증 목적
 
@@ -48,9 +41,7 @@
 3. N+1 발생 시 Fetch Join 또는 @EntityGraph로 해결
 
 **Where?**
-- [`N1_VERIFICATION_RESULT.md`](./N1_VERIFICATION_RESULT.md) - 전체 결과
-- [`N1_TEST_GUIDE.md`](./N1_TEST_GUIDE.md) - 자동 테스트 방법
-- [`N1_FETCH_JOIN_GUIDE.md`](./N1_FETCH_JOIN_GUIDE.md) - 해결 방법
+- [`N1_PROBLEM_SOLUTION.md`](./N1_PROBLEM_SOLUTION.md) - 완전 가이드 (문제, 해결, 검증)
 
 ### 2. 쿼리 성능 최적화
 
@@ -97,8 +88,8 @@
 3. 테스트로 개선 내용 검증
 
 **Where?**
-- [`YULMU_FEEDBACK_STATUS.md`](./YULMU_FEEDBACK_STATUS.md) - 진행 상황
-- [`YULMU_FEEDBACK_IMPROVEMENTS.md`](./YULMU_FEEDBACK_IMPROVEMENTS.md) - 개선 내역
+- [`docs/feedback/yulmu-coach-improvements.md`](../../feedback/yulmu-coach-improvements.md) - Yulmu 코치 개선 사항
+- [`docs/feedback/coach-park-jisu-feedback.md`](../../feedback/coach-park-jisu-feedback.md) - Park Jisu 코치 피드백
 
 ## 📊 검증 체크리스트
 
@@ -241,6 +232,5 @@ List<Order> findByUserId(Long userId);
 
 ---
 
-**작성일**: 2025-11-18
 **현재 Phase**: Week 4 - Database Integration 완료
 **검증 상태**: N+1 해결, 쿼리 최적화, 재고 플로우 검증 완료
