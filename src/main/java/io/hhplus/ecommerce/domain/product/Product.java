@@ -2,7 +2,6 @@ package io.hhplus.ecommerce.domain.product;
 
 import io.hhplus.ecommerce.common.exception.BusinessException;
 import io.hhplus.ecommerce.common.exception.ErrorCode;
-import io.hhplus.ecommerce.domain.cart.CartItem;
 import io.hhplus.ecommerce.domain.common.BaseTimeEntity;
 import io.hhplus.ecommerce.domain.order.OrderItem;
 import jakarta.persistence.*;
@@ -64,16 +63,6 @@ public class Product extends BaseTimeEntity {
 
     @Version
     private Long version;  // Optimistic Lock for concurrent stock updates
-
-    /**
-     * 양방향 관계: Product 1 : N CartItem
-     * - 비즈니스 관점: 하나의 상품은 여러 장바구니에 담길 수 있음
-     * - mappedBy: CartItem.product가 관계의 주인 (FK 관리)
-     * - fetch LAZY: 기본적으로 로딩하지 않음 (필요시에만 조회)
-     * - 사용 케이스: 상품별 장바구니 담긴 횟수 통계 등 (거의 사용 안 함)
-     */
-    @OneToMany(mappedBy = "product", fetch = FetchType.LAZY)
-    private List<CartItem> cartItems = new ArrayList<>();
 
     /**
      * 양방향 관계: Product 1 : N OrderItem

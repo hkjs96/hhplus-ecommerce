@@ -21,8 +21,6 @@ public interface OrderRepository {
 
     Order save(Order order);  // Declared for InMemoryOrderRepository compatibility
 
-    List<OrderWithItemsProjection> findOrdersWithItemsByUserId(Long userId, String status);
-
     default Order findByIdOrThrow(Long id) {
         return findById(id)
             .orElseThrow(() -> new BusinessException(
