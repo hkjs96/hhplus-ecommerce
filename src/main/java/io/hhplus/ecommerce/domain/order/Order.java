@@ -2,40 +2,76 @@ package io.hhplus.ecommerce.domain.order;
 
 import io.hhplus.ecommerce.common.exception.BusinessException;
 import io.hhplus.ecommerce.common.exception.ErrorCode;
-import lombok.AllArgsConstructor;
+import io.hhplus.ecommerce.domain.common.BaseEntity;
+import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
+@Entity
+@Table(
+    name = "orders",
+    indexes = {
+        @Index(name = "idx_user_created", columnList = "user_id, created_at"),
+        @Index(name = "idx_user_status", columnList = "user_id, status"),
+        @Index(name = "idx_status_paid", columnList = "status, paid_at")
+    }
+)
 @Getter
-@AllArgsConstructor
-public class Order {
+@NoArgsConstructor
+public class Order extends BaseEntity {
 
-    private String id;
-    private String userId;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name = "order_number", unique = true, length = 30, nullable = false)
+    private String orderNumber;  // Business ID (외부 노출용, e.g., "ORD-20250111-001")
+
+    @Column(name = "user_id", nullable = false)
+    private Long userId;  // FK to users
+
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<OrderItem> orderItems = new ArrayList<>();
+
+    @Column(name = "subtotal_amount", nullable = false)
     private Long subtotalAmount;   // 소계 (할인 전 금액)
+
+    @Column(name = "discount_amount", nullable = false)
     private Long discountAmount;   // 할인 금액
+
+    @Column(name = "total_amount", nullable = false)
     private Long totalAmount;      // 최종 금액 (소계 - 할인)
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
     private OrderStatus status;
-    private LocalDateTime createdAt;
+
+    @Column(name = "paid_at")
     private LocalDateTime paidAt;
 
-    public static Order create(String id, String userId, Long subtotalAmount, Long discountAmount) {
+    public static Order create(String orderNumber, Long userId, Long subtotalAmount, Long discountAmount) {
+        validateOrderNumber(orderNumber);
+        validateUserId(userId);
         validateAmounts(subtotalAmount, discountAmount);
 
         Long totalAmount = subtotalAmount - discountAmount;
-        LocalDateTime now = LocalDateTime.now();
 
-        return new Order(
-            id,
-            userId,
-            subtotalAmount,
-            discountAmount,
-            totalAmount,
-            OrderStatus.PENDING,
-            now,
-            null  // paidAt은 결제 완료 시 설정
-        );
+        Order order = new Order();
+        order.orderNumber = orderNumber;
+        order.userId = userId;
+        order.subtotalAmount = subtotalAmount;
+        order.discountAmount = discountAmount;
+        order.totalAmount = totalAmount;
+        order.status = OrderStatus.PENDING;
+        order.paidAt = null;  // 결제 완료 시 설정
+        // createdAt은 JPA Auditing이 자동 처리
+
+        return order;
     }
 
     public void complete() {
@@ -66,6 +102,24 @@ public class Order {
     // ====================================
     // Validation Methods
     // ====================================
+
+    private static void validateOrderNumber(String orderNumber) {
+        if (orderNumber == null || orderNumber.trim().isEmpty()) {
+            throw new BusinessException(
+                ErrorCode.INVALID_INPUT,
+                "주문 번호는 필수입니다"
+            );
+        }
+    }
+
+    private static void validateUserId(Long userId) {
+        if (userId == null) {
+            throw new BusinessException(
+                ErrorCode.INVALID_INPUT,
+                "사용자 ID는 필수입니다"
+            );
+        }
+    }
 
     private static void validateAmounts(Long subtotalAmount, Long discountAmount) {
         if (subtotalAmount == null || subtotalAmount <= 0) {

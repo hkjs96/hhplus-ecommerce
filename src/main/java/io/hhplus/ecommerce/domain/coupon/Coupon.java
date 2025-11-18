@@ -2,55 +2,87 @@ package io.hhplus.ecommerce.domain.coupon;
 
 import io.hhplus.ecommerce.common.exception.BusinessException;
 import io.hhplus.ecommerce.common.exception.ErrorCode;
+import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
-import java.util.concurrent.atomic.AtomicInteger;
 
+@Entity
+@Table(
+    name = "coupons",
+    indexes = {
+        @Index(name = "idx_coupon_code", columnList = "coupon_code"),
+        @Index(name = "idx_date_range", columnList = "start_date, end_date")
+    }
+)
 @Getter
+@NoArgsConstructor
 public class Coupon {
 
-    private String id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name = "coupon_code", unique = true, length = 20, nullable = false)
+    private String couponCode;  // Business ID (외부 노출용, e.g., "COUPON-2025-001")
+
+    @Column(nullable = false, length = 100)
     private String name;
+
+    @Column(name = "discount_rate", nullable = false)
     private Integer discountRate;      // 할인율 (%)
+
+    @Column(name = "total_quantity", nullable = false)
     private Integer totalQuantity;     // 총 수량
-    private AtomicInteger issuedQuantity;  // 발급된 수량 (AtomicInteger로 동시성 제어)
+
+    @Column(name = "issued_quantity", nullable = false)
+    private Integer issuedQuantity;    // 발급된 수량 (JPA @Version으로 동시성 제어)
+
+    @Column(name = "start_date", nullable = false)
     private LocalDateTime startDate;
+
+    @Column(name = "end_date", nullable = false)
     private LocalDateTime endDate;
 
-    public Coupon(String id, String name, Integer discountRate, Integer totalQuantity, Integer issuedQuantity, LocalDateTime startDate, LocalDateTime endDate) {
-        this.id = id;
-        this.name = name;
-        this.discountRate = discountRate;
-        this.totalQuantity = totalQuantity;
-        this.issuedQuantity = new AtomicInteger(issuedQuantity);
-        this.startDate = startDate;
-        this.endDate = endDate;
-    }
+    @Version
+    private Long version;  // Optimistic Lock for concurrent coupon issuance
 
-    public static Coupon create(String id, String name, Integer discountRate, Integer totalQuantity, LocalDateTime startDate, LocalDateTime endDate) {
+    public static Coupon create(String couponCode, String name, Integer discountRate, Integer totalQuantity, LocalDateTime startDate, LocalDateTime endDate) {
+        validateCouponCode(couponCode);
         validateDiscountRate(discountRate);
         validateTotalQuantity(totalQuantity);
         validateDateRange(startDate, endDate);
 
-        return new Coupon(id, name, discountRate, totalQuantity, 0, startDate, endDate);
+        Coupon coupon = new Coupon();
+        coupon.couponCode = couponCode;
+        coupon.name = name;
+        coupon.discountRate = discountRate;
+        coupon.totalQuantity = totalQuantity;
+        coupon.issuedQuantity = 0;
+        coupon.startDate = startDate;
+        coupon.endDate = endDate;
+
+        return coupon;
     }
 
-    public boolean tryIssue() {
-        while (true) {
-            int current = issuedQuantity.get();
-
-            // 수량 초과 체크
-            if (current >= totalQuantity) {
-                return false;  // 발급 실패 (수량 소진)
-            }
-
-            // CAS (Compare-And-Swap) 연산으로 증가 시도
-            if (issuedQuantity.compareAndSet(current, current + 1)) {
-                return true;  // 발급 성공
-            }
-            // CAS 실패 시 재시도 (다른 스레드가 먼저 변경함)
+    public void issue() {
+        if (issuedQuantity >= totalQuantity) {
+            throw new BusinessException(
+                ErrorCode.COUPON_SOLD_OUT,
+                "쿠폰이 모두 소진되었습니다. couponId: " + this.id
+            );
         }
+        this.issuedQuantity++;
+    }
+
+    public synchronized boolean tryIssue() {
+        if (issuedQuantity >= totalQuantity) {
+            return false;
+        }
+        this.issuedQuantity++;
+        return true;
     }
 
     public boolean isValid(LocalDateTime now) {
@@ -62,11 +94,7 @@ public class Coupon {
     }
 
     public int getRemainingQuantity() {
-        return totalQuantity - issuedQuantity.get();
-    }
-
-    public int getIssuedQuantityValue() {
-        return issuedQuantity.get();
+        return totalQuantity - issuedQuantity;
     }
 
     public LocalDateTime getExpiresAt() {
@@ -85,6 +113,15 @@ public class Coupon {
     // ====================================
     // Validation Methods
     // ====================================
+
+    private static void validateCouponCode(String couponCode) {
+        if (couponCode == null || couponCode.trim().isEmpty()) {
+            throw new BusinessException(
+                ErrorCode.INVALID_INPUT,
+                "쿠폰 코드는 필수입니다"
+            );
+        }
+    }
 
     private static void validateDiscountRate(Integer discountRate) {
         if (discountRate == null || discountRate < 0 || discountRate > 100) {

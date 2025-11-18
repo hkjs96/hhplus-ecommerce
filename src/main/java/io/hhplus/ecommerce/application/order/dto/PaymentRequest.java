@@ -1,14 +1,9 @@
 package io.hhplus.ecommerce.application.order.dto;
 
-import jakarta.validation.constraints.NotBlank;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import jakarta.validation.constraints.NotNull;
 
-@Getter
-@NoArgsConstructor
-@AllArgsConstructor
-public class PaymentRequest {
-    @NotBlank(message = "사용자 ID는 필수입니다")
-    private String userId;
+public record PaymentRequest(
+    @NotNull(message = "사용자 ID는 필수입니다")
+    Long userId
+) {
 }

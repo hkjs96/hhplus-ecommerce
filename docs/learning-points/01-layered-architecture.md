@@ -232,6 +232,245 @@ public class InMemoryProductRepository implements ProductRepository {
 
 ---
 
+## 🔍 입력값 검증 전략 (Validation Strategy) ⭐
+
+### 코치 피드백
+> 입력값 검증을 두 가지로 분리하세요: 비즈니스 로직 검증과 데이터 형식 검증.
+
+### 검증 레이어 분리
+
+```
+입력값 검증 흐름:
+Controller (형식 검증) → UseCase (비즈니스 검증) → Entity (도메인 규칙)
+```
+
+| 레이어 | 검증 종류 | 검증 내용 | 사용 도구 |
+|--------|----------|----------|----------|
+| **Controller** | 형식 검증 | @Valid, @NotNull, @Min, @Max | Spring Validation |
+| **UseCase** | 비즈니스 검증 | 존재 여부, 권한, 상태 | 조건문 + Exception |
+| **Entity** | 도메인 규칙 | 재고 부족, 수량 제한 | 메서드 + Exception |
+
+---
+
+### 1️⃣ Controller: 형식 검증 (Format Validation)
+
+**목적:** HTTP 요청 데이터의 형식이 올바른지 검증
+
+**검증 항목:**
+- 필수값 여부 (@NotNull, @NotBlank)
+- 값의 범위 (@Min, @Max, @Size)
+- 형식 (@Email, @Pattern)
+
+**예시:**
+```java
+// Controller - @Valid 사용
+@PostMapping("/orders")
+public ApiResponse<OrderResponse> createOrder(
+    @Valid @RequestBody CreateOrderRequest request  // @Valid 필수!
+) {
+    return ApiResponse.success(orderUseCase.createOrder(request));
+}
+
+// Request DTO - Validation 어노테이션
+public class CreateOrderRequest {
+
+    @NotBlank(message = "사용자 ID는 필수입니다")
+    private String userId;
+
+    @NotEmpty(message = "최소 1개 이상의 상품이 필요합니다")
+    @Size(min = 1, max = 10, message = "최대 10개까지 주문 가능합니다")
+    private List<OrderItemRequest> items;
+
+    @Min(value = 0, message = "쿠폰 ID는 0 이상이어야 합니다")
+    private Long couponId;  // Optional
+}
+
+// OrderItemRequest
+public class OrderItemRequest {
+
+    @NotBlank(message = "상품 ID는 필수입니다")
+    private String productId;
+
+    @Min(value = 1, message = "수량은 1 이상이어야 합니다")
+    @Max(value = 100, message = "수량은 100 이하여야 합니다")
+    private Integer quantity;
+}
+```
+
+**GlobalExceptionHandler 처리:**
+```java
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+    // @Valid 검증 실패 처리
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ApiResponse<Void> handleValidationException(
+        MethodArgumentNotValidException e
+    ) {
+        String message = e.getBindingResult().getAllErrors().stream()
+            .map(DefaultMessageSourceResolvable::getDefaultMessage)
+            .collect(Collectors.joining(", "));
+
+        return ApiResponse.error(ErrorCode.INVALID_INPUT, message);
+    }
+}
+```
+
+---
+
+### 2️⃣ UseCase: 비즈니스 검증 (Business Validation)
+
+**목적:** 비즈니스 규칙에 맞는지 검증
+
+**검증 항목:**
+- 데이터 존재 여부 (User, Product, Coupon 등)
+- 권한 검증 (본인의 장바구니인지)
+- 상태 검증 (쿠폰이 발급 가능한 상태인지)
+
+**예시:**
+```java
+@Service
+@RequiredArgsConstructor
+public class OrderUseCase {
+    private final UserRepository userRepository;
+    private final ProductRepository productRepository;
+    private final CouponRepository couponRepository;
+
+    public OrderResponse createOrder(CreateOrderRequest request) {
+        // 1. 사용자 존재 여부 검증
+        User user = userRepository.findByIdOrThrow(request.getUserId());
+
+        // 2. 상품 존재 여부 검증
+        List<Product> products = request.getItems().stream()
+            .map(item -> productRepository.findByIdOrThrow(item.getProductId()))
+            .toList();
+
+        // 3. 쿠폰 검증 (Optional)
+        if (request.getCouponId() != null) {
+            Coupon coupon = couponRepository.findByIdOrThrow(request.getCouponId());
+
+            // 쿠폰 사용 가능 여부 (비즈니스 검증)
+            if (!coupon.isUsable()) {
+                throw new BusinessException(ErrorCode.COUPON_NOT_USABLE);
+            }
+
+            // 사용자가 해당 쿠폰을 보유하고 있는지 검증
+            if (!userCouponRepository.existsByUserIdAndCouponId(
+                request.getUserId(), request.getCouponId()
+            )) {
+                throw new BusinessException(ErrorCode.COUPON_NOT_OWNED);
+            }
+        }
+
+        // 4. 주문 생성 (Entity의 도메인 규칙 검증 실행됨)
+        Order order = Order.create(request.getUserId(), request.getItems());
+
+        // 5. 재고 차감 (Entity 메서드 호출)
+        products.forEach(product ->
+            product.decreaseStock(getQuantity(request.getItems(), product.getId()))
+        );
+
+        return OrderResponse.from(orderRepository.save(order));
+    }
+}
+```
+
+---
+
+### 3️⃣ Entity: 도메인 규칙 (Domain Rules)
+
+**목적:** 도메인 객체의 불변식(Invariant) 보장
+
+**검증 항목:**
+- 재고 부족 검증
+- 수량 제한 검증
+- 상태 전이 규칙
+
+**예시:**
+```java
+public class Product {
+    private String id;
+    private String name;
+    private Integer stock;
+    private Long price;
+
+    // 도메인 규칙: 재고 차감
+    public void decreaseStock(int quantity) {
+        validateQuantity(quantity);  // 수량 검증
+        validateStock(quantity);      // 재고 검증
+        this.stock -= quantity;
+    }
+
+    private void validateQuantity(int quantity) {
+        if (quantity <= 0) {
+            throw new BusinessException(
+                ErrorCode.INVALID_QUANTITY,
+                "수량은 1 이상이어야 합니다. quantity: " + quantity
+            );
+        }
+    }
+
+    private void validateStock(int quantity) {
+        if (stock < quantity) {
+            throw new BusinessException(
+                ErrorCode.INSUFFICIENT_STOCK,
+                String.format("재고 부족. 현재 재고: %d, 요청 수량: %d", stock, quantity)
+            );
+        }
+    }
+}
+
+public class Order {
+    private String id;
+    private OrderStatus status;
+
+    // 도메인 규칙: 주문 완료 처리
+    public void complete() {
+        if (status != OrderStatus.PENDING) {
+            throw new BusinessException(
+                ErrorCode.INVALID_ORDER_STATUS,
+                "PENDING 상태의 주문만 완료할 수 있습니다. 현재 상태: " + status
+            );
+        }
+        this.status = OrderStatus.COMPLETED;
+    }
+}
+```
+
+---
+
+### 검증 전략 정리
+
+```
+┌──────────────────────────────────────────────────────────┐
+│ 1. Controller (형식 검증)                                 │
+│    - @Valid, @NotNull, @Min, @Max                        │
+│    - 400 Bad Request 반환                                │
+└───────────────┬──────────────────────────────────────────┘
+                ↓ 통과
+┌──────────────────────────────────────────────────────────┐
+│ 2. UseCase (비즈니스 검증)                                │
+│    - 존재 여부 (findByIdOrThrow)                         │
+│    - 권한/상태 검증                                       │
+│    - 404 Not Found, 403 Forbidden 반환                   │
+└───────────────┬──────────────────────────────────────────┘
+                ↓ 통과
+┌──────────────────────────────────────────────────────────┐
+│ 3. Entity (도메인 규칙)                                   │
+│    - 재고 부족, 수량 제한                                 │
+│    - 상태 전이 규칙                                       │
+│    - 409 Conflict, 422 Unprocessable Entity 반환         │
+└──────────────────────────────────────────────────────────┘
+```
+
+**장점:**
+- ✅ 관심사 분리 (각 레이어가 적절한 검증 담당)
+- ✅ 빠른 실패 (형식 오류는 Controller에서 즉시 반환)
+- ✅ 도메인 무결성 보장 (Entity의 불변식 유지)
+- ✅ 명확한 에러 메시지 (어느 레이어에서 실패했는지 명확)
+
+---
+
 ## 🔄 의존성 방향 (Dependency Rule)
 
 ### 핵심 원칙

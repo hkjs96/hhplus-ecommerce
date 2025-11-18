@@ -1,415 +1,224 @@
 # ERD (Entity Relationship Diagram)
 
-## ⚠️ Week 3 Implementation Notes
+## 🎯 설계 원칙
 
-**중요**: 이 ERD는 **Week 4 이후 데이터베이스 연동 시** 사용될 설계입니다.
+**이커머스 시스템 데이터베이스 설계 - 성능 최적화 중심**
 
-### Week 3 (Step 5-6) 구현 방식
+### 핵심 원칙
+1. **ID 전략**: BIGINT AUTO_INCREMENT (클러스터드 인덱스 최적화)
+2. **비즈니스 ID**: 별도 VARCHAR 컬럼 (외부 노출용 - product_code, order_number)
+3. **인덱스**: 쿼리 패턴 기반 복합 인덱스 설계
+4. **유니크 제약**: 비즈니스 규칙을 DB 레벨에서 보장
+5. **정규화**: 3NF 준수하되 조회 성능 우선
 
-**Week 3에서는 데이터베이스를 사용하지 않습니다:**
-- ❌ JPA, H2, MySQL 사용 안 함
-- ❌ @Entity, @Table, @Version 어노테이션 사용 안 함
-- ✅ **In-Memory Only**: ConcurrentHashMap, ArrayList로 모든 데이터 관리
-- ✅ **Pure Java Entity**: 순수 Java 클래스 + Lombok
-- ✅ **Thread-Safe Collections**: ConcurrentHashMap 필수
-
-### Week 3 구현 가이드
-
-**1. Entity 설계**
-```java
-// ✅ Week 3: Pure Java (JPA 어노테이션 없음)
-@Getter
-@AllArgsConstructor
-public class Product {
-    private String id;
-    private String name;
-    private Long price;
-    private Integer stock;  // Week 3: Product에 stock 직접 포함
-    private LocalDateTime createdAt;
-}
-```
-
-**2. Repository 구현**
-```java
-// Domain Layer (interface only)
-package io.hhplus.ecommerce.domain.product;
-
-public interface ProductRepository {
-    Optional<Product> findById(String id);
-    List<Product> findAll();
-    Product save(Product product);
-}
-
-// Infrastructure Layer (In-Memory implementation)
-package io.hhplus.ecommerce.infrastructure.persistence.product;
-
-@Repository
-public class InMemoryProductRepository implements ProductRepository {
-    private final Map<String, Product> storage = new ConcurrentHashMap<>();
-
-    @Override
-    public Optional<Product> findById(String id) {
-        return Optional.ofNullable(storage.get(id));
-    }
-
-    @Override
-    public Product save(Product product) {
-        storage.put(product.getId(), product);
-        return product;
-    }
-}
-```
-
-**3. 관계 표현**
-```java
-// Week 3: 객체 참조로 관계 표현 (FK 없음)
-@Getter
-@AllArgsConstructor
-public class OrderItem {
-    private String id;
-    private String orderId;     // Order 객체 ID (문자열 참조)
-    private String productId;   // Product 객체 ID (문자열 참조)
-    private Integer quantity;
-    private Long unitPrice;
-
-    // 필요시 UseCase에서 Repository로 조회
-    // Product product = productRepository.findById(productId).orElseThrow();
-}
-```
-
-**4. 동시성 제어**
-
-**Step 5**: ConcurrentHashMap만 사용
-```java
-@Repository
-public class InMemoryProductRepository implements ProductRepository {
-    private final Map<String, Product> storage = new ConcurrentHashMap<>();
-    // ConcurrentHashMap 자체가 Thread-Safe
-}
-```
-
-**Step 6**: 선착순 쿠폰만 AtomicInteger 사용
-```java
-@Getter
-@AllArgsConstructor
-public class Coupon {
-    private String id;
-    private String name;
-    private Integer totalQuantity;
-    private AtomicInteger issuedQuantity;  // AtomicInteger로 동시성 제어
-
-    public boolean tryIssue() {
-        while (true) {
-            int current = issuedQuantity.get();
-            if (current >= totalQuantity) return false;
-            if (issuedQuantity.compareAndSet(current, current + 1)) {
-                return true;
-            }
-        }
-    }
-}
-```
-
-### Week 3 vs Week 4+ 비교
-
-| 항목 | Week 3 (In-Memory) | Week 4+ (Database) |
-|------|-------------------|-------------------|
-| **Entity** | Pure Java + Lombok | @Entity, @Table, @Id |
-| **Repository** | Interface + In-Memory Impl | JpaRepository, EntityManager |
-| **Storage** | ConcurrentHashMap | MySQL, H2 |
-| **Relationship** | 객체 ID (String) 참조 | @OneToMany, @ManyToOne, FK |
-| **Concurrency** | synchronized, AtomicInteger | @Version (Optimistic Lock) |
-| **Transaction** | 수동 관리 (없음) | @Transactional |
-| **Index** | 불필요 | CREATE INDEX |
-
-### Week 3 단순화 사항
-
-아래 ERD 설계에서 Week 3 구현 시 단순화할 부분:
-
-1. **Stock 테이블 통합**: Product에 stock 필드로 포함
-2. **StockHistory 생략**: Week 3에서는 선택 사항
-3. **Relationship**: FK 대신 String ID로 참조
-4. **Concurrency**: @Version 대신 AtomicInteger 사용 (쿠폰만)
-5. **Index**: In-Memory라서 불필요
-
-**참고**: 아래 ERD는 Week 3 설계를 이해하는 참고 자료로 활용하되, 실제 구현은 In-Memory 방식을 따릅니다.
-
-**학습 자료**: [docs/learning-points/04-repository-pattern.md](../learning-points/04-repository-pattern.md)
+### 기술 스택
+- **Database**: MySQL 8.0+
+- **Engine**: InnoDB (트랜잭션, 외래키, 클러스터드 인덱스)
+- **Charset**: utf8mb4 (이모지 지원)
+- **Collation**: utf8mb4_unicode_ci
 
 ---
 
-## 이커머스 시스템의 데이터베이스 설계 (Week 4+)
-
----
-
-## DBML 형식 (dbdiagram.io)
+## 📊 DBML 형식 (dbdiagram.io)
 
 아래 코드를 [dbdiagram.io](https://dbdiagram.io/d)에 붙여넣으세요.
 
 ```dbml
+// ====================================
 // E-Commerce Database Schema
-// 항해플러스 이커머스 시스템
+// Performance-Optimized Design
+// MySQL 8.0+ / InnoDB
+// ====================================
 
 // ====================================
 // 1. 상품 관리
 // ====================================
 
 Table products {
-  id varchar [primary key, note: 'P001, P002 형식']
-  name varchar [not null]
-  description text
-  price decimal(10,2) [not null]
-  category varchar
-  created_at datetime [not null, note: 'DATETIME 사용 (TIMESTAMP 2038 이슈 회피)']
-  updated_at datetime [not null]
-
-  indexes {
-    category
-    created_at
-  }
-
-  note: 'FK ON DELETE: 없음 (상품 삭제는 soft delete 권장)'
-}
-
-Table stock {
-  id varchar [primary key]
-  product_id varchar [not null, note: 'FK to products (NO CASCADE - 락 범위 최소화)']
-  warehouse_id varchar [not null, default: 'DEFAULT', note: '향후 다중 창고 확장']
-  quantity integer [not null, default: 0]
+  id bigint [pk, increment, note: 'Auto increment PK']
+  product_code varchar(20) [not null, unique, note: 'PROD-001 형식 (외부 노출)']
+  name varchar(200) [not null, note: '상품명']
+  description text [note: '상품 설명']
+  price decimal(12,2) [not null, note: '가격 (최대 9999억)']
+  category varchar(50) [not null, note: '카테고리']
+  stock int [not null, default: 0, note: '재고 수량']
   version bigint [not null, default: 0, note: 'Optimistic Lock']
-  updated_at datetime [not null]
+  created_at datetime(6) [not null, default: `CURRENT_TIMESTAMP(6)`]
+  updated_at datetime(6) [not null, default: `CURRENT_TIMESTAMP(6)`, note: 'ON UPDATE CURRENT_TIMESTAMP(6)']
 
   indexes {
-    product_id
-    (product_id, warehouse_id) [unique, name: 'uidx_stock_product_warehouse']
+    (category, created_at) [name: 'idx_category_created', note: '카테고리별 최신순 조회']
+    name [name: 'idx_name', note: '상품명 검색 (LIKE)']
+    created_at [name: 'idx_created_at', note: '최신 상품 조회']
   }
-
-  note: 'FK ON DELETE: RESTRICT (재고 있는 상품 삭제 방지)'
-}
-
-Ref: stock.product_id > products.id [delete: restrict]
-
-Table stock_history {
-  id varchar [primary key]
-  stock_id varchar [note: 'FK 제약조건 없음 - 조회 성능 최적화 (인덱스만 설정)']
-  product_id varchar [note: 'FK 제약조건 없음 - 조회 성능 최적화']
-  type varchar [not null, note: 'IN, OUT, CANCEL, ADJUST']
-  quantity_before integer [not null]
-  quantity_change integer [not null, note: '양수(증가) 또는 음수(감소)']
-  quantity_after integer [not null]
-  reference_type varchar [note: 'ORDER, PURCHASE, RETURN, ADJUSTMENT']
-  reference_id varchar
-  reason text
-  created_at datetime [not null]
-
-  indexes {
-    stock_id
-    product_id
-    (reference_type, reference_id)
-    created_at [note: 'DESC']
-  }
-
-  note: 'INSERT ONLY 테이블 (감사 목적). FK 없음 - 락 병목 회피'
 }
 
 // ====================================
-// 2. 장바구니
-// ====================================
-
-Table carts {
-  id varchar [primary key, note: 'CART-{userId}']
-  user_id varchar [not null, unique]
-  created_at datetime [not null]
-  updated_at datetime [not null]
-
-  indexes {
-    user_id
-  }
-
-  note: 'FK ON DELETE: CASCADE (사용자 삭제 시 장바구니도 삭제 - 부작용 없음)'
-}
-
-Ref: carts.user_id > users.id [delete: cascade]
-
-Table cart_items {
-  id varchar [primary key]
-  cart_id varchar [not null]
-  product_id varchar [not null]
-  quantity integer [not null, note: '1 이상']
-  added_at datetime [not null]
-
-  indexes {
-    cart_id
-    product_id
-  }
-
-  note: 'FK ON DELETE: CASCADE (장바구니 삭제 시 항목도 삭제), NO CASCADE (상품 삭제 방지)'
-}
-
-Ref: cart_items.cart_id > carts.id [delete: cascade]
-Ref: cart_items.product_id > products.id [delete: restrict]
-
-// ====================================
-// 3. 주문/결제
-// ====================================
-
-Table orders {
-  id varchar [primary key, note: 'ORDER-YYYYMMDD-XXX']
-  user_id varchar [not null]
-  subtotal_amount decimal(10,2) [not null, note: '주문 소계']
-  discount_amount decimal(10,2) [not null, default: 0, note: '쿠폰 할인액']
-  total_amount decimal(10,2) [not null, note: 'subtotal - discount']
-  status varchar [not null, note: 'PENDING, COMPLETED, CANCELLED']
-  created_at datetime [not null]
-  paid_at datetime [note: '결제 완료 시각 (nullable)']
-
-  indexes {
-    (user_id, status)
-    created_at
-    paid_at
-  }
-
-  note: 'FK ON DELETE: RESTRICT (주문 있는 사용자 삭제 방지 - 데이터 보존)'
-}
-
-Ref: orders.user_id > users.id [delete: restrict]
-
-Table order_items {
-  id varchar [primary key]
-  order_id varchar [not null]
-  product_id varchar [not null]
-  quantity integer [not null, note: '주문 수량']
-  unit_price decimal(10,2) [not null, note: '주문 시점 가격 (스냅샷)']
-  subtotal decimal(10,2) [not null, note: 'unit_price * quantity']
-
-  indexes {
-    order_id
-    product_id [note: '인기 상품 집계용']
-  }
-
-  note: 'FK ON DELETE: RESTRICT (주문 데이터 보존). 가격은 주문 시점 스냅샷'
-}
-
-Ref: order_items.order_id > orders.id [delete: restrict]
-Ref: order_items.product_id > products.id [delete: restrict]
-
-// ====================================
-// 4. 쿠폰 시스템
-// ====================================
-
-Table coupons {
-  id varchar [primary key]
-  name varchar [not null]
-  discount_rate integer [not null, note: '할인율 (%) 1~100']
-  total_quantity integer [not null, note: '총 발급 가능 수량']
-  issued_quantity integer [not null, default: 0, note: '현재 발급된 수량']
-  start_date datetime [not null]
-  end_date datetime [not null]
-  version bigint [not null, default: 0, note: 'Optimistic Lock (선착순 보장)']
-
-  note: 'FK 없음. Optimistic Lock으로 동시성 제어'
-}
-
-Table user_coupons {
-  id varchar [primary key, note: 'UC-YYYYMMDD-XXX']
-  user_id varchar [not null]
-  coupon_id varchar [not null]
-  status varchar [not null, note: 'AVAILABLE, USED, EXPIRED']
-  issued_at datetime [not null]
-  used_at datetime [note: '사용 시각 (nullable)']
-  expires_at datetime [not null]
-
-  indexes {
-    (user_id, status)
-    expires_at
-    (user_id, coupon_id) [unique, name: 'uidx_user_coupons_user_coupon', note: '1인 1매 제한 (DB Unique Constraint)']
-  }
-
-  note: 'FK ON DELETE: RESTRICT (쿠폰/사용자 데이터 보존). Unique로 1인 1매 보장'
-}
-
-Ref: user_coupons.user_id > users.id [delete: restrict]
-Ref: user_coupons.coupon_id > coupons.id [delete: restrict]
-
-// ====================================
-// 5. 사용자
+// 2. 사용자
 // ====================================
 
 Table users {
-  id varchar [primary key]
-  email varchar [unique, not null]
-  username varchar [not null]
-  balance decimal(10,2) [not null, default: 0, note: '포인트 잔액 (내부 시스템, PG 없음)']
-  created_at datetime [not null]
-  updated_at datetime [not null]
+  id bigint [pk, increment]
+  email varchar(255) [not null, unique, note: '이메일 (로그인 ID)']
+  username varchar(100) [not null, note: '사용자명']
+  password_hash varchar(255) [note: 'BCrypt 해시 (향후 추가)']
+  balance decimal(12,2) [not null, default: 0, note: '포인트 잔액']
+  created_at datetime(6) [not null, default: `CURRENT_TIMESTAMP(6)`]
+  updated_at datetime(6) [not null, default: `CURRENT_TIMESTAMP(6)`]
 
-  note: 'FK 없음. Pessimistic Lock (SELECT FOR UPDATE)로 포인트 정확성 보장'
+  indexes {
+    email [name: 'idx_email', note: '이메일 검색']
+  }
+}
+
+// ====================================
+// 3. 장바구니
+// ====================================
+
+Table carts {
+  id bigint [pk, increment]
+  user_id bigint [not null, unique, ref: > users.id, note: '사용자당 1개 장바구니']
+  created_at datetime(6) [not null, default: `CURRENT_TIMESTAMP(6)`]
+  updated_at datetime(6) [not null, default: `CURRENT_TIMESTAMP(6)`]
+
+  indexes {
+    user_id [name: 'idx_user_id']
+  }
+
+  note: 'FK ON DELETE: CASCADE (사용자 삭제 시 장바구니도 삭제)'
+}
+
+Table cart_items {
+  id bigint [pk, increment]
+  cart_id bigint [not null, ref: > carts.id]
+  product_id bigint [not null, ref: > products.id]
+  quantity int [not null, default: 1, note: '수량 (1 이상)']
+  added_at datetime(6) [not null, default: `CURRENT_TIMESTAMP(6)`]
+
+  indexes {
+    (cart_id, product_id) [unique, name: 'uk_cart_product', note: '장바구니 내 중복 상품 방지']
+    cart_id [name: 'idx_cart_id']
+    product_id [name: 'idx_product_id']
+  }
+
+  note: 'FK: cart_id CASCADE, product_id RESTRICT'
+}
+
+// ====================================
+// 4. 주문/결제
+// ====================================
+
+Table orders {
+  id bigint [pk, increment]
+  order_number varchar(30) [not null, unique, note: 'ORD-20250110-000001 (외부 노출)']
+  user_id bigint [not null, ref: > users.id]
+  subtotal_amount decimal(12,2) [not null, note: '주문 소계']
+  discount_amount decimal(12,2) [not null, default: 0, note: '쿠폰 할인액']
+  total_amount decimal(12,2) [not null, note: '최종 결제 금액']
+  status varchar(20) [not null, default: 'PENDING', note: 'PENDING, COMPLETED, CANCELLED']
+  created_at datetime(6) [not null, default: `CURRENT_TIMESTAMP(6)`]
+  paid_at datetime(6) [note: '결제 완료 시각']
+
+  indexes {
+    (user_id, created_at) [name: 'idx_user_created', note: '사용자별 주문 내역 (최신순)']
+    (user_id, status) [name: 'idx_user_status', note: '사용자별 특정 상태 주문']
+    (status, paid_at) [name: 'idx_status_paid', note: '완료 주문 조회 (통계)']
+    created_at [name: 'idx_created_at', note: '전체 주문 최신순']
+  }
+
+  note: 'FK ON DELETE: RESTRICT (주문 데이터 보존)'
+}
+
+Table order_items {
+  id bigint [pk, increment]
+  order_id bigint [not null, ref: > orders.id]
+  product_id bigint [not null, ref: > products.id]
+  product_name varchar(200) [not null, note: '주문 시점 상품명 (스냅샷)']
+  quantity int [not null, note: '주문 수량']
+  unit_price decimal(12,2) [not null, note: '주문 시점 단가 (스냅샷)']
+  subtotal decimal(12,2) [not null, note: 'unit_price * quantity']
+
+  indexes {
+    order_id [name: 'idx_order_id']
+    product_id [name: 'idx_product_id', note: '상품별 판매 통계']
+    (product_id, order_id) [name: 'idx_product_order', note: '복합 조회 (커버링 인덱스)']
+  }
+
+  note: 'FK ON DELETE: RESTRICT. 가격은 주문 시점 스냅샷'
+}
+
+// ====================================
+// 5. 쿠폰 시스템
+// ====================================
+
+Table coupons {
+  id bigint [pk, increment]
+  coupon_code varchar(30) [not null, unique, note: 'COUPON-NEW2025']
+  name varchar(100) [not null, note: '쿠폰명']
+  discount_rate int [not null, note: '할인율 % (1~100)']
+  total_quantity int [not null, note: '총 발급 가능 수량']
+  issued_quantity int [not null, default: 0, note: '현재 발급된 수량']
+  start_date datetime(6) [not null, note: '시작일']
+  end_date datetime(6) [not null, note: '종료일']
+  version bigint [not null, default: 0, note: 'Optimistic Lock (선착순)']
+  created_at datetime(6) [not null, default: `CURRENT_TIMESTAMP(6)`]
+  updated_at datetime(6) [not null, default: `CURRENT_TIMESTAMP(6)`]
+
+  indexes {
+    (start_date, end_date) [name: 'idx_dates', note: '유효 쿠폰 조회']
+  }
+}
+
+Table user_coupons {
+  id bigint [pk, increment]
+  user_id bigint [not null, ref: > users.id]
+  coupon_id bigint [not null, ref: > coupons.id]
+  status varchar(20) [not null, default: 'AVAILABLE', note: 'AVAILABLE, USED, EXPIRED']
+  issued_at datetime(6) [not null, default: `CURRENT_TIMESTAMP(6)`]
+  used_at datetime(6) [note: '사용 시각']
+  expires_at datetime(6) [not null, note: '만료 시각']
+
+  indexes {
+    (user_id, coupon_id) [unique, name: 'uk_user_coupon', note: '1인 1매 제한 (중복 발급 방지)']
+    (user_id, status) [name: 'idx_user_status', note: '사용자별 사용 가능 쿠폰']
+    expires_at [name: 'idx_expires_at', note: '만료 쿠폰 배치 처리']
+    (coupon_id, status) [name: 'idx_coupon_status', note: '쿠폰별 발급/사용 통계']
+  }
+
+  note: 'FK ON DELETE: RESTRICT. 1인 1매 제한 (UK)'
 }
 
 // ====================================
 // 관계 요약
 // ====================================
-// 1:N Relationships:
-//   - User -> Cart (1:1 실제로는)
-//   - User -> Order
-//   - User -> UserCoupon
-//   - Cart -> CartItem
-//   - Order -> OrderItem
-//   - Product -> Stock
-//   - Coupon -> UserCoupon
-//
-// N:1 Relationships:
-//   - CartItem -> Product
-//   - OrderItem -> Product
-//   - Stock -> Product
-//
-// 참고:
-//   - StockHistory는 FK 제약조건 없음 (조회 최적화)
+// 1:1: User -> Cart
+// 1:N: User -> Order, User -> UserCoupon
+//      Cart -> CartItem, Order -> OrderItem
+//      Coupon -> UserCoupon
+// N:1: CartItem -> Product, OrderItem -> Product
 ```
 
 ---
 
-## Mermaid 형식 (mermaidchart.com)
-
-아래 코드를 [Mermaid Chart](https://www.mermaidchart.com)에서 사용하거나, Markdown에서 직접 렌더링할 수 있습니다.
+## 🗂️ Mermaid 형식 (Markdown 렌더링)
 
 ```mermaid
 erDiagram
     %% ====================================
-    %% 상품 및 재고 관리
+    %% 상품 관리
     %% ====================================
 
     PRODUCTS {
-        varchar id PK "P001, P002"
-        varchar name
-        text description
-        decimal price
-        varchar category
-        datetime created_at "NOT NULL (DATETIME - 2038 이슈 회피)"
-        datetime updated_at "NOT NULL"
-    }
-
-    STOCK {
-        varchar id PK
-        varchar product_id FK "NO CASCADE - 락 최소화"
-        varchar warehouse_id "DEFAULT"
-        integer quantity "0 이상"
-        bigint version "Optimistic Lock (default 0)"
-        datetime updated_at "NOT NULL"
-    }
-
-    STOCK_HISTORY {
-        varchar id PK
-        varchar stock_id "No FK - 조회 최적화"
-        varchar product_id "No FK - 조회 최적화"
-        varchar type "IN, OUT, CANCEL, ADJUST"
-        integer quantity_before
-        integer quantity_change "양수/음수"
-        integer quantity_after
-        varchar reference_type
-        varchar reference_id
-        text reason
-        datetime created_at "NOT NULL"
+        bigint id PK "AUTO_INCREMENT"
+        varchar product_code UK "PROD-001 (외부 노출)"
+        varchar name "상품명"
+        text description "상품 설명"
+        decimal price "가격"
+        varchar category "카테고리"
+        int stock "재고 수량"
+        bigint version "Optimistic Lock"
+        datetime created_at "생성일"
+        datetime updated_at "수정일"
     }
 
     %% ====================================
@@ -417,12 +226,13 @@ erDiagram
     %% ====================================
 
     USERS {
-        varchar id PK
-        varchar email UK
-        varchar username
-        decimal balance "포인트 (내부 시스템, default 0)"
-        datetime created_at "NOT NULL"
-        datetime updated_at "NOT NULL"
+        bigint id PK "AUTO_INCREMENT"
+        varchar email UK "이메일 (로그인 ID)"
+        varchar username "사용자명"
+        varchar password_hash "BCrypt 해시"
+        decimal balance "포인트 잔액"
+        datetime created_at "생성일"
+        datetime updated_at "수정일"
     }
 
     %% ====================================
@@ -430,18 +240,18 @@ erDiagram
     %% ====================================
 
     CARTS {
-        varchar id PK "CART-{userId}"
-        varchar user_id FK "UNIQUE, CASCADE 허용"
-        datetime created_at "NOT NULL"
-        datetime updated_at "NOT NULL"
+        bigint id PK "AUTO_INCREMENT"
+        bigint user_id FK "1:1 관계"
+        datetime created_at "생성일"
+        datetime updated_at "수정일"
     }
 
     CART_ITEMS {
-        varchar id PK
-        varchar cart_id FK "CASCADE"
-        varchar product_id FK "RESTRICT"
-        integer quantity "1 이상"
-        datetime added_at "NOT NULL"
+        bigint id PK "AUTO_INCREMENT"
+        bigint cart_id FK
+        bigint product_id FK
+        int quantity "수량"
+        datetime added_at "추가일"
     }
 
     %% ====================================
@@ -449,23 +259,25 @@ erDiagram
     %% ====================================
 
     ORDERS {
-        varchar id PK "ORDER-YYYYMMDD-XXX"
-        varchar user_id FK "RESTRICT"
+        bigint id PK "AUTO_INCREMENT"
+        varchar order_number UK "ORD-20250110-000001"
+        bigint user_id FK
         decimal subtotal_amount "주문 소계"
-        decimal discount_amount "쿠폰 할인액 (default 0)"
-        decimal total_amount "subtotal - discount"
-        varchar status "PENDING, COMPLETED"
-        datetime created_at "NOT NULL"
-        datetime paid_at "결제 완료 시각 (nullable)"
+        decimal discount_amount "쿠폰 할인액"
+        decimal total_amount "최종 금액"
+        varchar status "상태"
+        datetime created_at "생성일"
+        datetime paid_at "결제일"
     }
 
     ORDER_ITEMS {
-        varchar id PK
-        varchar order_id FK "RESTRICT"
-        varchar product_id FK "RESTRICT"
-        integer quantity "주문 수량"
-        decimal unit_price "주문 시점 가격 스냅샷"
-        decimal subtotal "unit_price * quantity"
+        bigint id PK "AUTO_INCREMENT"
+        bigint order_id FK
+        bigint product_id FK
+        varchar product_name "상품명 스냅샷"
+        int quantity "주문 수량"
+        decimal unit_price "단가 스냅샷"
+        decimal subtotal "소계"
     }
 
     %% ====================================
@@ -473,190 +285,382 @@ erDiagram
     %% ====================================
 
     COUPONS {
-        varchar id PK
-        varchar name
-        integer discount_rate "할인율 % (1~100)"
-        integer total_quantity "총 발급 가능 수량"
-        integer issued_quantity "현재 발급 수량 (default 0)"
-        datetime start_date "NOT NULL"
-        datetime end_date "NOT NULL"
-        bigint version "Optimistic Lock (default 0)"
+        bigint id PK "AUTO_INCREMENT"
+        varchar coupon_code UK "COUPON-NEW2025"
+        varchar name "쿠폰명"
+        int discount_rate "할인율 %"
+        int total_quantity "총 수량"
+        int issued_quantity "발급 수량"
+        datetime start_date "시작일"
+        datetime end_date "종료일"
+        bigint version "Optimistic Lock"
+        datetime created_at "생성일"
+        datetime updated_at "수정일"
     }
 
     USER_COUPONS {
-        varchar id PK "UC-YYYYMMDD-XXX"
-        varchar user_id FK "RESTRICT"
-        varchar coupon_id FK "RESTRICT"
-        varchar status "AVAILABLE, USED, EXPIRED"
-        datetime issued_at "NOT NULL"
-        datetime used_at "사용 시각 (nullable)"
-        datetime expires_at "NOT NULL"
+        bigint id PK "AUTO_INCREMENT"
+        bigint user_id FK
+        bigint coupon_id FK
+        varchar status "상태"
+        datetime issued_at "발급일"
+        datetime used_at "사용일"
+        datetime expires_at "만료일"
     }
 
     %% ====================================
     %% 관계 정의
     %% ====================================
 
-    %% 상품 -> 재고
-    PRODUCTS ||--o{ STOCK : "has"
-
-    %% 사용자 관계
-    USERS ||--o| CARTS : "owns"
+    USERS ||--o| CARTS : "owns (1:1)"
     USERS ||--o{ ORDERS : "places"
     USERS ||--o{ USER_COUPONS : "has"
 
-    %% 장바구니
     CARTS ||--o{ CART_ITEMS : "contains"
     CART_ITEMS }o--|| PRODUCTS : "references"
 
-    %% 주문
     ORDERS ||--o{ ORDER_ITEMS : "contains"
     ORDER_ITEMS }o--|| PRODUCTS : "references"
 
-    %% 쿠폰
     COUPONS ||--o{ USER_COUPONS : "issued to"
 ```
 
 ---
 
-## 주요 설계 포인트
+## 💾 CREATE TABLE DDL
 
-### 1. 재고 관리 분리
-- **Product**: 상품 정보만 관리 (stock 필드 제거)
-- **Stock**: 현재 재고 수량 (Optimistic Lock)
-- **StockHistory**: 재고 변동 이력 (FK 없음, 조회 최적화)
+### 1. products (상품)
+
+```sql
+CREATE TABLE products (
+  -- PK: 클러스터드 인덱스 (InnoDB)
+  id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT 'PK',
+
+  -- 비즈니스 ID (외부 노출, API 응답)
+  product_code VARCHAR(20) NOT NULL UNIQUE COMMENT 'PROD-001 형식',
+
+  -- 기본 정보
+  name VARCHAR(200) NOT NULL COMMENT '상품명',
+  description TEXT COMMENT '상품 설명',
+  price DECIMAL(12,2) NOT NULL COMMENT '가격 (최대 9999억)',
+  category VARCHAR(50) NOT NULL COMMENT '카테고리',
+
+  -- 재고 (Product에 통합)
+  stock INT NOT NULL DEFAULT 0 COMMENT '재고 수량',
+  version BIGINT NOT NULL DEFAULT 0 COMMENT 'Optimistic Lock (재고 차감용)',
+
+  -- 메타데이터
+  created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '생성일',
+  updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '수정일',
+
+  -- 복합 인덱스 (쿼리 패턴 최적화)
+  INDEX idx_category_created (category, created_at DESC) COMMENT '카테고리별 최신순 조회',
+  INDEX idx_name (name) COMMENT '상품명 검색 (LIKE)',
+  INDEX idx_created_at (created_at DESC) COMMENT '최신 상품 조회'
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='상품';
+```
+
+### 2. users (사용자)
+
+```sql
+CREATE TABLE users (
+  -- PK
+  id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT 'PK',
+
+  -- 유니크 제약 (로그인 ID)
+  email VARCHAR(255) NOT NULL UNIQUE COMMENT '이메일 (로그인 ID)',
+
+  -- 기본 정보
+  username VARCHAR(100) NOT NULL COMMENT '사용자명',
+  password_hash VARCHAR(255) COMMENT 'BCrypt 해시 (향후 추가)',
+
+  -- 포인트 시스템
+  balance DECIMAL(12,2) NOT NULL DEFAULT 0 COMMENT '포인트 잔액',
+
+  -- 메타데이터
+  created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '생성일',
+  updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '수정일',
+
+  -- 인덱스
+  INDEX idx_email (email) COMMENT '이메일 검색'
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='사용자';
+```
+
+### 3. carts (장바구니)
+
+```sql
+CREATE TABLE carts (
+  -- PK
+  id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT 'PK',
+
+  -- FK (1:1 관계)
+  user_id BIGINT NOT NULL UNIQUE COMMENT '사용자 ID (1:1 관계)',
+
+  -- 메타데이터
+  created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '생성일',
+  updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '수정일',
+
+  -- 외래키
+  CONSTRAINT fk_carts_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+
+  -- 인덱스
+  INDEX idx_user_id (user_id) COMMENT '사용자별 장바구니 조회'
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='장바구니';
+```
+
+### 4. cart_items (장바구니 상품)
+
+```sql
+CREATE TABLE cart_items (
+  -- PK
+  id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT 'PK',
+
+  -- FK
+  cart_id BIGINT NOT NULL COMMENT '장바구니 ID',
+  product_id BIGINT NOT NULL COMMENT '상품 ID',
+
+  -- 수량
+  quantity INT NOT NULL DEFAULT 1 COMMENT '수량 (1 이상)',
+
+  -- 메타데이터
+  added_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '추가일',
+
+  -- 외래키
+  CONSTRAINT fk_cart_items_cart FOREIGN KEY (cart_id) REFERENCES carts(id) ON DELETE CASCADE,
+  CONSTRAINT fk_cart_items_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE RESTRICT,
+
+  -- 유니크 제약 (장바구니 내 중복 상품 방지)
+  UNIQUE KEY uk_cart_product (cart_id, product_id) COMMENT '중복 상품 방지',
+
+  -- 인덱스
+  INDEX idx_cart_id (cart_id) COMMENT '장바구니별 상품 조회',
+  INDEX idx_product_id (product_id) COMMENT '상품별 장바구니 조회',
+
+  -- 제약조건
+  CONSTRAINT chk_quantity CHECK (quantity > 0)
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='장바구니 상품';
+```
+
+### 5. orders (주문)
+
+```sql
+CREATE TABLE orders (
+  -- PK
+  id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT 'PK',
+
+  -- 비즈니스 ID (외부 노출)
+  order_number VARCHAR(30) NOT NULL UNIQUE COMMENT 'ORD-20250110-000001 형식',
+
+  -- FK
+  user_id BIGINT NOT NULL COMMENT '사용자 ID',
+
+  -- 금액 정보
+  subtotal_amount DECIMAL(12,2) NOT NULL COMMENT '주문 소계',
+  discount_amount DECIMAL(12,2) NOT NULL DEFAULT 0 COMMENT '쿠폰 할인액',
+  total_amount DECIMAL(12,2) NOT NULL COMMENT '최종 결제 금액',
+
+  -- 상태
+  status VARCHAR(20) NOT NULL DEFAULT 'PENDING' COMMENT '주문 상태: PENDING, COMPLETED, CANCELLED',
+
+  -- 메타데이터
+  created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '생성일',
+  paid_at DATETIME(6) COMMENT '결제 완료 시각',
+
+  -- 외래키
+  CONSTRAINT fk_orders_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT,
+
+  -- 복합 인덱스 (조회 패턴 최적화)
+  INDEX idx_user_created (user_id, created_at DESC) COMMENT '사용자별 주문 내역 (최신순)',
+  INDEX idx_user_status (user_id, status) COMMENT '사용자별 특정 상태 주문',
+  INDEX idx_status_paid (status, paid_at) COMMENT '완료 주문 조회 (통계)',
+  INDEX idx_created_at (created_at DESC) COMMENT '전체 주문 최신순'
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='주문';
+```
+
+### 6. order_items (주문 상세)
+
+```sql
+CREATE TABLE order_items (
+  -- PK
+  id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT 'PK',
+
+  -- FK
+  order_id BIGINT NOT NULL COMMENT '주문 ID',
+  product_id BIGINT NOT NULL COMMENT '상품 ID',
+
+  -- 주문 시점 스냅샷 (가격 변동 대비)
+  product_name VARCHAR(200) NOT NULL COMMENT '주문 시점 상품명',
+  quantity INT NOT NULL COMMENT '주문 수량',
+  unit_price DECIMAL(12,2) NOT NULL COMMENT '주문 시점 단가',
+  subtotal DECIMAL(12,2) NOT NULL COMMENT 'unit_price * quantity',
+
+  -- 외래키
+  CONSTRAINT fk_order_items_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_order_items_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE RESTRICT,
+
+  -- 인덱스 (인기 상품 집계 최적화)
+  INDEX idx_order_id (order_id) COMMENT '주문별 상품 조회',
+  INDEX idx_product_id (product_id) COMMENT '상품별 판매 통계',
+  INDEX idx_product_order (product_id, order_id) COMMENT '복합 조회 (커버링 인덱스)',
+
+  -- 제약조건
+  CONSTRAINT chk_quantity CHECK (quantity > 0)
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='주문 상세';
+```
+
+### 7. coupons (쿠폰 마스터)
+
+```sql
+CREATE TABLE coupons (
+  -- PK
+  id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT 'PK',
+
+  -- 비즈니스 ID
+  coupon_code VARCHAR(30) NOT NULL UNIQUE COMMENT 'COUPON-NEW2025 형식',
+
+  -- 쿠폰 정보
+  name VARCHAR(100) NOT NULL COMMENT '쿠폰명',
+  discount_rate INT NOT NULL COMMENT '할인율 % (1~100)',
+
+  -- 수량 관리
+  total_quantity INT NOT NULL COMMENT '총 발급 가능 수량',
+  issued_quantity INT NOT NULL DEFAULT 0 COMMENT '현재 발급된 수량',
+
+  -- 유효기간
+  start_date DATETIME(6) NOT NULL COMMENT '시작일',
+  end_date DATETIME(6) NOT NULL COMMENT '종료일',
+
+  -- Optimistic Lock (선착순)
+  version BIGINT NOT NULL DEFAULT 0 COMMENT 'Optimistic Lock',
+
+  -- 메타데이터
+  created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '생성일',
+  updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '수정일',
+
+  -- 인덱스
+  INDEX idx_dates (start_date, end_date) COMMENT '유효 쿠폰 조회',
+
+  -- 제약조건
+  CONSTRAINT chk_discount_rate CHECK (discount_rate BETWEEN 1 AND 100),
+  CONSTRAINT chk_quantity CHECK (issued_quantity <= total_quantity)
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='쿠폰';
+```
+
+### 8. user_coupons (사용자 쿠폰)
+
+```sql
+CREATE TABLE user_coupons (
+  -- PK
+  id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT 'PK',
+
+  -- FK
+  user_id BIGINT NOT NULL COMMENT '사용자 ID',
+  coupon_id BIGINT NOT NULL COMMENT '쿠폰 ID',
+
+  -- 상태
+  status VARCHAR(20) NOT NULL DEFAULT 'AVAILABLE' COMMENT '상태: AVAILABLE, USED, EXPIRED',
+
+  -- 시각 정보
+  issued_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '발급일',
+  used_at DATETIME(6) COMMENT '사용일',
+  expires_at DATETIME(6) NOT NULL COMMENT '만료일',
+
+  -- 외래키
+  CONSTRAINT fk_user_coupons_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_user_coupons_coupon FOREIGN KEY (coupon_id) REFERENCES coupons(id) ON DELETE RESTRICT,
+
+  -- 유니크 제약 (1인 1매 제한)
+  UNIQUE KEY uk_user_coupon (user_id, coupon_id) COMMENT '1인 1매 제한 (중복 발급 방지)',
+
+  -- 복합 인덱스
+  INDEX idx_user_status (user_id, status) COMMENT '사용자별 사용 가능 쿠폰 조회',
+  INDEX idx_expires_at (expires_at) COMMENT '만료 쿠폰 배치 처리',
+  INDEX idx_coupon_status (coupon_id, status) COMMENT '쿠폰별 발급/사용 통계'
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='사용자 쿠폰';
+```
+
+---
+
+## 🎯 주요 설계 결정 사항
+
+### 1. ID 전략: BIGINT AUTO_INCREMENT
+
+**선택 이유:**
+- ✅ **클러스터드 인덱스 최적화**: InnoDB는 PK 기준으로 데이터 정렬
+- ✅ **INSERT 성능**: 순차 증가로 인덱스 리프 노드 분할 최소화
+- ✅ **범위 조회 성능**: `WHERE id BETWEEN 1 AND 100` 빠름
+- ✅ **JPA 표준**: `@GeneratedValue(strategy = GenerationType.IDENTITY)`
+
+**UUID 대비 장점:**
+```
+BIGINT: 8 bytes, 순차적, 인덱스 효율적
+UUID: 16 bytes, 랜덤, 인덱스 비효율적 (페이지 분할 ↑)
+```
+
+### 2. 비즈니스 ID 분리
+
+**설계:**
+```sql
+-- Internal ID (PK, 성능 최적화)
+id BIGINT AUTO_INCREMENT
+
+-- Business ID (외부 노출, 가독성)
+product_code VARCHAR(20) UNIQUE  -- 'PROD-001'
+order_number VARCHAR(30) UNIQUE  -- 'ORD-20250110-000001'
+coupon_code VARCHAR(30) UNIQUE   -- 'COUPON-NEW2025'
+```
 
 **장점:**
-- 재고 이력 완전 추적 (감사 가능)
-- 다중 창고 확장 가능 (warehouse_id)
-- 재고 불일치 디버깅 용이
+- API 응답: 비즈니스 ID 노출 (보안)
+- DB 조인: PK (BIGINT) 사용 (성능)
+- 마이그레이션: ID 변경 없이 코드 변경 가능
 
-### 2. 포인트 시스템
-- **User.balance**: 내부 포인트 잔액
-- PG 연동 없이 충전된 포인트로만 결제
-- Pessimistic Lock으로 정확성 보장
+### 3. 복합 인덱스 설계 원칙
 
-### 3. 장바구니
-- **Cart**: 사용자당 1개
-- **CartItem**: 장바구니 상품 목록
-- 주문 생성 시 CartItem → OrderItem 변환
+**순서 규칙:** 등호 조건 → 범위 조건 → 정렬
 
-### 4. 동시성 제어
-- **Stock**: Optimistic Lock (@Version)
-- **Coupon**: Optimistic Lock (@Version) - 선착순
-- **User (포인트)**: Pessimistic Lock - 정확성 우선
-
-### 5. 제약 조건
-- **user_coupons**: (user_id, coupon_id) Unique - 1인 1매
-- **stock**: (product_id, warehouse_id) Unique - 창고별 재고
-- **users.email**: Unique
-
-### 6. 인덱스 전략
-- 복합 인덱스: (user_id, status), (reference_type, reference_id)
-- 시간순 인덱스: created_at, paid_at
-- 재고 이력: created_at DESC
-
----
-
-## 엔티티 상세 설명
-
-### Product (상품)
-- **역할**: 상품 기본 정보만 관리
-- **관계**: 1 → N Stock
-- **참고**: stock 필드 제거, Stock 테이블로 분리
-
-### Stock (재고 현황)
-- **역할**: 현재 재고 수량 관리
-- **동시성**: Optimistic Lock (version 필드)
-- **확장**: warehouse_id로 다중 창고 지원
-
-### StockHistory (재고 변동 이력)
-- **역할**: 모든 재고 변동 기록 (감사용)
-- **특징**: FK 제약조건 없음 (성능 최적화)
-- **타입**: IN(입고), OUT(출고), CANCEL(취소), ADJUST(조정)
-
-### Cart (장바구니)
-- **역할**: 사용자별 임시 상품 보관
-- **관계**: User 1 → 1 Cart (실제 구현)
-- **특징**: 주문 생성 전 상품 담기
-
-### CartItem (장바구니 상품)
-- **역할**: 장바구니 내 상품 목록
-- **관계**: Cart 1 → N CartItem
-- **변환**: 주문 시 OrderItem으로 변환
-
-### Order (주문)
-- **역할**: 주문 정보 및 상태 관리
-- **상태**: PENDING, COMPLETED, CANCELLED
-- **결제**: 포인트 기반 결제
-
-### OrderItem (주문 상세)
-- **역할**: 주문 상품 상세 정보
-- **관계**: Order 1 → N OrderItem
-- **데이터**: 수량, 단가, 소계
-
-### Coupon (쿠폰 마스터)
-- **역할**: 쿠폰 템플릿 관리
-- **동시성**: Optimistic Lock (선착순)
-- **수량**: total_quantity, issued_quantity
-
-### UserCoupon (사용자 쿠폰)
-- **역할**: 발급된 쿠폰 관리
-- **상태**: AVAILABLE, USED, EXPIRED
-- **제약**: 1인 1매 (Unique 제약)
-
-### User (사용자)
-- **역할**: 사용자 정보 및 포인트 관리
-- **balance**: 포인트 잔액 (PG 없음)
-- **동시성**: Pessimistic Lock (정확성 우선)
-
----
-
-## 주요 쿼리 예시
-
-### 인기 상품 조회 (최근 3일, Top 5)
 ```sql
-SELECT
-    p.id,
-    p.name,
-    SUM(oi.quantity) as sales_count,
-    SUM(oi.subtotal) as revenue
-FROM products p
-JOIN order_items oi ON p.id = oi.product_id
-JOIN orders o ON oi.order_id = o.id
-WHERE o.status = 'COMPLETED'
-  AND o.paid_at >= NOW() - INTERVAL 3 DAY
-GROUP BY p.id, p.name
-ORDER BY sales_count DESC
-LIMIT 5;
+-- ✅ 좋은 예
+INDEX idx_user_created (user_id, created_at DESC)
+-- WHERE user_id = 123 ORDER BY created_at DESC
+-- user_id (=) → created_at (정렬)
+
+-- ❌ 나쁜 예
+INDEX idx_created_user (created_at, user_id)
+-- user_id 조건 사용 불가 (범위 조건이 앞에)
 ```
 
-### 재고 차감 (Optimistic Lock)
+### 4. 유니크 제약 전략
+
+| 테이블 | 유니크 컬럼 | 비즈니스 규칙 |
+|--------|------------|--------------|
+| users | email | 중복 회원가입 방지 |
+| products | product_code | 상품 코드 중복 방지 |
+| orders | order_number | 주문 번호 중복 방지 |
+| coupons | coupon_code | 쿠폰 코드 중복 방지 |
+| cart_items | (cart_id, product_id) | 장바구니 내 중복 상품 방지 |
+| user_coupons | (user_id, coupon_id) | 1인 1매 제한 |
+
+### 5. Optimistic Lock 적용
+
 ```sql
-UPDATE stock
-SET quantity = quantity - :quantity,
-    version = version + 1,
-    updated_at = NOW()
-WHERE product_id = :productId
-  AND quantity >= :quantity
+-- 재고 차감 (products.version)
+UPDATE products
+SET stock = stock - :quantity,
+    version = version + 1
+WHERE id = :productId
+  AND stock >= :quantity
   AND version = :currentVersion;
-```
 
-### 재고 이력 기록
-```sql
-INSERT INTO stock_history (
-  id, stock_id, product_id, type,
-  quantity_before, quantity_change, quantity_after,
-  reference_type, reference_id, reason, created_at
-) VALUES (
-  :id, :stockId, :productId, 'OUT',
-  :quantityBefore, :quantityChange, :quantityAfter,
-  'ORDER', :orderId, '주문에 따른 재고 차감', NOW()
-);
-```
-
-### 쿠폰 발급 (Optimistic Lock)
-```sql
+-- 쿠폰 발급 (coupons.version)
 UPDATE coupons
 SET issued_quantity = issued_quantity + 1,
     version = version + 1
@@ -665,98 +669,193 @@ WHERE id = :couponId
   AND version = :currentVersion;
 ```
 
-### 포인트 차감 (Pessimistic Lock)
-```sql
--- 트랜잭션 내에서 SELECT ... FOR UPDATE
-SELECT * FROM users WHERE id = :userId FOR UPDATE;
+---
 
-UPDATE users
-SET balance = balance - :amount,
-    updated_at = NOW()
-WHERE id = :userId
-  AND balance >= :amount;
+## ⚡ 성능 최적화 전략
+
+### 1. 커버링 인덱스
+
+**개념:** SELECT하는 컬럼이 모두 인덱스에 포함되어 테이블 접근 불필요
+
+```sql
+-- 쿼리
+SELECT id, created_at FROM orders
+WHERE user_id = 123 ORDER BY created_at DESC LIMIT 10;
+
+-- 인덱스 (커버링)
+INDEX idx_user_created (user_id, created_at DESC, id)
+-- user_id, created_at, id 모두 인덱스에 존재 → Using index
+```
+
+### 2. 복합 인덱스 활용
+
+```sql
+-- orders 테이블: idx_user_created (user_id, created_at DESC)
+
+-- ✅ 인덱스 사용 O
+WHERE user_id = 123 ORDER BY created_at DESC  -- BOTH
+WHERE user_id = 123  -- user_id만
+WHERE user_id = 123 AND created_at > '2025-01-01'  -- BOTH
+
+-- ❌ 인덱스 사용 X
+WHERE created_at > '2025-01-01'  -- user_id 누락
+ORDER BY created_at DESC  -- user_id 누락
+```
+
+### 3. 선택도(Selectivity) 고려
+
+**선택도 = 유니크 값 개수 / 전체 레코드 수**
+
+```sql
+-- 높은 선택도 (인덱스 효과적)
+email (거의 모두 다름) → 1.0
+order_number (모두 다름) → 1.0
+
+-- 낮은 선택도 (인덱스 비효율적)
+status (PENDING, COMPLETED, CANCELLED) → 0.3
+category (Electronics, Clothing 등 수십 개) → 0.1
+```
+
+**해결책: 복합 인덱스**
+```sql
+-- status 단독 인덱스 (비효율)
+INDEX idx_status (status)
+
+-- 복합 인덱스 (효율적)
+INDEX idx_user_status (user_id, status)
+-- user_id로 먼저 필터링 → status 조건 적용
+```
+
+### 4. 쿼리 성능 예측
+
+#### Q1: 사용자 주문 내역 조회
+```sql
+-- 쿼리
+SELECT * FROM orders WHERE user_id = 123 ORDER BY created_at DESC LIMIT 10;
+
+-- 인덱스: idx_user_created (user_id, created_at DESC)
+-- EXPLAIN:
+-- type: ref (인덱스 사용)
+-- rows: 10 (인덱스로 즉시 10건 추출)
+-- Extra: Using index condition; Backward index scan
+```
+
+#### Q2: 인기 상품 Top 5
+```sql
+SELECT p.id, p.name, SUM(oi.quantity) as sales
+FROM products p
+JOIN order_items oi ON p.id = oi.product_id
+JOIN orders o ON oi.order_id = o.id
+WHERE o.status = 'COMPLETED'
+  AND o.paid_at >= DATE_SUB(NOW(), INTERVAL 3 DAY)
+GROUP BY p.id, p.name
+ORDER BY sales DESC
+LIMIT 5;
+
+-- 최적화:
+-- 1. orders: idx_status_paid (status, paid_at) → 최근 3일 완료 주문 추출
+-- 2. order_items: idx_order_id (order_id) → 해당 주문 상품 조인
+-- 3. products: PK (id) → 상품 정보 조인
+-- 4. GROUP BY, ORDER BY → 메모리에서 처리
 ```
 
 ---
 
-## 인덱스 전략
+## 📊 인덱스 전략 요약
 
-```sql
--- 상품 조회 최적화
-CREATE INDEX idx_products_category ON products(category);
-CREATE INDEX idx_products_created_at ON products(created_at);
+### 단일 컬럼 인덱스
 
--- 재고 조회 최적화
-CREATE INDEX idx_stock_product_id ON stock(product_id);
-CREATE UNIQUE INDEX uidx_stock_product_warehouse ON stock(product_id, warehouse_id);
+| 테이블 | 인덱스 | 용도 |
+|--------|--------|------|
+| products | product_code (UNIQUE) | 상품 코드 조회 |
+| products | name | 상품명 검색 (LIKE) |
+| users | email (UNIQUE) | 로그인, 회원 조회 |
+| orders | order_number (UNIQUE) | 주문 번호 조회 |
+| coupons | coupon_code (UNIQUE) | 쿠폰 코드 조회 |
 
--- 재고 이력 조회 최적화 (FK 제약조건 없이 인덱스만 설정)
-CREATE INDEX idx_stock_history_stock_id ON stock_history(stock_id);
-CREATE INDEX idx_stock_history_product_id ON stock_history(product_id);
-CREATE INDEX idx_stock_history_reference ON stock_history(reference_type, reference_id);
-CREATE INDEX idx_stock_history_created_at ON stock_history(created_at DESC);
+### 복합 인덱스 (핵심)
 
--- 장바구니 조회 최적화
-CREATE INDEX idx_carts_user_id ON carts(user_id);
-CREATE INDEX idx_cart_items_cart_id ON cart_items(cart_id);
-CREATE INDEX idx_cart_items_product_id ON cart_items(product_id);
+| 테이블 | 인덱스 | 쿼리 패턴 | 효과 |
+|--------|--------|----------|------|
+| products | (category, created_at DESC) | 카테고리별 최신 상품 | 정렬 최적화 |
+| orders | (user_id, created_at DESC) | 사용자 주문 내역 | 커버링 인덱스 |
+| orders | (user_id, status) | 특정 상태 주문 | 등호 조건 최적화 |
+| orders | (status, paid_at) | 통계 쿼리 | 범위 조건 최적화 |
+| order_items | (product_id, order_id) | 인기 상품 집계 | 커버링 인덱스 |
+| user_coupons | (user_id, status) | 사용 가능 쿠폰 | 등호 조건 최적화 |
 
--- 주문 조회 최적화
-CREATE INDEX idx_orders_user_status ON orders(user_id, status);
-CREATE INDEX idx_orders_created_at ON orders(created_at);
-CREATE INDEX idx_orders_paid_at ON orders(paid_at);
+### 유니크 제약 인덱스
 
--- 통계 쿼리 최적화 (인기 상품)
-CREATE INDEX idx_order_items_product ON order_items(product_id);
+| 테이블 | 유니크 인덱스 | 비즈니스 규칙 |
+|--------|--------------|--------------|
+| cart_items | (cart_id, product_id) | 장바구니 내 중복 상품 방지 |
+| user_coupons | (user_id, coupon_id) | 1인 1매 제한 |
 
--- 쿠폰 조회 최적화
-CREATE INDEX idx_user_coupons_user_status ON user_coupons(user_id, status);
-CREATE INDEX idx_user_coupons_expires_at ON user_coupons(expires_at);
-CREATE UNIQUE INDEX uidx_user_coupons_user_coupon ON user_coupons(user_id, coupon_id);
+---
+
+## 🔧 마이그레이션 가이드
+
+### Week 3 → Week 4 전환
+
+**Entity 변경 사항:**
+
+```java
+// Week 3 (In-Memory)
+public class Product {
+    private String id;  // "P001"
+    private Integer stock;
+}
+
+// Week 4 (JPA)
+@Entity
+@Table(name = "products")
+public class Product {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;  // BIGINT AUTO_INCREMENT
+
+    @Column(name = "product_code", unique = true, length = 20)
+    private String productCode;  // "PROD-001" (비즈니스 ID)
+
+    @Column(name = "stock")
+    private Integer stock;
+
+    @Version
+    private Long version;  // Optimistic Lock
+}
+```
+
+**Repository 변경 사항:**
+
+```java
+// Week 3
+public interface ProductRepository {
+    Optional<Product> findById(String id);
+}
+
+// Week 4
+public interface ProductRepository extends JpaRepository<Product, Long> {
+    Optional<Product> findByProductCode(String productCode);
+
+    default Product findByProductCodeOrThrow(String productCode) {
+        return findByProductCode(productCode)
+            .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
+    }
+}
 ```
 
 ---
 
-## ERD 다이어그램 생성 방법
+## 📚 관련 문서
 
-### Option 1: dbdiagram.io (추천)
-1. https://dbdiagram.io/d 접속
-2. 위의 DBML 코드 복사
-3. 에디터에 붙여넣기
-4. 자동으로 다이어그램 생성됨
-5. Export → PNG/PDF/SQL
-
-### Option 2: Mermaid Chart
-1. https://www.mermaidchart.com 접속
-2. 새 다이어그램 생성
-3. 위의 Mermaid 코드 복사
-4. 에디터에 붙여넣기
-5. 자동으로 다이어그램 생성됨
-
-### Option 3: VS Code (Preview)
-- Mermaid Preview 확장 설치
-- Markdown 파일에서 ```mermaid 블록 사용
-- 미리보기로 다이어그램 확인
-
----
-
-## 데이터베이스 특징
-
-### 강점
-✅ 재고와 상품 분리로 확장성 확보
-✅ 재고 이력 완전 추적 (감사 가능)
-✅ 포인트 시스템 단순화 (PG 없음)
-✅ 동시성 제어 전략 명확화
-✅ 장바구니 → 주문 플로우 지원
-
-### 확장 가능성
-- 다중 창고 지원 (warehouse_id)
-- 향후 PG 연동 시 Payment 테이블 추가
-- 배송 정보는 Order 테이블 확장으로 추가 가능
-
----
-
-## 관련 문서
-- [데이터 모델 상세 설명](../api/data-models.md)
 - [API 명세서](../api/api-specification.md)
 - [요구사항 명세서](../api/requirements.md)
+- [시퀀스 다이어그램](./sequence-diagrams.md)
+
+---
+
+## 🎓 참고 자료
+
+- [MySQL 8.0 Reference Manual - InnoDB](https://dev.mysql.com/doc/refman/8.0/en/innodb-storage-engine.html)
+- [MySQL 8.0 Reference Manual - Indexes](https://dev.mysql.com/doc/refman/8.0/en/optimization-indexes.html)
+- [High Performance MySQL, 4th Edition](https://www.oreilly.com/library/view/high-performance-mysql/9781492080503/)
