@@ -120,8 +120,9 @@ docs/
 │   │   └── YULMU_FEEDBACK_IMPROVEMENTS.md     # 피드백 개선 사항
 │   ├── step7-integration-guide.md          # DB 통합 환경 설정
 │   ├── step7-implementation-examples.md    # 실전 코드 예시
-│   ├── step8-optimization-report-template.md  # 최적화 보고서
-│   └── mentoring-notes-week4.md            # 평일 멘토링 노트 (11.11)
+│   ├── step8-db-optimization-report.md     # 최적화 보고서
+│   ├── step8-explain-analysis-results.md   # EXPLAIN 분석 결과
+│   └── mentoring-notes.md                  # 평일 멘토링 노트
 │
 ├── archive/                      # 아카이브 (과거 구현)
 │   └── week3/                    # Week 3 InMemory 구현
@@ -145,8 +146,8 @@ docs/
 │   └── 11-jpa-transaction-management.md
 │
 ├── feedback/                     # 코치 피드백
-│   └── week4/
-│       └── coach-park-jisu-feedback.md
+│   ├── coach-park-jisu-feedback.md         # Week 4 피드백
+│   └── yulmu-coach-improvements.md         # Yulmu 코치 개선 사항
 │
 └── PROJECT_STRUCTURE.md          # 프로젝트 구조 가이드
 ```
@@ -168,7 +169,7 @@ docs/
 | **API 명세서** | REST API 엔드포인트 상세 | [api-specification.md](docs/api/api-specification.md) |
 | **ERD** | 데이터베이스 설계 (10개 테이블) | [erd.md](docs/diagrams/erd.md) |
 | **Step 7 통합 가이드** | MySQL 환경 설정 및 Entity 변환 | [step7-integration-guide.md](docs/week4/step7-integration-guide.md) |
-| **멘토링 노트** | DB 설계, 인덱스 전략, JPA 활용 (11.11) | [mentoring-notes-week4.md](docs/week4/mentoring-notes-week4.md) |
+| **멘토링 노트** | DB 설계, 인덱스 전략, JPA 활용 | [mentoring-notes.md](docs/week4/mentoring-notes.md) |
 
 #### 아카이브 (Week 3)
 | 문서 | 설명 | 링크 |

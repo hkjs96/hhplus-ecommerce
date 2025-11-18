@@ -1,6 +1,5 @@
 # Coach Park Jisu Feedback (Week 4)
 
-> Date: 2025-11-09
 > Target: Week 3-4 Assignment (Layered Architecture & Database Integration)
 
 ---
