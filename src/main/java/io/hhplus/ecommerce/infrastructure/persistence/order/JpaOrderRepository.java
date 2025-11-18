@@ -33,33 +33,21 @@ public interface JpaOrderRepository extends JpaRepository<Order, Long>, OrderRep
     @Query("SELECT o FROM Order o WHERE o.userId = :userId ORDER BY o.createdAt DESC")
     List<Order> findByUserId(@Param("userId") Long userId);
 
-    /**
-     * Fetch Join을 사용한 Order 조회 (N+1 해결)
-     *
-     * 장점:
-     * - 한 번의 JOIN 쿼리로 Order + OrderItem + Product 모두 조회
-     * - Lazy Loading으로 인한 추가 쿼리 발생 없음
-     * - 명시적이고 제어 가능
-     *
-     * 주의사항:
-     * - 페이징 사용 시 메모리에서 처리 (setFirstResult/setMaxResults 경고)
-     * - 일대다 관계에서 중복 데이터 발생 가능 (DISTINCT 필수)
-     * - 카테시안 곱 발생 가능 (여러 컬렉션 Fetch Join 시)
-     */
-    @Query("SELECT DISTINCT o FROM Order o " +
-           "LEFT JOIN FETCH o.orderItems oi " +
-           "LEFT JOIN FETCH oi.product " +
-           "WHERE o.userId = :userId " +
-           "ORDER BY o.createdAt DESC")
+    @Query("""
+        select distinct o from Order o
+        left join fetch o.orderItems oi
+        left join fetch oi.product p
+        where o.userId = :userId
+        order by o.createdAt desc
+        """)
     List<Order> findByUserIdWithItems(@Param("userId") Long userId);
 
-    /**
-     * 단일 Order Fetch Join 조회 (상세 페이지용)
-     */
-    @Query("SELECT DISTINCT o FROM Order o " +
-           "LEFT JOIN FETCH o.orderItems oi " +
-           "LEFT JOIN FETCH oi.product " +
-           "WHERE o.id = :orderId")
+    @Query("""
+        select distinct o from Order o
+        left join fetch o.orderItems oi
+        left join fetch oi.product p
+        where o.id = :orderId
+        """)
     Optional<Order> findByIdWithItems(@Param("orderId") Long orderId);
 
     // JpaRepository에서 이미 제공하는 메서드들:

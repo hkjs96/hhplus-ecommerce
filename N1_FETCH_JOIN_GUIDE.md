@@ -26,11 +26,13 @@
 
 ```java
 // JpaOrderRepository.java
-@Query("SELECT DISTINCT o FROM Order o " +
-       "LEFT JOIN FETCH o.orderItems oi " +
-       "LEFT JOIN FETCH oi.product " +
-       "WHERE o.userId = :userId " +
-       "ORDER BY o.createdAt DESC")
+@Query("""
+    select distinct o from Order o
+    left join fetch o.orderItems oi
+    left join fetch oi.product p
+    where o.userId = :userId
+    order by o.createdAt desc
+    """)
 List<Order> findByUserIdWithItems(@Param("userId") Long userId);
 ```
 
@@ -55,10 +57,12 @@ ORDER BY o.created_at DESC
 
 ```java
 // JpaCartItemRepository.java
-@Query("SELECT ci FROM CartItem ci " +
-       "LEFT JOIN FETCH ci.product " +
-       "WHERE ci.cartId = :cartId " +
-       "ORDER BY ci.createdAt DESC")
+@Query("""
+    select ci from CartItem ci
+    left join fetch ci.product p
+    where ci.cartId = :cartId
+    order by ci.createdAt desc
+    """)
 List<CartItem> findByCartIdWithProduct(@Param("cartId") Long cartId);
 ```
 
@@ -186,17 +190,17 @@ public OrderListResponse execute(Long userId) {
 
 ```java
 // ❌ 중복 데이터 발생
-SELECT o FROM Order o LEFT JOIN FETCH o.orderItems
+@Query("select o from Order o left join fetch o.orderItems")
 
 // ✅ DISTINCT로 중복 제거
-SELECT DISTINCT o FROM Order o LEFT JOIN FETCH o.orderItems
+@Query("select distinct o from Order o left join fetch o.orderItems")
 ```
 
 ### 2. 페이징 주의
 
 ```java
 // ⚠️ 경고 발생: 메모리에서 페이징 처리
-@Query("SELECT DISTINCT o FROM Order o LEFT JOIN FETCH o.orderItems")
+@Query("select distinct o from Order o left join fetch o.orderItems")
 Page<Order> findAll(Pageable pageable);
 
 // ✅ 대안: 페이징은 ID만, 상세는 Fetch Join
@@ -208,9 +212,11 @@ List<Order> orders = findByIdInWithItems(orderIds);
 
 ```java
 // ❌ 카테시안 곱 발생!
-SELECT o FROM Order o
-  JOIN FETCH o.orderItems
-  JOIN FETCH o.coupons
+@Query("""
+    select o from Order o
+    join fetch o.orderItems
+    join fetch o.coupons
+    """)
 
 // ✅ 하나씩 또는 Batch Size 병행
 ```

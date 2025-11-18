@@ -16,19 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-/**
- * N+1 문제 검증 테스트
- *
- * 이 테스트의 목적:
- * 1. 양방향 연관관계가 제대로 설정되었는지 확인
- * 2. Batch Size가 동작하는지 확인
- * 3. 실제 발생하는 SQL 쿼리 개수 확인
- *
- * 실행 방법:
- * - application.yml에서 show-sql: true 설정 (이미 되어있음)
- * - 로그 레벨: org.hibernate.SQL: DEBUG
- * - 테스트 실행 후 콘솔에 출력되는 SQL 쿼리 개수 확인
- */
 @Slf4j
 @SpringBootTest
 @ActiveProfiles("test")
