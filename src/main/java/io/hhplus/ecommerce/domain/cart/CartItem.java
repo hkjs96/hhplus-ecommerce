@@ -8,7 +8,6 @@ import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 /**
  * CartItem Entity
@@ -43,7 +42,6 @@ public class CartItem extends BaseEntity {
      * - 개선: Cart cart (직접 참조)
      * - 장점: Fetch Join으로 한 번에 조회 가능 (쿼리 1번)
      */
-    @Setter(AccessLevel.PROTECTED)
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "cart_id", nullable = false, foreignKey = @ForeignKey(name = "fk_cart_item_cart"))
     private Cart cart;
