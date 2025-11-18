@@ -38,7 +38,7 @@ public interface JpaUserCouponRepository extends JpaRepository<UserCoupon, Long>
             uc.used_at AS usedAt,
             c.name AS couponName,
             c.discount_rate AS discountRate,
-            c.expires_at AS expiresAt
+            uc.expires_at AS expiresAt
         FROM user_coupons uc
         JOIN coupons c ON uc.coupon_id = c.id
         WHERE uc.user_id = :userId
