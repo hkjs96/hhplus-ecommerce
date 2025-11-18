@@ -89,7 +89,6 @@
 
 **Where?**
 - [`docs/feedback/yulmu-coach-improvements.md`](../../feedback/yulmu-coach-improvements.md) - Yulmu 코치 개선 사항
-- [`docs/feedback/coach-park-jisu-feedback.md`](../../feedback/coach-park-jisu-feedback.md) - Park Jisu 코치 피드백
 
 ## 📊 검증 체크리스트
 
