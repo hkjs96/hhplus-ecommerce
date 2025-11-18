@@ -6,6 +6,8 @@ import io.hhplus.ecommerce.domain.order.OrderItemRepository;
 import io.hhplus.ecommerce.domain.order.OrderRepository;
 import io.hhplus.ecommerce.domain.product.Product;
 import io.hhplus.ecommerce.domain.product.ProductRepository;
+import io.hhplus.ecommerce.domain.product.ProductSalesAggregate;
+import io.hhplus.ecommerce.domain.product.ProductSalesAggregateRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -14,6 +16,8 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+
+import java.time.LocalDate;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -36,6 +40,9 @@ class ProductControllerIntegrationTest {
 
     @Autowired
     private OrderItemRepository orderItemRepository;
+
+    @Autowired
+    private ProductSalesAggregateRepository productSalesAggregateRepository;
 
     private Long productId1;
     private Long productId2;
@@ -115,30 +122,27 @@ class ProductControllerIntegrationTest {
     @Test
     @DisplayName("인기 상품 조회 API - 최근 3일 판매량 기준 Top 5")
     void getTopProducts_실제집계() throws Exception {
-        // Given: 완료된 주문 생성
-        Order order1 = Order.create("O001", 1L, 1500000L, 0L);
-        order1.complete();  // COMPLETED 상태
-        Order savedOrder1 = orderRepository.save(order1);
-        Long orderId1 = savedOrder1.getId();
+        // Given: ProductSalesAggregate 데이터 생성 (Rollup 전략)
+        // GetTopProductsUseCase는 ProductSalesAggregate 테이블을 조회하므로 집계 데이터를 직접 생성
+        LocalDate today = LocalDate.now();
 
-        OrderItem item1 = OrderItem.create(orderId1, productId1, 5, 1500000L);  // 노트북 5개
-        orderItemRepository.save(item1);
+        // 노트북 - 오늘 5개 판매
+        ProductSalesAggregate agg1 = ProductSalesAggregate.create(
+                productId1, "노트북", today, 5, 7500000L
+        );
+        productSalesAggregateRepository.save(agg1);
 
-        Order order2 = Order.create("O002", 1L, 240000L, 0L);
-        order2.complete();
-        Order savedOrder2 = orderRepository.save(order2);
-        Long orderId2 = savedOrder2.getId();
+        // 마우스 - 오늘 4개 판매
+        ProductSalesAggregate agg2 = ProductSalesAggregate.create(
+                productId2, "마우스", today, 4, 320000L
+        );
+        productSalesAggregateRepository.save(agg2);
 
-        OrderItem item2 = OrderItem.create(orderId2, productId3, 2, 120000L);  // 키보드 2개
-        orderItemRepository.save(item2);
-
-        Order order3 = Order.create("O003", 1L, 320000L, 0L);
-        order3.complete();
-        Order savedOrder3 = orderRepository.save(order3);
-        Long orderId3 = savedOrder3.getId();
-
-        OrderItem item3 = OrderItem.create(orderId3, productId2, 4, 80000L);  // 마우스 4개
-        orderItemRepository.save(item3);
+        // 키보드 - 오늘 2개 판매
+        ProductSalesAggregate agg3 = ProductSalesAggregate.create(
+                productId3, "키보드", today, 2, 240000L
+        );
+        productSalesAggregateRepository.save(agg3);
 
         // When & Then
         mockMvc.perform(get("/api/products/top"))

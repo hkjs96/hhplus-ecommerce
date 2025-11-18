@@ -49,8 +49,7 @@ public class RemoveFromCartUseCase {
         cartItemRepository.deleteById(cartItem.getId());
         log.debug("Deleted cart item: {}", cartItem.getId());
 
-        // 5. 장바구니 업데이트 시간 갱신
-        cart.updateTimestamp();
+        // 5. 장바구니 저장 (updatedAt은 JPA Auditing이 자동 처리)
         cartRepository.save(cart);
     }
 }

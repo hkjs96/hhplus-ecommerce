@@ -274,12 +274,12 @@ class DatabasePerformanceAnalysisTest {
             SELECT
                 c.id, c.user_id, c.created_at, c.updated_at,
                 ci.id AS item_id, ci.product_id, p.name AS product_name,
-                p.price, ci.quantity, ci.added_at
+                p.price, ci.quantity, ci.created_at
             FROM carts c
             LEFT JOIN cart_items ci ON c.id = ci.cart_id
             LEFT JOIN products p ON ci.product_id = p.id
             WHERE c.user_id = 1
-            ORDER BY ci.added_at DESC
+            ORDER BY ci.created_at DESC
             """;
 
         executeExplain(query, "Cart with Items");

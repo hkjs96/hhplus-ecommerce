@@ -72,8 +72,7 @@ public class UpdateCartItemUseCase {
         cartItem.updateQuantity(request.quantity());
         cartItemRepository.save(cartItem);
 
-        // 7. 장바구니 업데이트 시간 갱신
-        cart.updateTimestamp();
+        // 7. 장바구니 저장 (updatedAt은 JPA Auditing이 자동 처리)
         cartRepository.save(cart);
 
         Long subtotal = product.getPrice() * request.quantity();

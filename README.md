@@ -102,30 +102,75 @@ docs/
 │   ├── erd.md                    # ERD (DBML, Mermaid)
 │   └── sequence-diagrams.md      # 시퀀스 다이어그램 (API별)
 │
-├── week4/                        # Week 4 구현 가이드 ⭐
+├── week2/                        # Week 2 설계 문서
+│   └── (ERD, Sequence, API 명세 등)
+│
+├── week4/                        # Week 4 구현 가이드 ⭐ (현재)
+│   ├── README.md                 # Week 4 전체 가이드
+│   ├── verification/             # 검증 문서
+│   │   ├── README.md                           # 검증 가이드
+│   │   ├── N1_PROBLEM_SOLUTION.md              # N+1 문제 완전 가이드
+│   │   ├── EXPLAIN_ANALYZE_GUIDE.md            # 쿼리 분석
+│   │   ├── QUERY_OPTIMIZATION_SUMMARY.md       # 최적화 종합
+│   │   ├── STOCK_DECREASE_VERIFICATION.md      # 재고 플로우 검증
+│   │   └── TOP_PRODUCTS_QUERY_VERIFICATION.md  # 인기 상품 검증
 │   ├── step7-integration-guide.md          # DB 통합 환경 설정
 │   ├── step7-implementation-examples.md    # 실전 코드 예시
-│   ├── step8-optimization-report-template.md  # 최적화 보고서
-│   └── mentoring-notes-week4.md            # 평일 멘토링 노트 (11.11)
+│   ├── step8-db-optimization-report.md     # 최적화 보고서
+│   ├── step8-explain-analysis-results.md   # EXPLAIN 분석 결과
+│   └── mentoring-notes.md                  # 평일 멘토링 노트
+│
+├── archive/                      # 아카이브 (과거 구현)
+│   └── week3/                    # Week 3 InMemory 구현
+│       ├── README.md             # Week 3 아카이브 설명
+│       ├── commands/             # Week 3 slash commands
+│       │   ├── week3-guide.md
+│       │   └── week3-faq.md
+│       └── learning-points/      # Week 3 학습 포인트
+│           ├── 04-repository-pattern.md
+│           ├── 05-concurrency-control.md
+│           ├── 06-testing-strategy.md
+│           ├── 09-concurrent-collections.md
+│           └── 10-testing-strategies-week3.md
+│
+├── learning-points/              # 개념 학습 문서
+│   ├── 01-layered-architecture.md
+│   ├── 02-usecase-pattern.md
+│   ├── 03-domain-modeling.md
+│   ├── 07-dto-design.md
+│   ├── 08-discussion-topics.md
+│   └── 11-jpa-transaction-management.md
 │
 ├── feedback/                     # 코치 피드백
-│   └── week4/
-│       └── coach-park-jisu-feedback.md
+│   ├── coach-park-jisu-feedback.md         # Week 4 피드백
+│   └── yulmu-coach-improvements.md         # Yulmu 코치 개선 사항
 │
 └── PROJECT_STRUCTURE.md          # 프로젝트 구조 가이드
 ```
 
 ### 📍 주요 문서 바로가기
 
+#### Week 4 현재 구현
 | 문서 | 설명 | 링크 |
 |------|------|------|
-| **Step 7 통합 가이드** | MySQL 환경 설정 및 Entity 변환 | [step7-integration-guide.md](docs/week4/step7-integration-guide.md) |
-| **Step 7 코드 예시** | Repository, Outbox, Transaction 구현 | [step7-implementation-examples.md](docs/week4/step7-implementation-examples.md) |
-| **Step 8 최적화 템플릿** | 성능 병목 분석 및 보고서 작성 | [step8-optimization-report-template.md](docs/week4/step8-optimization-report-template.md) |
-| **멘토링 노트** | DB 설계, 인덱스 전략, JPA 활용 (11.11) | [mentoring-notes-week4.md](docs/week4/mentoring-notes-week4.md) |
+| **Week 4 README** | Week 4 전체 가이드 (JPA, N+1, 최적화) | [docs/week4/README.md](docs/week4/README.md) |
+| **검증 문서 INDEX** | 검증 가이드 및 전체 문서 목록 | [docs/week4/verification/README.md](docs/week4/verification/README.md) |
+| **N+1 문제 해결** | N+1 문제 완전 가이드 (문제, 해결, 검증) | [N1_PROBLEM_SOLUTION.md](docs/week4/verification/N1_PROBLEM_SOLUTION.md) |
+| **쿼리 최적화 종합** | EXPLAIN, Index, Rollup 전략 | [QUERY_OPTIMIZATION_SUMMARY.md](docs/week4/verification/QUERY_OPTIMIZATION_SUMMARY.md) |
+| **Yulmu 코치 피드백** | Step 9-10 코치 피드백 개선 사항 | [yulmu-coach-improvements.md](docs/feedback/yulmu-coach-improvements.md) |
+
+#### 설계 문서
+| 문서 | 설명 | 링크 |
+|------|------|------|
 | **API 명세서** | REST API 엔드포인트 상세 | [api-specification.md](docs/api/api-specification.md) |
 | **ERD** | 데이터베이스 설계 (10개 테이블) | [erd.md](docs/diagrams/erd.md) |
-| **코치 피드백** | Week 4 코치 피드백 정리 | [coach-park-jisu-feedback.md](docs/feedback/week4/coach-park-jisu-feedback.md) |
+| **Step 7 통합 가이드** | MySQL 환경 설정 및 Entity 변환 | [step7-integration-guide.md](docs/week4/step7-integration-guide.md) |
+| **멘토링 노트** | DB 설계, 인덱스 전략, JPA 활용 | [mentoring-notes.md](docs/week4/mentoring-notes.md) |
+
+#### 아카이브 (Week 3)
+| 문서 | 설명 | 링크 |
+|------|------|------|
+| **Week 3 아카이브** | InMemory 구현 학습 자료 | [docs/archive/week3/README.md](docs/archive/week3/README.md) |
 
 ---
 

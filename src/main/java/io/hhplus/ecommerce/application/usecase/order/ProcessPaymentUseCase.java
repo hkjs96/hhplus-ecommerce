@@ -62,17 +62,17 @@ public class ProcessPaymentUseCase {
             );
         }
 
-        // 5. 잔액 차감
-        user.deduct(order.getTotalAmount());
-        userRepository.save(user);
-
-        // 6. 재고 차감
+        // 5. 재고 차감 (결제 성공 시에만 재고 감소)
         List<OrderItem> orderItems = orderItemRepository.findByOrderId(orderId);
         for (OrderItem item : orderItems) {
             Product product = productRepository.findByIdOrThrow(item.getProductId());
             product.decreaseStock(item.getQuantity());
             productRepository.save(product);
         }
+
+        // 6. 잔액 차감
+        user.deduct(order.getTotalAmount());
+        userRepository.save(user);
 
         // 7. 주문 완료 처리
         order.complete();

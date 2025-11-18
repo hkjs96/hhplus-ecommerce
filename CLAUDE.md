@@ -25,9 +25,10 @@ This is a Spring Boot e-commerce reference project for the Hanghe Plus backend c
 - ✅ **step6**: Concurrency Control & Integration Testing
 - **Status**: 94% test coverage, layered architecture complete
 
-### Phase 3: Database Integration 🚧 (Week 4 - 현재)
-- 🚧 **step7-8**: JPA Entity, Spring Data JPA, Transaction Management
-- **Status**: In Progress
+### Phase 3: Database Integration ✅ (Week 4)
+- ✅ **step7-8**: JPA Entity, Spring Data JPA, Transaction Management
+- ✅ **step9-10**: N+1 문제 해결, 쿼리 최적화, 코치 피드백 반영
+- **Status**: 완료 (테스트 커버리지 94%, N+1 해결, 쿼리 최적화)
 
 ---
 
@@ -62,30 +63,41 @@ When you receive a task, **first check the relevant documentation** before start
 | `@.claude/commands/architecture.md` | Layered Architecture 상세 설명 | Repository 패턴, 검증 레이어 분리 |
 | `@.claude/commands/concurrency.md` | 동시성 제어 패턴 비교 | synchronized vs ReentrantLock vs CAS |
 | `@.claude/commands/testing.md` | 테스트 전략 및 품질 | F.I.R.S.T 원칙, Test Isolation |
+| `@.claude/commands/implementation.md` | Step 5-6 구현 가이드 | Week 3 UseCase 패턴, Repository 구현 |
 | `@docs/week2/` | Week 2 문서 (ERD, Sequence, API) | API 명세, 요구사항 확인 |
-| `@docs/week3/` | Week 3 분석 문서 | Layered Architecture 구현 분석 |
+| `@docs/week4/` | Week 4 문서 (JPA, N+1, 쿼리 최적화) | 현재 구현 참조, 검증 방법 |
+| `@docs/week4/verification/` | 검증 문서 (N+1, EXPLAIN, 피드백) | N+1 해결, 쿼리 분석, 개선 사항 |
+| `@docs/archive/week3/` | Week 3 아카이브 (InMemory 구현) | InMemory 학습, Repository 패턴 기초 |
+| `@docs/learning-points/` | 학습 포인트 (아키텍처, JPA, 테스트) | 개념 학습, 설계 원칙 |
 
 ---
 
-## 🚩 Current Task: Week 4 - Database Integration
+## 🚩 Current Status: Week 4 Complete ✅
 
-### 과제 목표
-1. **JPA Entity 구현**: Week 3 도메인 모델을 JPA Entity로 전환
-2. **Spring Data JPA Repository**: JpaRepository 활용, In-Memory 제거
-3. **Transaction Management**: @Transactional 적용
-4. **Database 연동**: MySQL
+### Week 4 완료 사항
+1. ✅ **JPA Entity 구현**: Week 3 도메인 모델을 JPA Entity로 전환 완료
+2. ✅ **Spring Data JPA Repository**: JpaRepository 활용, InMemory Repository 제거 완료
+3. ✅ **Transaction Management**: @Transactional 적용 완료
+4. ✅ **Database 연동**: MySQL 연동 및 초기 데이터 로딩 완료
+5. ✅ **N+1 문제 해결**: Fetch Join 적용, N+1 문제 전체 해결
+6. ✅ **쿼리 최적화**: EXPLAIN ANALYZE 기반 성능 분석 및 최적화
+7. ✅ **코치 피드백 반영**: Yulmu 코치 피드백 전체 적용 (Step 9-10)
 
-### Pass 조건
-- [ ] JPA Entity 변환 (비즈니스 로직 유지)
-- [ ] Spring Data JPA Repository 활용
-- [ ] @Transactional 적절히 적용
-- [ ] In-Memory Repository 제거
-- [ ] 테스트 커버리지 70% 이상 유지
+### Pass 조건 달성
+- ✅ JPA Entity 변환 (비즈니스 로직 유지)
+- ✅ Spring Data JPA Repository 활용
+- ✅ @Transactional 적절히 적용
+- ✅ InMemory Repository 제거
+- ✅ 테스트 커버리지 94% 유지
+- ✅ N+1 문제 해결
+- ✅ 쿼리 최적화
 
-### Fail 사유
-- ❌ In-Memory 유지 (JPA 미사용)
-- ❌ Entity에서 비즈니스 로직 제거 (Anemic Domain Model)
-- ❌ @Transactional 부재 또는 잘못된 위치 적용
+### 검증 문서
+- 📄 [`docs/week4/verification/`](./docs/week4/verification/) - 전체 검증 문서
+- 📄 [`docs/week4/verification/YULMU_FEEDBACK_STATUS.md`](./docs/week4/verification/YULMU_FEEDBACK_STATUS.md) - 피드백 반영 상태
+
+### 다음 단계
+**Week 5**: 외부 API 연동, Async/Fallback, 인기 상품 배치
 
 ---
 
@@ -186,31 +198,38 @@ public class OrderUseCase {
 
 ---
 
-## ✅ Week 4 Implementation Checklist
+## ✅ Week 4 Implementation Checklist (완료)
 
-### JPA Entity
-- [ ] Product, User, Order, OrderItem Entity 변환
-- [ ] Cart, CartItem Entity 변환
-- [ ] Coupon, UserCoupon Entity 변환
-- [ ] 비즈니스 로직 메서드 유지
+### JPA Entity ✅
+- [x] Product, User, Order, OrderItem Entity 변환
+- [x] Cart, CartItem Entity 변환
+- [x] Coupon, UserCoupon Entity 변환
+- [x] 비즈니스 로직 메서드 유지
 
-### Spring Data JPA Repository
-- [ ] JpaRepository 상속
-- [ ] 커스텀 쿼리 메서드 작성
-- [ ] InMemory Repository 제거
+### Spring Data JPA Repository ✅
+- [x] JpaRepository 상속
+- [x] 커스텀 쿼리 메서드 작성 (@Query, Fetch Join)
+- [x] InMemory Repository 제거 (8개 파일 삭제)
 
-### Database Configuration
-- [ ] application.yml 설정 (MySQL)
-- [ ] 초기 데이터 로딩 (ApplicationRunner)
+### Database Configuration ✅
+- [x] application.yml 설정 (MySQL)
+- [x] 초기 데이터 로딩 (DataInitializer)
 
-### Transaction Management
-- [ ] UseCase에 @Transactional 적용
-- [ ] 읽기 전용 메서드 readOnly=true
+### Transaction Management ✅
+- [x] UseCase에 @Transactional 적용
+- [x] 읽기 전용 메서드 readOnly=true
+- [x] OptimisticLockingFailureException 처리
 
-### Testing
-- [ ] Repository 테스트 (@DataJpaTest)
-- [ ] 통합 테스트 (@SpringBootTest)
-- [ ] 테스트 커버리지 70% 이상 유지
+### Performance Optimization ✅
+- [x] N+1 문제 전체 해결 (Fetch Join)
+- [x] EXPLAIN ANALYZE 기반 쿼리 최적화
+- [x] ProductSalesAggregate 롤업 전략
+
+### Testing ✅
+- [x] Repository 테스트 (@DataJpaTest)
+- [x] 통합 테스트 (@SpringBootTest)
+- [x] 테스트 커버리지 94% 유지
+- [x] N+1 검증 테스트 (N1ProblemVerificationTest)
 
 ---
 
