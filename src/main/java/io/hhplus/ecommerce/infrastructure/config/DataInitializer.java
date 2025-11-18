@@ -268,39 +268,112 @@ public class DataInitializer implements ApplicationRunner {
     private void initOrders() {
         log.info("📦 Creating test orders...");
 
-        // User 1 (김항해)의 주문 1: 완료된 주문
         User user1 = userRepository.findByEmail("hanghae@example.com").orElseThrow();
+        User user2 = userRepository.findByEmail("plus@example.com").orElseThrow();
+        User user3 = userRepository.findByEmail("backend@example.com").orElseThrow();
+
+        // 전체 상품 목록 가져오기
         Product laptop = productRepository.findByProductCode("P001").orElseThrow();
         Product mouse = productRepository.findByProductCode("P002").orElseThrow();
-
-        Long subtotal1 = laptop.getPrice() + (mouse.getPrice() * 2);  // 노트북 1개 + 마우스 2개
-        Order order1 = Order.create("ORD-20250118-001", user1.getId(), subtotal1, 0L);
-        OrderItem orderItem1 = OrderItem.create(order1, laptop, 1, laptop.getPrice());
-        OrderItem orderItem2 = OrderItem.create(order1, mouse, 2, mouse.getPrice());
-
-        order1.complete();  // 완료 상태로 변경
-        orderRepository.save(order1);
-
-        // User 1 (김항해)의 주문 2: 대기 중인 주문
         Product keyboard = productRepository.findByProductCode("P003").orElseThrow();
-        Long subtotal2 = keyboard.getPrice();
-        Order order2 = Order.create("ORD-20250118-002", user1.getId(), subtotal2, 0L);
-        OrderItem orderItem3 = OrderItem.create(order2, keyboard, 1, keyboard.getPrice());
-
-        orderRepository.save(order2);  // PENDING 상태 유지
-
-        // User 2 (이플러스)의 주문: 완료된 주문
-        User user2 = userRepository.findByEmail("plus@example.com").orElseThrow();
         Product monitor = productRepository.findByProductCode("P004").orElseThrow();
+        Product headset = productRepository.findByProductCode("P005").orElseThrow();
+        Product webcam = productRepository.findByProductCode("P006").orElseThrow();
+        Product speaker = productRepository.findByProductCode("P007").orElseThrow();
 
-        Long subtotal3 = monitor.getPrice();
-        Order order3 = Order.create("ORD-20250118-003", user2.getId(), subtotal3, 0L);
-        OrderItem orderItem4 = OrderItem.create(order3, monitor, 1, monitor.getPrice());
+        int orderCount = 0;
 
-        order3.complete();
-        orderRepository.save(order3);
+        // User 1 (김항해): 10개의 주문 생성
+        for (int i = 1; i <= 10; i++) {
+            String orderNumber = String.format("ORD-20250118-%03d", ++orderCount);
 
-        log.info("   ✓ Created 3 test orders (User 1: 2 orders, User 2: 1 order)");
-        log.info("   ℹ️ Status: Order 1 (COMPLETED), Order 2 (PENDING), Order 3 (COMPLETED)");
+            // 주문마다 3-5개의 상품 포함
+            Long subtotal;
+
+            if (i % 3 == 0) {
+                // 노트북 + 마우스 + 키보드
+                subtotal = laptop.getPrice() + (mouse.getPrice() * 2) + keyboard.getPrice();
+            } else if (i % 3 == 1) {
+                // 모니터 + 헤드셋 + 웹캠
+                subtotal = monitor.getPrice() + (headset.getPrice() * 2) + webcam.getPrice();
+            } else {
+                // 스피커 + 마우스 + 키보드 + 웹캠
+                subtotal = speaker.getPrice() + mouse.getPrice() + keyboard.getPrice() + webcam.getPrice();
+            }
+
+            Order order = Order.create(orderNumber, user1.getId(), subtotal, 0L);
+
+            if (i % 3 == 0) {
+                OrderItem.create(order, laptop, 1, laptop.getPrice());
+                OrderItem.create(order, mouse, 2, mouse.getPrice());
+                OrderItem.create(order, keyboard, 1, keyboard.getPrice());
+            } else if (i % 3 == 1) {
+                OrderItem.create(order, monitor, 1, monitor.getPrice());
+                OrderItem.create(order, headset, 2, headset.getPrice());
+                OrderItem.create(order, webcam, 1, webcam.getPrice());
+            } else {
+                OrderItem.create(order, speaker, 1, speaker.getPrice());
+                OrderItem.create(order, mouse, 1, mouse.getPrice());
+                OrderItem.create(order, keyboard, 1, keyboard.getPrice());
+                OrderItem.create(order, webcam, 1, webcam.getPrice());
+            }
+
+            // 70% 확률로 완료 처리
+            if (i <= 7) {
+                order.complete();
+            }
+
+            orderRepository.save(order);
+        }
+
+        // User 2 (이플러스): 5개의 주문 생성
+        for (int i = 1; i <= 5; i++) {
+            String orderNumber = String.format("ORD-20250118-%03d", ++orderCount);
+            Long subtotal;
+
+            if (i % 2 == 0) {
+                subtotal = laptop.getPrice() + monitor.getPrice();
+            } else {
+                subtotal = (keyboard.getPrice() * 2) + (mouse.getPrice() * 3);
+            }
+
+            Order order = Order.create(orderNumber, user2.getId(), subtotal, 0L);
+
+            if (i % 2 == 0) {
+                OrderItem.create(order, laptop, 1, laptop.getPrice());
+                OrderItem.create(order, monitor, 1, monitor.getPrice());
+            } else {
+                OrderItem.create(order, keyboard, 2, keyboard.getPrice());
+                OrderItem.create(order, mouse, 3, mouse.getPrice());
+            }
+
+            if (i <= 3) {
+                order.complete();
+            }
+
+            orderRepository.save(order);
+        }
+
+        // User 3 (박백엔드): 3개의 주문 생성
+        for (int i = 1; i <= 3; i++) {
+            String orderNumber = String.format("ORD-20250118-%03d", ++orderCount);
+            Long subtotal = headset.getPrice() + webcam.getPrice();
+
+            Order order = Order.create(orderNumber, user3.getId(), subtotal, 0L);
+
+            OrderItem.create(order, headset, 1, headset.getPrice());
+            OrderItem.create(order, webcam, 1, webcam.getPrice());
+
+            if (i <= 2) {
+                order.complete();
+            }
+
+            orderRepository.save(order);
+        }
+
+        log.info("   ✓ Created 18 test orders (User 1: 10, User 2: 5, User 3: 3)");
+        log.info("   ℹ️ Average 3-4 items per order for realistic N+1 demonstration");
+        log.info("   📊 Expected queries WITHOUT Fetch Join: ~55+ queries");
+        log.info("   📊 Expected queries WITH Fetch Join: 1 query");
     }
 }
