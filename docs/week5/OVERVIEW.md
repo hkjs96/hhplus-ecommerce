@@ -217,18 +217,29 @@ public PaymentResult processPayment(String idempotencyKey, PaymentRequest reques
 
 ```
 docs/week5/
-├── OVERVIEW.md                    # ✅ 전체 개요 (현재 문서)
-├── CONCURRENCY_ANALYSIS.md        # 동시성 문제 상세 분석
-├── SOLUTION_COMPARISON.md         # 해결 방안 비교 (전문가 리뷰)
-├── IMPLEMENTATION_GUIDE.md        # 구현 가이드 (코드 포함)
-├── TEST_STRATEGY.md               # 테스트 전략 및 시나리오
-├── PERFORMANCE_OPTIMIZATION.md    # 성능 측정 및 최적화
-└── EXPERT_REVIEWS.md              # 전문가별 상세 리뷰
+├── OVERVIEW.md                      # ✅ 전체 개요 (현재 문서)
+├── TRANSACTION_FUNDAMENTALS.md     # 트랜잭션 기초 (ACID, 격리 수준)
+├── LOCK_AND_RACE_CONDITION.md      # Lock 메커니즘 및 Race Condition
+├── CONCURRENCY_ANALYSIS.md          # 동시성 문제 상세 분석
+├── SOLUTION_COMPARISON.md           # 해결 방안 비교 (전문가 리뷰)
+├── IMPLEMENTATION_GUIDE.md          # 구현 가이드 (코드 포함)
+├── TEST_STRATEGY.md                 # 테스트 전략 및 시나리오
+└── PERFORMANCE_OPTIMIZATION.md      # 성능 측정 및 최적화
 ```
 
 ---
 
 ## 🚀 학습 로드맵
+
+### Phase 0: 기초 학습 (사전 학습)
+1. `TRANSACTION_FUNDAMENTALS.md` 읽고 트랜잭션 기초 이해
+   - ACID 속성
+   - 격리 수준 (Isolation Levels)
+   - 트랜잭션 상태 전이
+2. `LOCK_AND_RACE_CONDITION.md` 읽고 Lock 메커니즘 이해
+   - S-Lock vs X-Lock
+   - Deadlock 발생 원리
+   - Race Condition 패턴
 
 ### Phase 1: 문제 이해 (STEP09 Day 1-2)
 1. `CONCURRENCY_ANALYSIS.md` 읽고 동시성 문제 5가지 이해
@@ -237,7 +248,7 @@ docs/week5/
 
 ### Phase 2: 해결 방안 학습 (STEP09 Day 3-4)
 1. `SOLUTION_COMPARISON.md` 읽고 5가지 동시성 제어 방식 비교
-2. `EXPERT_REVIEWS.md`에서 전문가 의견 확인
+2. 전문가 의견 참고 (각 문서 내 페르소나별 분석)
 3. 각 시나리오에 적합한 방식 선택 및 근거 작성
 
 ### Phase 3: 구현 (STEP09 Day 5-6)
@@ -279,12 +290,16 @@ docs/week5/
 
 ## 📚 다음 문서
 
+### 기초 학습
+- **트랜잭션 기초**: [TRANSACTION_FUNDAMENTALS.md](./TRANSACTION_FUNDAMENTALS.md)
+- **Lock과 Race Condition**: [LOCK_AND_RACE_CONDITION.md](./LOCK_AND_RACE_CONDITION.md)
+
+### 심화 학습
 - **동시성 문제 분석**: [CONCURRENCY_ANALYSIS.md](./CONCURRENCY_ANALYSIS.md)
 - **해결 방안 비교**: [SOLUTION_COMPARISON.md](./SOLUTION_COMPARISON.md)
 - **구현 가이드**: [IMPLEMENTATION_GUIDE.md](./IMPLEMENTATION_GUIDE.md)
 - **테스트 전략**: [TEST_STRATEGY.md](./TEST_STRATEGY.md)
 - **성능 최적화**: [PERFORMANCE_OPTIMIZATION.md](./PERFORMANCE_OPTIMIZATION.md)
-- **전문가 리뷰**: [EXPERT_REVIEWS.md](./EXPERT_REVIEWS.md)
 
 ---
 
