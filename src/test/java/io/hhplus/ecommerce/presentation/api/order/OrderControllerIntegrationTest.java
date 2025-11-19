@@ -26,6 +26,7 @@ import org.springframework.test.web.servlet.MvcResult;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -176,7 +177,7 @@ class OrderControllerIntegrationTest {
         String orderId = objectMapper.readTree(createResult.getResponse().getContentAsString())
                 .get("orderId").asText();
 
-        PaymentRequest paymentRequest = new PaymentRequest(testUserId);
+        PaymentRequest paymentRequest = new PaymentRequest(testUserId, UUID.randomUUID().toString());
 
         // When & Then - Process payment
         mockMvc.perform(post("/api/orders/" + orderId + "/payment")
@@ -198,7 +199,7 @@ class OrderControllerIntegrationTest {
     @DisplayName("결제 처리 API - 존재하지 않는 주문")
     void processPayment_실패_존재하지않는주문() throws Exception {
         // Given
-        PaymentRequest paymentRequest = new PaymentRequest(testUserId);
+        PaymentRequest paymentRequest = new PaymentRequest(testUserId, UUID.randomUUID().toString());
 
         // When & Then
         mockMvc.perform(post("/api/orders/99999/payment")
@@ -230,7 +231,7 @@ class OrderControllerIntegrationTest {
         String orderId = objectMapper.readTree(createResult.getResponse().getContentAsString())
                 .get("orderId").asText();
 
-        PaymentRequest paymentRequest = new PaymentRequest(poorUserId);
+        PaymentRequest paymentRequest = new PaymentRequest(poorUserId, UUID.randomUUID().toString());
 
         // When & Then - Payment fails due to insufficient balance
         mockMvc.perform(post("/api/orders/" + orderId + "/payment")
@@ -256,7 +257,7 @@ class OrderControllerIntegrationTest {
         String orderId = objectMapper.readTree(createResult.getResponse().getContentAsString())
                 .get("orderId").asText();
 
-        PaymentRequest paymentRequest = new PaymentRequest(testUserId);
+        PaymentRequest paymentRequest = new PaymentRequest(testUserId, UUID.randomUUID().toString());
 
         // First payment - success
         mockMvc.perform(post("/api/orders/" + orderId + "/payment")
@@ -318,7 +319,7 @@ class OrderControllerIntegrationTest {
         String orderId1 = objectMapper.readTree(result1.getResponse().getContentAsString())
                 .get("orderId").asText();
 
-        PaymentRequest paymentRequest = new PaymentRequest(testUserId);
+        PaymentRequest paymentRequest = new PaymentRequest(testUserId, UUID.randomUUID().toString());
         mockMvc.perform(post("/api/orders/" + orderId1 + "/payment")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(paymentRequest)))
@@ -357,7 +358,7 @@ class OrderControllerIntegrationTest {
             String orderId = objectMapper.readTree(result.getResponse().getContentAsString())
                     .get("orderId").asText();
 
-            PaymentRequest paymentRequest = new PaymentRequest(testUserId);
+            PaymentRequest paymentRequest = new PaymentRequest(testUserId, UUID.randomUUID().toString());
             mockMvc.perform(post("/api/orders/" + orderId + "/payment")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(paymentRequest)))
