@@ -19,6 +19,16 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+/**
+ * 결제 처리 UseCase
+ * <p>
+ * 동시성 제어: Pessimistic Lock (SELECT FOR UPDATE)
+ * - 잔액 차감: Pessimistic Lock (Lost Update 절대 불가, 돈 손실 방지)
+ * - 재고 차감: Pessimistic Lock (충돌 빈번, 크리티컬)
+ * - 결제는 한 번 실패하면 재시도가 불가능하므로 정확성 최우선
+ * <p>
+ * 참고: 잔액 충전은 Optimistic Lock 사용 (ChargeBalanceUseCase)
+ */
 @Slf4j
 @UseCase
 @RequiredArgsConstructor
@@ -34,9 +44,13 @@ public class ProcessPaymentUseCase {
         log.debug("Processing payment for order: {}, user: {}", orderId, request.userId());
 
         // 1. 주문 조회 및 사용자 조회 (Pessimistic Lock)
-        // 동시성 제어: 잔액 업데이트 시 Pessimistic Lock
+        // 동시성 제어: 잔액 차감 시 Pessimistic Lock (SELECT FOR UPDATE)
         // - 5명 관점: 김데이터(O), 박트래픽(X:Optimistic), 이금융(O), 최아키텍트(X:Event), 정스타트업(O)
         // - 최종 선택: Pessimistic Lock (돈 관련은 정확성 최우선)
+        //   · 차감은 Lost Update 절대 불가 (돈 손실 방지)
+        //   · 충돌 빈번 (결제는 동시 요청 가능성)
+        //   · 재시도 불가 (한 번 실패하면 재결제 필요)
+        // - 충전과 대조: 충전은 Optimistic Lock (ChargeBalanceUseCase 참고)
         Order order = orderRepository.findByIdOrThrow(orderId);
         User user = userRepository.findByIdWithLockOrThrow(request.userId());  // Pessimistic Lock
 
