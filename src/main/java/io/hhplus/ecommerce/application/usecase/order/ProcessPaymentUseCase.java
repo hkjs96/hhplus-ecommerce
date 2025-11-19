@@ -11,6 +11,7 @@ import io.hhplus.ecommerce.domain.order.Order;
 import io.hhplus.ecommerce.domain.order.OrderItem;
 import io.hhplus.ecommerce.domain.order.OrderItemRepository;
 import io.hhplus.ecommerce.domain.order.OrderRepository;
+import io.hhplus.ecommerce.domain.payment.PaymentCompletedEvent;
 import io.hhplus.ecommerce.domain.payment.PaymentIdempotency;
 import io.hhplus.ecommerce.domain.payment.PaymentIdempotencyRepository;
 import io.hhplus.ecommerce.domain.product.Product;
@@ -19,6 +20,7 @@ import io.hhplus.ecommerce.domain.user.User;
 import io.hhplus.ecommerce.domain.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +41,10 @@ import java.util.Optional;
  * - PROCESSING: 409 Conflict (동시 요청)
  * - FAILED: 재시도 가능하므로 재처리
  * <p>
+ * 외부 API 트랜잭션 분리: Spring Events + @TransactionalEventListener
+ * - 결제 트랜잭션 커밋 후 외부 API 호출 (AFTER_COMMIT)
+ * - 외부 API 실패해도 결제는 완료 상태 유지
+ * <p>
  * 참고: 잔액 충전은 Optimistic Lock 사용 (ChargeBalanceUseCase)
  */
 @Slf4j
@@ -51,6 +57,7 @@ public class ProcessPaymentUseCase {
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
     private final PaymentIdempotencyRepository paymentIdempotencyRepository;
+    private final ApplicationEventPublisher eventPublisher;
     private final ObjectMapper objectMapper;
 
     @Transactional
@@ -164,15 +171,28 @@ public class ProcessPaymentUseCase {
 
             log.info("Payment processed successfully. orderId: {}, amount: {}", orderId, order.getTotalAmount());
 
-            // 8. 외부 데이터 전송 (향후 비동기 처리 예정)
-            String dataTransmission = "SUCCESS";
+            // 8. 외부 데이터 전송 이벤트 발행 (트랜잭션 커밋 후 실행)
+            // 동시성 제어: 외부 API는 트랜잭션 밖에서 실행 (AFTER_COMMIT)
+            // - 5명 관점: 김데이터(O), 박트래픽(△:Async), 이금융(△:보상TX), 최아키텍트(O), 정스타트업(O)
+            // - 최종 선택: Spring Events + @TransactionalEventListener(AFTER_COMMIT)
+            //   · DB 트랜잭션 최소화 (외부 API 대기 시간 제외)
+            //   · 외부 API 실패해도 결제는 완료 상태 유지
+            //   · 향후 @Async + 메시지 큐로 확장 가능
+            PaymentCompletedEvent event = PaymentCompletedEvent.of(
+                order.getId(),
+                user.getId(),
+                order.getTotalAmount(),
+                order.getPaidAt()
+            );
+            eventPublisher.publishEvent(event);
+            log.debug("PaymentCompletedEvent published. orderId: {}", orderId);
 
             PaymentResponse response = PaymentResponse.of(
                     order.getId(),
                     order.getTotalAmount(),
                     user.getBalance(),
                     "SUCCESS",
-                    dataTransmission,
+                    "EVENT_PUBLISHED",  // 외부 API는 이벤트로 분리됨
                     order.getPaidAt()
             );
 
