@@ -1,5 +1,6 @@
 package io.hhplus.ecommerce.infrastructure.persistence.product;
 
+import io.hhplus.ecommerce.application.product.dto.TopProductItem;
 import io.hhplus.ecommerce.domain.product.ProductSalesAggregate;
 import io.hhplus.ecommerce.domain.product.ProductSalesAggregateRepository;
 import io.hhplus.ecommerce.domain.product.TopProductProjection;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Repository
 public interface JpaProductSalesAggregateRepository extends JpaRepository<ProductSalesAggregate, Long>, ProductSalesAggregateRepository {
@@ -93,6 +95,35 @@ public interface JpaProductSalesAggregateRepository extends JpaRepository<Produc
         LIMIT 5
         """, nativeQuery = true)
     List<TopProductProjection> findTopProductsByDates(@Param("dates") List<LocalDate> dates);
+
+    /**
+     * 여러 날짜의 인기 상품 TOP 5 조회 (DTO 변환 포함)
+     * <p>
+     * 코치 피드백 반영: Projection → DTO 변환을 Repository에서 수행
+     * - UseCase에서 변환 로직 제거 (책임 분리)
+     * - rank 자동 설정 (1부터 순차 증가)
+     * - 테스트 복잡도 감소
+     */
+    @Override
+    default List<TopProductItem> findTopProductItemsByDates(List<LocalDate> dates) {
+        List<TopProductProjection> projections = findTopProductsByDates(dates);
+
+        if (projections.isEmpty()) {
+            return List.of();
+        }
+
+        // Projection → DTO 변환 및 rank 설정
+        AtomicInteger rank = new AtomicInteger(1);
+        return projections.stream()
+            .map(projection -> new TopProductItem(
+                rank.getAndIncrement(),
+                projection.getProductId(),
+                projection.getProductName(),
+                projection.getSalesCount(),
+                projection.getRevenue()
+            ))
+            .toList();
+    }
 
     void deleteByAggregationDate(LocalDate aggregationDate);
 }
