@@ -113,6 +113,94 @@ public void purchaseMultipleProducts(List<Long> productIds) {
 - ❌ 대량의 데이터 처리
 - ❌ 트랜잭션이 긴 경우 (10초+)
 
+### 💡 전문가 의견: Atomic Update vs Pessimistic Lock
+
+#### 제이 코치 (멘토링, 실무 경험)
+> "비즈니스 복잡도에 따라 판단합니다. 단순 숫자 증감이면 원자적 업데이트만으로 충분하고, 중간에 복잡한 계산이나 검증이 필요하면 비관적 락을 써야 합니다."
+
+#### 박트래픽 (성능 전문가, 15년차)
+> "Atomic Update는 DB 레벨에서 한 번의 쿼리로 처리되기 때문에 Pessimistic Lock보다 3~5배 빠릅니다. 하지만 복잡한 비즈니스 로직은 표현할 수 없다는 한계가 있습니다."
+
+#### 언제 Atomic Update를 사용할까?
+
+**✅ 단순 증감 - Atomic Update**
+```java
+// Repository
+@Modifying
+@Query("UPDATE Product p SET p.stock = p.stock - :quantity " +
+       "WHERE p.id = :id AND p.stock >= :quantity")
+int decreaseStock(@Param("id") Long id, @Param("quantity") int quantity);
+
+// UseCase
+@Service
+public class StockService {
+    public void decreaseStock(Long productId, int quantity) {
+        int updated = productRepository.decreaseStock(productId, quantity);
+        if (updated == 0) {
+            throw new InsufficientStockException();
+        }
+    }
+}
+
+// 장점: 빠름, 간단함, Deadlock 없음
+// 단점: 복잡한 로직 불가능
+// 성능: 단일 UPDATE 쿼리만 실행 (10ms)
+```
+
+#### 언제 Pessimistic Lock을 사용할까?
+
+**✅ 복잡한 로직 - Pessimistic Lock**
+```java
+@Transactional
+public void processOrder(OrderRequest request) {
+    // 1. 재고 조회 및 락 획득
+    Product product = em.createQuery(
+        "SELECT p FROM Product p WHERE p.id = :id", Product.class)
+        .setParameter("id", request.getProductId())
+        .setLockMode(LockModeType.PESSIMISTIC_WRITE)
+        .getSingleResult();
+
+    // 2. 복잡한 계산
+    int baseQuantity = request.getQuantity();
+    int bonusQuantity = calculateBonus(request.getUserGrade());  // 등급별 보너스
+    int totalQuantity = baseQuantity + bonusQuantity;
+
+    // 3. 재고 검증
+    if (product.getStock() < totalQuantity) {
+        throw new InsufficientStockException();
+    }
+
+    // 4. 할인 쿠폰 적용 여부 확인
+    if (request.hasCoupon()) {
+        Coupon coupon = couponRepository.findById(request.getCouponId());
+        if (!coupon.isValidFor(product)) {
+            throw new InvalidCouponException();
+        }
+    }
+
+    // 5. 재고 차감
+    product.decreaseStock(totalQuantity);
+
+    // 6. 포인트 차감
+    User user = userRepository.findById(request.getUserId());
+    user.deductPoints(calculatePointsUsed(request));
+}
+
+// 장점: 복잡한 로직 가능, 데이터 정합성 100%
+// 단점: 느림, Deadlock 위험
+// 성능: SELECT FOR UPDATE + 비즈니스 로직 + UPDATE (50~100ms)
+```
+
+#### 선택 기준 요약
+
+| 상황 | 추천 방식 | 이유 |
+|------|----------|------|
+| 단순 재고 차감 | Atomic Update | 빠르고 간단 |
+| 쿠폰 적용 + 재고 차감 | Pessimistic Lock | 중간 검증 필요 |
+| 포인트 + 할인 + 재고 | Pessimistic Lock | 여러 테이블 동시 접근 |
+| 조회수 증가 | Atomic Update | 단순 증가 |
+| 등급별 차별 재고 차감 | Pessimistic Lock | 복잡한 계산 필요 |
+
 ---
 
 ## 2. Optimistic Lock (낙관적 락)
@@ -318,6 +406,137 @@ public void issueCouponFast(Long couponId, Long userId) {
 - ❌ 단일 인스턴스 환경
 - ❌ Redis 인프라 없는 경우
 - ❌ 트래픽이 적은 경우
+
+### 💡 전문가 의견: Distributed Lock vs Idempotency Key
+
+#### 제이 코치 (멘토링, 실무 경험)
+> "분산락은 시간 단위가 짧아서 밀리초 단위 동시 요청을 막는 거고, Idempotency는 시간 단위가 길어서 한 번 처리된 요청을 몇 분, 몇 시간 기억해 줍니다."
+
+#### 김데이터 (DBA, 20년차)
+> "Distributed Lock은 Redis에 임시로 저장되고 TTL로 자동 삭제되지만, Idempotency Key는 DB에 영구적으로 저장됩니다. 목적이 다른 두 가지 패턴입니다."
+
+#### 시간 단위 차이
+
+**Distributed Lock: 밀리초~초 단위**
+```java
+public void issueCoupon(Long couponId, Long userId) {
+    String lockKey = "lock:coupon:" + couponId;
+    RLock lock = redissonClient.getLock(lockKey);
+
+    try {
+        // 100ms 대기, 3초 후 자동 해제
+        if (lock.tryLock(100, 3000, TimeUnit.MILLISECONDS)) {
+            // Critical Section (100ms 소요)
+            Coupon coupon = couponRepository.findById(couponId);
+            coupon.increaseIssued();
+            userCouponRepository.save(new UserCoupon(userId, couponId));
+        }
+    } finally {
+        lock.unlock();  // 락 즉시 해제
+    }
+}
+
+// 시나리오:
+// 10:00:00.000 - User1 락 획득
+// 10:00:00.001 - User2 대기 (락 없음)
+// 10:00:00.100 - User1 완료, 락 해제
+// 10:00:00.101 - User2 락 획득
+```
+
+**Idempotency Key: 분~시간~일 단위**
+```java
+@Transactional
+public PaymentResult processPayment(String idempotencyKey, PaymentRequest request) {
+    // 이미 처리된 요청인지 확인 (24시간 보관)
+    Optional<Payment> existing = paymentRepository.findByIdempotencyKey(idempotencyKey);
+    if (existing.isPresent()) {
+        log.info("Duplicate request: {}", idempotencyKey);
+        return PaymentResult.from(existing.get());
+    }
+
+    // 결제 처리
+    Payment payment = Payment.create(idempotencyKey, request);
+    paymentRepository.save(payment);
+
+    return PaymentResult.success();
+}
+
+// 시나리오:
+// 10:00:00 - 결제 요청 (idempotencyKey="payment-123")
+// 10:00:00 - DB에 저장
+// 10:00:05 - 같은 요청 재시도 (네트워크 오류로)
+// 10:00:05 - 이미 존재 → 기존 결과 반환
+// 11:00:00 - 1시간 후에도 중복 방지
+```
+
+#### 박트래픽 (성능 전문가, 15년차)
+> "Distributed Lock은 동시성 제어, Idempotency Key는 멱등성 보장입니다. 쿠폰 발급은 Distributed Lock, 결제 처리는 Idempotency Key를 사용하세요."
+
+#### 비교표
+
+| 특징 | Distributed Lock | Idempotency Key |
+|------|-----------------|----------------|
+| **목적** | 동시 실행 방지 | 중복 실행 방지 |
+| **시간 단위** | 밀리초~초 | 분~시간~일 |
+| **저장소** | Redis (메모리) | DB (영구) |
+| **자동 해제** | TTL (타임아웃) | 수동 삭제 또는 TTL |
+| **사용 케이스** | 쿠폰 발급, 재고 차감 | 결제, 주문 생성 |
+| **네트워크 재시도** | ❌ 보호 안 됨 (락 풀림) | ✅ 보호됨 (DB 기록) |
+| **분산 환경** | ✅ 필수 | ✅ 권장 |
+
+#### 최아키텍트 (MSA, 10년차)
+> "MSA 환경에서는 두 패턴을 모두 사용합니다. API Gateway에서 Idempotency Key로 중복 요청을 막고, 각 서비스 내부에서 Distributed Lock으로 동시성을 제어합니다."
+
+**조합 사용 예시:**
+```java
+// API Controller: Idempotency Key 체크
+@PostMapping("/payments")
+public ApiResponse<PaymentResult> processPayment(
+    @RequestHeader("Idempotency-Key") String idempotencyKey,
+    @RequestBody PaymentRequest request
+) {
+    // 1차 방어: 중복 요청 차단 (24시간 유효)
+    PaymentResult result = paymentService.processPayment(idempotencyKey, request);
+    return ApiResponse.success(result);
+}
+
+// Service: Distributed Lock 사용
+@Service
+public class PaymentService {
+
+    @Transactional
+    public PaymentResult processPayment(String idempotencyKey, PaymentRequest request) {
+        // Idempotency 체크
+        Optional<Payment> existing = paymentRepository.findByIdempotencyKey(idempotencyKey);
+        if (existing.isPresent()) {
+            return PaymentResult.from(existing.get());
+        }
+
+        // 2차 방어: 동시 실행 차단 (1초 이내)
+        String lockKey = "lock:payment:" + request.getUserId();
+        RLock lock = redissonClient.getLock(lockKey);
+
+        try {
+            if (lock.tryLock(100, 1000, TimeUnit.MILLISECONDS)) {
+                // 실제 결제 로직
+                User user = userRepository.findByIdWithLock(request.getUserId());
+                user.deductBalance(request.getAmount());
+
+                Payment payment = Payment.create(idempotencyKey, request);
+                paymentRepository.save(payment);
+
+                return PaymentResult.success(payment);
+            } else {
+                throw new ConcurrentPaymentException();
+            }
+        } finally {
+            if (lock.isHeldByCurrentThread()) {
+                lock.unlock();
+            }
+        }
+    }
+}
+```
 
 ---
 

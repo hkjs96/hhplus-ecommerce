@@ -676,6 +676,156 @@ CREATE TABLE payments (
 );
 ```
 
+### 💡 전문가 의견: 외부 API 호출과 트랜잭션 분리
+
+#### 제이 코치 (멘토링, 실무 경험)
+> "외부 API 호출은 트랜잭션 밖으로 빼야 합니다. 레이턴시가 길어져서 커넥션 풀도 고갈되고, 메모리 버퍼풀 캐시가 증가하고, Undo Log가 쌓입니다."
+
+#### 박트래픽 (성능 전문가, 15년차)
+> "외부 API를 트랜잭션 안에서 호출하면 DB 커넥션을 5초, 10초씩 점유하게 됩니다. 100개의 커넥션 풀이 있어도 초당 20건밖에 처리하지 못합니다."
+
+#### ❌ 나쁜 예: 트랜잭션 안에서 외부 API 호출
+
+```java
+@Transactional  // ❌ 문제!
+public PaymentResult processPayment(PaymentRequest request) {
+    // 1. 주문 조회 및 락 획득
+    Order order = orderRepository.findByIdWithLock(request.getOrderId());
+
+    // 2. 잔액 차감
+    User user = userRepository.findByIdWithLock(request.getUserId());
+    user.deductBalance(request.getAmount());
+
+    // 3. 외부 PG API 호출 (5초 소요)
+    // ⏰ 이 동안 DB 커넥션 점유!
+    // ⏰ 이 동안 락 보유!
+    // ⏰ 이 동안 다른 트랜잭션 대기!
+    PGResponse pgResponse = pgService.charge(request);
+
+    if (pgResponse.isSuccess()) {
+        order.markAsPaid();
+    } else {
+        throw new PaymentFailedException();  // 롤백
+    }
+
+    return PaymentResult.success();
+}
+
+// 문제점:
+// 1. 커넥션 풀 고갈 (초당 20건 주문 → 10개 커넥션이면 절반은 대기)
+// 2. 락 보유 시간 증가 (5초 동안 다른 사람 대기)
+// 3. 메모리 증가 (Undo Log, Buffer Pool)
+```
+
+#### ✅ 좋은 예: 트랜잭션 분리
+
+```java
+@Service
+@RequiredArgsConstructor
+public class PaymentService {
+
+    private final PaymentRepository paymentRepository;
+    private final UserRepository userRepository;
+    private final OrderRepository orderRepository;
+    private final PGService pgService;
+
+    // 1. 트랜잭션: 잔액 차감만 (빠르게 완료)
+    @Transactional
+    public Payment reservePayment(PaymentRequest request) {
+        User user = userRepository.findByIdWithLock(request.getUserId());
+        user.deductBalance(request.getAmount());
+
+        Order order = orderRepository.findById(request.getOrderId())
+            .orElseThrow();
+        order.markAsPending();  // 결제 대기 상태
+
+        Payment payment = Payment.create(request, PaymentStatus.PENDING);
+        return paymentRepository.save(payment);
+    }
+
+    // 2. 트랜잭션 밖: 외부 API 호출
+    public PaymentResult processPayment(PaymentRequest request) {
+        // Step 1: 잔액 차감 (트랜잭션, 50ms)
+        Payment payment = reservePayment(request);
+
+        try {
+            // Step 2: 외부 API 호출 (트랜잭션 밖, 5초)
+            PGResponse pgResponse = pgService.charge(request);
+
+            if (pgResponse.isSuccess()) {
+                // Step 3: 트랜잭션: 상태 업데이트만 (50ms)
+                updatePaymentSuccess(payment.getId(), pgResponse.getTransactionId());
+                return PaymentResult.success();
+            } else {
+                // Step 4: 보상 트랜잭션: 잔액 복구 (50ms)
+                compensatePayment(payment.getId());
+                return PaymentResult.failure("PG 승인 실패");
+            }
+        } catch (Exception e) {
+            // Step 5: 보상 트랜잭션: 잔액 복구
+            compensatePayment(payment.getId());
+            throw new PaymentProcessingException(e);
+        }
+    }
+
+    @Transactional
+    protected void updatePaymentSuccess(Long paymentId, String txId) {
+        Payment payment = paymentRepository.findById(paymentId).orElseThrow();
+        payment.markAsSuccess(txId);
+
+        Order order = orderRepository.findById(payment.getOrderId()).orElseThrow();
+        order.markAsPaid();
+    }
+
+    @Transactional
+    protected void compensatePayment(Long paymentId) {
+        Payment payment = paymentRepository.findById(paymentId).orElseThrow();
+        payment.markAsFailed();
+
+        User user = userRepository.findById(payment.getUserId()).orElseThrow();
+        user.restoreBalance(payment.getAmount());  // 잔액 복구
+
+        Order order = orderRepository.findById(payment.getOrderId()).orElseThrow();
+        order.markAsFailed();
+    }
+}
+```
+
+#### 김데이터 (DBA, 20년차)
+> "보상 트랜잭션(Compensation Transaction) 패턴을 사용하면 외부 API 실패 시에도 데이터 일관성을 유지할 수 있습니다. SAGA 패턴의 기본 개념입니다."
+
+#### 보상 트랜잭션이 필요한 이유
+
+```
+정상 흐름:
+잔액 차감 (✅ 완료) → PG 승인 (✅ 성공) → 주문 완료 (✅ 성공)
+
+실패 시나리오 1: PG 승인 실패
+잔액 차감 (✅ 완료) → PG 승인 (❌ 실패)
+→ 보상: 잔액 복구 필요!
+
+실패 시나리오 2: 네트워크 타임아웃
+잔액 차감 (✅ 완료) → PG 승인 (⏰ 타임아웃)
+→ 보상: 잔액 복구 필요!
+
+실패 시나리오 3: 주문 상태 업데이트 실패
+잔액 차감 (✅ 완료) → PG 승인 (✅ 성공) → 주문 상태 (❌ DB 오류)
+→ 보상: 잔액 복구 + PG 취소 API 호출 필요!
+```
+
+#### 이금융 (금융권, 12년차)
+> "금융권에서는 외부 API 호출 전후로 상태를 기록합니다. PENDING → PROCESSING → SUCCESS/FAILED 같은 세밀한 상태 관리가 필요합니다."
+
+#### 성능 비교
+
+| 방식 | 커넥션 보유 시간 | 동시 처리 가능 (10개 커넥션) | 락 보유 시간 |
+|------|----------------|------------------------|-----------|
+| **트랜잭션 안** | 5초 (API 포함) | 초당 2건 | 5초 |
+| **트랜잭션 밖** | 50ms (DB만) | 초당 200건 | 50ms |
+
+#### 정스타트업 (CTO, 7년차)
+> "처음에는 간단하게 트랜잭션 안에서 모두 처리했다가 트래픽이 늘면서 커넥션 풀 고갈 문제를 겪었습니다. 외부 API는 반드시 트랜잭션 밖에서 호출하세요."
+
 ---
 
 ## 4. 잔액 업데이트 - Atomic Update
@@ -879,6 +1029,283 @@ public class OrderUseCase {
         order.markAsPaid();
 
         // Dirty Checking으로 자동 업데이트 (version 증가)
+    }
+}
+```
+
+---
+
+## 6. 분산 Scheduler - ShedLock
+
+### 📝 요구사항
+- 여러 서버에서 동일한 스케줄러가 실행되어도 한 번만 실행
+- 일일 매출 집계, 통계 계산 등 배치 작업에 사용
+- 서버 장애 시에도 다른 서버가 이어서 실행
+
+### 💡 전문가 의견: 분산 환경에서 스케줄러 관리
+
+#### 제이 코치 (멘토링, 실무 경험)
+> "여러 서버가 동시에 스케줄러를 실행하면 중복 집계가 발생하니까 ShedLock 같은 라이브러리로 한 서버만 실행되도록 보장해야 합니다."
+
+#### 최아키텍트 (MSA, 10년차)
+> "MSA 환경에서는 Auto-scaling으로 인스턴스가 동적으로 늘어나기 때문에 분산 락 없이는 스케줄러를 사용할 수 없습니다. ShedLock은 필수입니다."
+
+### ❌ 문제 상황: 중복 실행
+
+```java
+// 3대의 서버가 모두 실행
+@Scheduled(cron = "0 0 0 * * *")  // 매일 자정
+public void aggregateDailySales() {
+    // 일일 매출 집계
+    List<Order> todayOrders = orderRepository.findToday();
+    int totalSales = todayOrders.stream()
+        .mapToInt(Order::getAmount)
+        .sum();
+
+    // DB에 저장
+    salesRepository.save(new DailySales(LocalDate.now(), totalSales));
+}
+
+// 결과:
+// Server 1: DailySales(2025-11-18, 1000만원) 저장
+// Server 2: DailySales(2025-11-18, 1000만원) 저장  // 중복!
+// Server 3: DailySales(2025-11-18, 1000만원) 저장  // 중복!
+```
+
+### ✅ 해결: ShedLock 사용
+
+#### 1. 의존성 추가
+
+```groovy
+// build.gradle
+dependencies {
+    implementation 'net.javacrumbs.shedlock:shedlock-spring:5.9.0'
+    implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:5.9.0'
+}
+```
+
+#### 2. DB 테이블 생성
+
+```sql
+-- MySQL
+CREATE TABLE shedlock (
+    name VARCHAR(64) PRIMARY KEY,
+    lock_until TIMESTAMP NOT NULL,
+    locked_at TIMESTAMP NOT NULL,
+    locked_by VARCHAR(255) NOT NULL,
+    INDEX idx_lock_until (lock_until)
+);
+
+-- PostgreSQL
+CREATE TABLE shedlock (
+    name VARCHAR(64) PRIMARY KEY,
+    lock_until TIMESTAMP NOT NULL,
+    locked_at TIMESTAMP NOT NULL,
+    locked_by VARCHAR(255) NOT NULL
+);
+
+CREATE INDEX idx_lock_until ON shedlock(lock_until);
+```
+
+#### 3. ShedLock 설정
+
+```java
+@Configuration
+@EnableScheduling
+@EnableSchedulerLock(defaultLockAtMostFor = "10m")
+public class SchedulerConfig {
+
+    @Bean
+    public LockProvider lockProvider(DataSource dataSource) {
+        return new JdbcTemplateLockProvider(JdbcTemplateLockProvider.Configuration.builder()
+            .withJdbcTemplate(new JdbcTemplate(dataSource))
+            .usingDbTime()  // DB 시간 사용 (서버 시간 차이 방지)
+            .build()
+        );
+    }
+}
+```
+
+#### 4. 스케줄러에 적용
+
+```java
+@Component
+@RequiredArgsConstructor
+public class SalesAggregationScheduler {
+
+    private final OrderRepository orderRepository;
+    private final SalesRepository salesRepository;
+
+    @Scheduled(cron = "0 0 0 * * *")  // 매일 자정
+    @SchedulerLock(
+        name = "dailySalesAggregation",
+        lockAtMostFor = "9m",  // 최대 9분 동안 락 유지 (이후 자동 해제)
+        lockAtLeastFor = "1m"  // 최소 1분 동안 락 유지 (너무 빨리 끝나도 1분 유지)
+    )
+    public void aggregateDailySales() {
+        log.info("Starting daily sales aggregation");
+
+        LocalDate yesterday = LocalDate.now().minusDays(1);
+
+        // 일일 매출 집계
+        List<Order> orders = orderRepository.findByCreatedAtBetween(
+            yesterday.atStartOfDay(),
+            yesterday.plusDays(1).atStartOfDay()
+        );
+
+        int totalSales = orders.stream()
+            .filter(order -> order.getStatus() == OrderStatus.PAID)
+            .mapToInt(Order::getTotalAmount)
+            .sum();
+
+        // DB에 저장
+        DailySales dailySales = new DailySales(yesterday, totalSales, orders.size());
+        salesRepository.save(dailySales);
+
+        log.info("Daily sales aggregation completed: date={}, totalSales={}, orderCount={}",
+            yesterday, totalSales, orders.size());
+    }
+}
+
+// 결과:
+// 00:00:00 - Server 1이 락 획득, 집계 시작
+// 00:00:00 - Server 2, 3은 락 획득 실패 → 종료 (로그: "not executing, already locked")
+// 00:00:05 - Server 1 집계 완료
+// 00:01:00 - 1분 후 락 자동 해제
+```
+
+### 동작 원리
+
+#### 김데이터 (DBA, 20년차)
+> "ShedLock은 DB의 `shedlock` 테이블에 락을 기록합니다. `name` 컬럼이 PRIMARY KEY라서 중복 INSERT가 불가능하고, 이를 이용해 분산 락을 구현합니다."
+
+```sql
+-- 00:00:00 Server 1 실행
+INSERT INTO shedlock (name, lock_until, locked_at, locked_by)
+VALUES ('dailySalesAggregation', '2025-11-18 00:09:00', '2025-11-18 00:00:00', 'Server1-192.168.1.10')
+ON DUPLICATE KEY UPDATE
+    lock_until = IF(lock_until <= NOW(), VALUES(lock_until), lock_until),
+    locked_at = IF(lock_until <= NOW(), VALUES(locked_at), locked_at),
+    locked_by = IF(lock_until <= NOW(), VALUES(locked_by), locked_by);
+-- 성공! (lock_until이 만료되었거나 없으면 획득)
+
+-- 00:00:00 Server 2 실행
+INSERT INTO shedlock ...;
+-- 실패! (lock_until이 아직 유효함, 업데이트되지 않음)
+
+-- 00:00:00 Server 3 실행
+INSERT INTO shedlock ...;
+-- 실패!
+```
+
+### lockAtMostFor vs lockAtLeastFor
+
+#### 박트래픽 (성능 전문가, 15년차)
+> "`lockAtMostFor`는 서버 장애 시 무한정 락이 걸리는 것을 방지하고, `lockAtLeastFor`는 너무 빨리 끝나서 중복 실행되는 것을 방지합니다."
+
+**lockAtMostFor (최대 락 유지 시간):**
+```
+Server 1이 락 획득 후 장애 발생
+→ 9분 후 자동 해제
+→ Server 2가 락 획득하여 작업 재개
+```
+
+**lockAtLeastFor (최소 락 유지 시간):**
+```
+Server 1이 10초 만에 작업 완료
+→ 그래도 1분 동안 락 유지
+→ 다른 서버가 중복 실행하지 못하도록 방지
+```
+
+### 여러 스케줄러 관리
+
+```java
+@Component
+@RequiredArgsConstructor
+public class SchedulerTasks {
+
+    // 일일 매출 집계
+    @Scheduled(cron = "0 0 0 * * *")
+    @SchedulerLock(name = "dailySalesAggregation", lockAtMostFor = "9m", lockAtLeastFor = "1m")
+    public void aggregateDailySales() {
+        // ...
+    }
+
+    // 인기 상품 갱신 (10분마다)
+    @Scheduled(cron = "0 */10 * * * *")
+    @SchedulerLock(name = "updatePopularProducts", lockAtMostFor = "9m", lockAtLeastFor = "1m")
+    public void updatePopularProducts() {
+        // ...
+    }
+
+    // 만료된 쿠폰 정리 (1시간마다)
+    @Scheduled(cron = "0 0 * * * *")
+    @SchedulerLock(name = "cleanupExpiredCoupons", lockAtMostFor = "50m", lockAtLeastFor = "5m")
+    public void cleanupExpiredCoupons() {
+        // ...
+    }
+}
+```
+
+### 정스타트업 (CTO, 7년차)
+> "처음에는 단일 서버였지만 트래픽이 늘어나면서 3대로 늘렸는데, 스케줄러가 3배로 실행되는 걸 깨닫고 급하게 ShedLock을 도입했습니다. 처음부터 적용하는 게 좋습니다."
+
+### 모니터링
+
+```java
+@Component
+@RequiredArgsConstructor
+public class ShedLockMetrics {
+
+    private final JdbcTemplate jdbcTemplate;
+    private final MeterRegistry meterRegistry;
+
+    @Scheduled(fixedDelay = 60000)  // 1분마다
+    public void recordLockMetrics() {
+        // 현재 락 상태 조회
+        List<Map<String, Object>> locks = jdbcTemplate.queryForList(
+            "SELECT name, lock_until, locked_by FROM shedlock WHERE lock_until > NOW()"
+        );
+
+        meterRegistry.gauge("shedlock.active_locks", locks.size());
+
+        for (Map<String, Object> lock : locks) {
+            log.info("Active lock: name={}, until={}, by={}",
+                lock.get("name"),
+                lock.get("lock_until"),
+                lock.get("locked_by")
+            );
+        }
+    }
+}
+```
+
+### Entity 설계 (DailySales)
+
+```java
+@Entity
+@Table(name = "daily_sales")
+public class DailySales {
+
+    @Id
+    private LocalDate salesDate;
+
+    @Column(nullable = false)
+    private Integer totalAmount;
+
+    @Column(nullable = false)
+    private Integer orderCount;
+
+    @Column(nullable = false)
+    private Instant aggregatedAt;
+
+    protected DailySales() {}
+
+    public DailySales(LocalDate salesDate, Integer totalAmount, Integer orderCount) {
+        this.salesDate = salesDate;
+        this.totalAmount = totalAmount;
+        this.orderCount = orderCount;
+        this.aggregatedAt = Instant.now();
     }
 }
 ```

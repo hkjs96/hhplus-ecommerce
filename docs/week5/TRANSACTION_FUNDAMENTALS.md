@@ -332,6 +332,100 @@ SELECT price FROM products WHERE id = 1;
 **단점:**
 - Non-Repeatable Read 발생 가능
 
+### 💡 전문가 의견: 언제 READ COMMITTED로 격리 수준을 낮출까?
+
+#### 김데이터 (DBA, 20년차)
+> "REPEATABLE READ는 Undo Log를 오래 유지해야 하기 때문에 디스크 공간을 많이 차지합니다. READ COMMITTED로 내렸을 때 영향이 없는 트랜잭션이라면 내리는 게 좋습니다."
+
+**Undo Log 문제:**
+```
+REPEATABLE READ (오래 실행되는 트랜잭션)
+↓
+Undo Log 계속 쌓임 (스냅샷 유지)
+↓
+디스크 공간 부족
+↓
+성능 저하
+```
+
+#### 박트래픽 (성능 전문가, 15년차)
+> "트래픽이 많은 서비스에서는 격리 수준을 한 단계 낮추는 것만으로도 TPS를 30% 향상시킬 수 있습니다. 단, 비즈니스 로직에 영향이 없는지 반드시 검증해야 합니다."
+
+**READ COMMITTED로 충분한 케이스:**
+
+```java
+// ✅ 단순 조회 - READ COMMITTED로 충분
+@Transactional(readOnly = true, isolation = Isolation.READ_COMMITTED)
+public List<Product> getProducts() {
+    // 상품 목록 조회
+    // 조회 중에 다른 사람이 상품 가격을 바꿔도 괜찮음
+    return productRepository.findAll();
+}
+
+// ✅ 단일 작업 - READ COMMITTED로 충분
+@Transactional(isolation = Isolation.READ_COMMITTED)
+public void addReview(Long productId, String content) {
+    // 리뷰 추가
+    // 같은 리뷰를 두 번 읽을 일이 없음
+    Review review = new Review(productId, content);
+    reviewRepository.save(review);
+}
+
+// ❌ REPEATABLE READ가 필요한 경우: 통계 계산
+@Transactional(isolation = Isolation.REPEATABLE_READ)
+public OrderStatistics calculateDailyStatistics() {
+    // 주문 통계 계산
+    // 계산 중에 데이터가 바뀌면 안 됨!
+    int totalOrders = orderRepository.countToday();
+    int totalAmount = orderRepository.sumTodayAmount();
+    return new OrderStatistics(totalOrders, totalAmount);
+}
+```
+
+#### 이금융 (금융권, 12년차)
+> "금융권에서는 격리 수준을 낮추는 것을 권장하지 않습니다. 성능보다 정확성이 우선이기 때문입니다. 다만 로그 조회, 통계 조회 같은 읽기 전용 작업은 READ COMMITTED를 사용합니다."
+
+**격리 수준 선택 기준:**
+
+| 상황 | 추천 격리 수준 | 이유 |
+|------|--------------|------|
+| **단순 목록 조회** | READ COMMITTED | 조회 중 데이터 변경 허용 |
+| **통계 계산** | REPEATABLE READ | 계산 중 데이터 일관성 필요 |
+| **금융 거래** | SERIALIZABLE | 완벽한 정합성 필요 |
+| **단일 INSERT** | READ COMMITTED | 한 번만 실행, 재조회 없음 |
+| **복잡한 계산 후 UPDATE** | REPEATABLE READ | 계산 기반 데이터 일관성 필요 |
+
+**MySQL 설정 (전역 변경):**
+```yaml
+# my.cnf
+[mysqld]
+transaction-isolation = READ-COMMITTED
+
+# 또는
+innodb_undo_log_truncate = ON
+innodb_max_undo_log_size = 1G  # Undo Log 최대 크기 제한
+```
+
+**Spring Boot 설정 (케이스별 적용):**
+```java
+@Service
+public class OrderService {
+
+    // 기본값: REPEATABLE READ (application.yml에 설정)
+    @Transactional
+    public void createOrder(OrderRequest request) {
+        // 중요한 작업은 높은 격리 수준
+    }
+
+    // 명시적으로 READ COMMITTED 사용
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public List<Order> getRecentOrders(Long userId) {
+        // 단순 조회는 낮은 격리 수준
+        return orderRepository.findByUserIdOrderByCreatedAtDesc(userId);
+    }
+}
+```
+
 ---
 
 #### REPEATABLE READ (기본값 - MySQL InnoDB)
@@ -387,6 +481,89 @@ COMMIT;
 SELECT * FROM orders WHERE user_id = 1;
 → 여전히 5개! (Phantom Read 방지됨)
 ```
+
+### 💡 전문가 의견: MySQL vs PostgreSQL REPEATABLE READ 차이
+
+같은 REPEATABLE READ 격리 수준이라도 DBMS마다 내부 구현 방식이 다르기 때문에 동작이 다릅니다.
+
+#### 김데이터 (DBA, 20년차)
+> "MySQL과 PostgreSQL은 MVCC 구현 방식이 다릅니다. MySQL은 Undo Log 기반이고, PostgreSQL은 Tuple Versioning 방식입니다. 이 차이로 인해 동시 업데이트 시 PostgreSQL은 에러를 발생시키지만 MySQL은 대기 후 실행됩니다."
+
+#### 실무 시나리오 비교
+
+```sql
+-- 초기 상태: products 테이블에 id=1, stock=10인 상품 존재
+
+-- MySQL (REPEATABLE READ)
+-- Transaction A
+BEGIN;
+SELECT stock FROM products WHERE id = 1;  -- 10
+UPDATE products SET stock = 5 WHERE id = 1;
+
+-- Transaction B (동시 실행)
+BEGIN;
+UPDATE products SET stock = 8 WHERE id = 1;  -- ⏰ A가 끝날 때까지 대기
+
+-- Transaction A
+COMMIT;  -- 이제 B가 실행됨
+
+-- ✅ MySQL: 정상 동작 (에러 없음, B의 UPDATE가 실행됨)
+```
+
+```sql
+-- PostgreSQL (REPEATABLE READ)
+-- Transaction A
+BEGIN;
+SELECT stock FROM products WHERE id = 1;  -- 10
+UPDATE products SET stock = 5 WHERE id = 1;
+
+-- Transaction B (동시 실행)
+BEGIN;
+UPDATE products SET stock = 8 WHERE id = 1;  -- ⏰ 대기
+
+-- Transaction A
+COMMIT;
+
+-- Transaction B
+-- ❌ PostgreSQL: 에러 발생!
+-- ERROR: could not serialize access due to concurrent update
+```
+
+#### 박트래픽 (성능 전문가, 15년차)
+> "PostgreSQL에서는 재시도 로직이 필수입니다. MySQL보다 엄격한 정합성을 보장하지만, 애플리케이션 레벨에서 예외 처리를 해야 합니다."
+
+**PostgreSQL 재시도 패턴:**
+```java
+@Transactional(isolation = Isolation.REPEATABLE_READ)
+public void updateStockWithRetry(Long productId, int newStock) {
+    int maxRetries = 3;
+    for (int attempt = 0; attempt < maxRetries; attempt++) {
+        try {
+            Product product = productRepository.findById(productId).orElseThrow();
+            product.setStock(newStock);
+            return;  // 성공
+        } catch (OptimisticLockException | CannotAcquireLockException e) {
+            if (attempt == maxRetries - 1) throw e;
+            try {
+                Thread.sleep(100 * (attempt + 1));  // Exponential Backoff
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException(ie);
+            }
+        }
+    }
+}
+```
+
+#### 정스타트업 (CTO, 7년차)
+> "처음 프로젝트를 시작할 때는 DBMS별 차이를 모르고 MySQL 코드를 PostgreSQL에 그대로 이식했다가 프로덕션에서 에러가 속출했던 경험이 있습니다. 반드시 테스트 환경도 동일한 DBMS를 사용해야 합니다."
+
+**DBMS별 차이점 요약:**
+
+| DBMS | REPEATABLE READ 구현 방식 | 동시 업데이트 동작 | 재시도 필요 |
+|------|--------------------------|----------------|-----------|
+| **MySQL** | MVCC (Undo Log) | 대기 후 실행 가능 | ❌ 불필요 |
+| **PostgreSQL** | MVCC (Tuple Versioning) | 에러 발생 (Serialization Failure) | ✅ 필수 |
 
 ---
 
@@ -514,6 +691,197 @@ READ COMMITTED    균형점 (PostgreSQL 기본)
     ↑
 READ UNCOMMITTED  성능 ↑ / 정합성 ↓
 ```
+
+---
+
+## 🔑 Primary Key 설계 가이드
+
+### 왜 Primary Key가 중요한가?
+
+Primary Key는 단순히 데이터를 식별하는 것 이상의 역할을 합니다. DBMS 내부에서 모든 Secondary Index는 Primary Key를 참조하기 때문에, **PK가 변경되면 모든 인덱스가 업데이트**되어야 합니다.
+
+### 💡 전문가 의견: Primary Key 선택 전략
+
+#### 김데이터 (DBA, 20년차)
+> "PK가 변경되면 PK를 바라보고 있는 모든 인덱스들이 전체적으로 업데이트가 일어나야 합니다. PK는 변경이 일어나면 안 될 것들 위주로 구성해야 합니다."
+
+**Secondary Index가 PK를 참조하는 구조 (InnoDB):**
+
+```
+CREATE TABLE users (
+    id BIGINT PRIMARY KEY,
+    email VARCHAR(100),
+    name VARCHAR(50)
+);
+
+CREATE INDEX idx_email ON users(email);
+CREATE INDEX idx_name ON users(name);
+
+인덱스 내부 구조:
+idx_email 인덱스 트리:
+    [alice@example.com, PK=1]
+    [bob@example.com, PK=2]
+    [charlie@example.com, PK=3]
+
+idx_name 인덱스 트리:
+    [Alice, PK=1]
+    [Bob, PK=2]
+    [Charlie, PK=3]
+
+만약 PK=1이 PK=999로 변경되면?
+→ idx_email과 idx_name 모두 업데이트 필요! (매우 느림)
+```
+
+#### 박트래픽 (성능 전문가, 15년차)
+> "이메일이나 사용자명처럼 변경 가능한 필드를 PK로 사용하면 안 됩니다. Auto-increment ID나 UUID를 사용하세요."
+
+**❌ 나쁜 PK 선택: 이메일 (변경 가능)**
+
+```sql
+CREATE TABLE users (
+    email VARCHAR(100) PRIMARY KEY,  -- 이메일은 바뀔 수 있음!
+    name VARCHAR(50),
+    created_at TIMESTAMP
+);
+
+-- 인덱스들 (자동으로 email을 참조함)
+CREATE INDEX idx_name ON users(name);  -- (name, email)
+CREATE INDEX idx_created ON users(created_at);  -- (created_at, email)
+
+-- 이메일 변경 시
+UPDATE users SET email = 'new@example.com'
+WHERE email = 'old@example.com';
+-- → 모든 인덱스 업데이트 필요! (매우 느림)
+-- → users 테이블을 참조하는 모든 Foreign Key도 업데이트!
+
+-- 성능:
+-- - 단순 컬럼 변경: 10ms
+-- - PK 변경 (인덱스 3개): 500ms+
+```
+
+**✅ 좋은 PK 선택: Auto-increment ID (절대 안 바뀜)**
+
+```sql
+CREATE TABLE users (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,  -- 절대 안 바뀜!
+    email VARCHAR(100) UNIQUE,  -- 이메일은 유니크 제약만
+    name VARCHAR(50),
+    created_at TIMESTAMP
+);
+
+-- 이메일 변경 시
+UPDATE users SET email = 'new@example.com'
+WHERE id = 123;
+-- → 하나의 컬럼만 변경! (빠름)
+-- → 인덱스는 자동 업데이트 (PK는 안 바뀜)
+
+-- 성능:
+-- - 컬럼 변경: 10ms
+```
+
+#### 최아키텍트 (MSA, 10년차)
+> "MSA 환경에서는 UUID를 PK로 사용하는 경우가 많습니다. 각 서비스가 독립적으로 ID를 생성할 수 있어 분산 환경에 적합합니다."
+
+**UUID vs Auto-increment 비교:**
+
+| 특징 | Auto-increment | UUID |
+|------|---------------|------|
+| **크기** | 8 bytes (BIGINT) | 16 bytes (BINARY(16)) |
+| **순차성** | ✅ 순차적 | ❌ 랜덤 |
+| **인덱스 성능** | ✅ 좋음 (B+Tree 효율적) | ⚠️ 나쁨 (페이지 분할 빈번) |
+| **분산 생성** | ❌ 불가능 (DB 의존) | ✅ 가능 (앱에서 생성) |
+| **예측 가능성** | ❌ 예측 가능 (보안 취약) | ✅ 예측 불가능 |
+| **적합한 환경** | 단일 DB, 높은 성능 요구 | MSA, 분산 시스템 |
+
+**JPA에서 UUID 사용:**
+```java
+@Entity
+@Table(name = "products")
+public class Product {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(columnDefinition = "BINARY(16)")
+    private UUID id;
+
+    private String name;
+    private Integer stock;
+}
+
+// MySQL 스키마
+CREATE TABLE products (
+    id BINARY(16) PRIMARY KEY,
+    name VARCHAR(100),
+    stock INT
+);
+```
+
+#### 정스타트업 (CTO, 7년차)
+> "초기에는 Auto-increment로 시작하고, 서비스가 커지면서 분산 환경으로 전환할 때 UUID로 마이그레이션했습니다. 처음부터 UUID를 쓰면 초기 성능이 떨어질 수 있으니 신중하게 선택하세요."
+
+### 복합 PK는 언제 사용할까?
+
+#### 중간 테이블 (Many-to-Many 관계)
+
+```java
+// ✅ 복합 PK 적합: UserCoupon (사용자-쿠폰 매핑)
+@Entity
+@IdClass(UserCouponId.class)
+public class UserCoupon {
+    @Id
+    private Long userId;  // 복합 PK 1
+
+    @Id
+    private Long couponId;  // 복합 PK 2
+
+    private Instant issuedAt;
+
+    // userId, couponId 둘 다 절대 안 바뀜!
+}
+
+@Getter
+@AllArgsConstructor
+@NoArgsConstructor
+public class UserCouponId implements Serializable {
+    private Long userId;
+    private Long couponId;
+
+    @Override
+    public boolean equals(Object o) { /* ... */ }
+
+    @Override
+    public int hashCode() { /* ... */ }
+}
+
+// MySQL 스키마
+CREATE TABLE user_coupons (
+    user_id BIGINT NOT NULL,
+    coupon_id BIGINT NOT NULL,
+    issued_at TIMESTAMP NOT NULL,
+    PRIMARY KEY (user_id, coupon_id),
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (coupon_id) REFERENCES coupons(id)
+);
+```
+
+**복합 PK 주의사항:**
+- 모든 컬럼이 절대 변경되지 않는 경우에만 사용
+- 복합 PK를 Foreign Key로 참조하는 경우 조인 성능 저하
+- 가능하면 대리 키(Surrogate Key) 사용 권장
+
+### PK 선택 체크리스트
+
+✅ **Good PK:**
+- 절대 변경되지 않음
+- 짧은 크기 (BIGINT, UUID)
+- 순차성 (Auto-increment)
+- NOT NULL 보장
+
+❌ **Bad PK:**
+- 변경 가능 (이메일, 전화번호)
+- 너무 긴 크기 (VARCHAR(255))
+- 비즈니스 의미 포함 (주문번호, 상품코드)
+- 복잡한 복합 키
 
 ---
 

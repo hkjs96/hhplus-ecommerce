@@ -289,6 +289,237 @@ WHERE created_at >= '2025-11-18 00:00:00'
   AND created_at < '2025-11-19 00:00:00';
 ```
 
+### 💡 전문가 의견: 커버링 인덱스 (Covering Index)
+
+#### 율무 코치 (멘토링, DBA 경험)
+> "커버링 인덱스는 인덱스만 보고 쿼리 결과를 얻을 수 있으면 커버링 인덱스가 됩니다. SELECT *을 안 하고 일부 컬럼만 조회할 때 고려해볼 수 있습니다."
+
+#### 박트래픽 (성능 전문가, 15년차)
+> "커버링 인덱스를 사용하면 테이블에 접근하지 않아도 되기 때문에 디스크 I/O가 획기적으로 줄어듭니다. 성능이 3~10배 향상될 수 있습니다."
+
+#### 커버링 인덱스란?
+
+**일반 인덱스 vs 커버링 인덱스:**
+```
+일반 인덱스:
+1. 인덱스 탐색 → WHERE 조건 찾음
+2. 인덱스에서 Primary Key 확인
+3. Primary Key로 테이블 접근 (Random I/O)
+4. 테이블에서 SELECT 컬럼 읽음
+
+커버링 인덱스:
+1. 인덱스 탐색 → WHERE 조건 찾음
+2. 인덱스에 SELECT 컬럼도 모두 있음!
+3. 테이블 접근 없이 인덱스만 읽고 끝 (Sequential I/O)
+```
+
+#### 김데이터 (DBA, 20년차)
+> "InnoDB에서 Secondary Index는 항상 Primary Key를 포함합니다. 따라서 SELECT 절에 인덱스 컬럼 + PK만 있으면 커버링 인덱스가 됩니다."
+
+**실무 예시:**
+
+```sql
+-- 테이블 구조
+CREATE TABLE orders (
+    id BIGINT PRIMARY KEY,
+    user_id BIGINT,
+    product_id BIGINT,
+    quantity INT,
+    total_amount INT,
+    status VARCHAR(20),
+    created_at TIMESTAMP
+);
+
+-- 자주 실행하는 쿼리
+SELECT user_id, total_amount, created_at
+FROM orders
+WHERE status = 'PAID'
+  AND created_at >= '2025-11-01';
+```
+
+**❌ 커버링 인덱스 없는 경우**
+```sql
+-- 인덱스: (status, created_at)
+CREATE INDEX idx_status_created ON orders(status, created_at);
+
+-- 쿼리 실행 과정:
+-- 1. 인덱스 탐색: status='PAID' AND created_at >= '2025-11-01' 조건 찾음
+-- 2. 인덱스에서 Primary Key (id) 확인
+-- 3. 📖 실제 테이블로 가서 user_id, total_amount 읽음 (느림!)
+
+-- EXPLAIN 결과:
+-- type: ref
+-- Extra: Using index condition (테이블 접근 O)
+```
+
+**✅ 커버링 인덱스 있는 경우**
+```sql
+-- 커버링 인덱스: 쿼리에 필요한 모든 컬럼 포함
+CREATE INDEX idx_covering ON orders(status, created_at, user_id, total_amount);
+
+-- 쿼리 실행 과정:
+-- 1. 인덱스 탐색: status='PAID' AND created_at >= '2025-11-01' 조건 찾음
+-- 2. 인덱스에 user_id, total_amount도 있음!
+-- 3. ✅ 테이블 안 가고 인덱스만 읽고 끝! (빠름!)
+
+-- EXPLAIN 결과:
+-- type: ref
+-- Extra: Using index (테이블 접근 X)
+```
+
+**성능 비교:**
+
+| 방식 | 디스크 I/O | 속도 | 메모리 사용 |
+|------|-----------|------|------------|
+| 일반 쿼리 | 많음 (테이블 접근) | 느림 | 많음 |
+| 커버링 인덱스 | 적음 (인덱스만) | **빠름 (3~10배)** | 적음 |
+
+#### 최아키텍트 (MSA, 10년차)
+> "API 응답 성능을 최적화할 때 가장 먼저 하는 작업이 커버링 인덱스 적용입니다. SELECT * 대신 필요한 컬럼만 선택하고 인덱스를 설계하세요."
+
+**JPA에서 커버링 인덱스 활용:**
+
+```java
+// ❌ 나쁜 예: SELECT * (커버링 인덱스 불가능)
+@Query("SELECT o FROM Order o WHERE o.status = :status")
+List<Order> findByStatus(@Param("status") String status);
+
+// ✅ 좋은 예: 필요한 컬럼만 (커버링 인덱스 가능)
+@Query("SELECT new com.example.dto.OrderSummary(o.userId, o.totalAmount, o.createdAt) " +
+       "FROM Order o WHERE o.status = :status")
+List<OrderSummary> findSummaryByStatus(@Param("status") String status);
+
+// DTO
+@Getter
+@AllArgsConstructor
+public class OrderSummary {
+    private Long userId;
+    private Integer totalAmount;
+    private Instant createdAt;
+}
+
+// 인덱스
+// CREATE INDEX idx_covering ON orders(status, user_id, total_amount, created_at);
+```
+
+### 💡 전문가 의견: 인덱스 풀 스캔 (Index Full Scan)
+
+#### 율무 코치 (멘토링, DBA 경험)
+> "인덱스를 활용하긴 하는데 인덱스 범위 안에 있는 컬럼들을 거의 다 스캔하고 있으면 성능이 더 안 나올 수 있습니다."
+
+#### 김데이터 (DBA, 20년차)
+> "인덱스를 만들었다고 무조건 빠른 게 아닙니다. 인덱스 풀 스캔이 발생하면 오히려 테이블 풀 스캔보다 느릴 수 있습니다."
+
+**인덱스 스캔 vs 인덱스 풀 스캔:**
+
+```sql
+-- 테이블: 100만 건
+CREATE TABLE products (
+    id BIGINT PRIMARY KEY,
+    category VARCHAR(50),
+    price INT,
+    stock INT
+);
+
+-- 인덱스 생성
+CREATE INDEX idx_category ON products(category);
+
+-- ❌ 인덱스 풀 스캔 발생 (느림)
+SELECT * FROM products
+WHERE category LIKE '%전자%';  -- 중간 매칭: 인덱스 못 씀
+-- → 100만 건 전부 확인
+
+-- ❌ 인덱스 풀 스캔 발생 (느림)
+SELECT * FROM products
+WHERE category != 'laptop';  -- 부정 조건: 거의 모든 데이터
+-- → 100만 건 중 95만 건 확인
+
+-- ✅ 인덱스 범위 스캔 (빠름)
+SELECT * FROM products
+WHERE category = 'laptop';  -- 정확한 매칭
+-- → 5만 건만 확인
+
+-- ✅ 인덱스 범위 스캔 (빠름)
+SELECT * FROM products
+WHERE category LIKE 'laptop%';  -- 앞부분 매칭
+-- → 5만 건만 확인
+```
+
+**EXPLAIN으로 확인하기:**
+
+```sql
+-- 실행 계획 확인
+EXPLAIN SELECT * FROM products WHERE category LIKE '%전자%';
+
+-- 결과
++----+-------------+----------+-------+------+---------+------+--------+-------------+
+| id | select_type | table    | type  | key  | key_len | ref  | rows   | Extra       |
++----+-------------+----------+-------+------+---------+------+--------+-------------+
+|  1 | SIMPLE      | products | index | idx  | 202     | NULL | 1000000| Using where |
++----+-------------+----------+-------+------+---------+------+--------+-------------+
+
+-- type = 'index' → 인덱스 풀 스캔!
+-- rows = 1000000 → 100만 건 전부 확인!
+```
+
+#### 박트래픽 (성능 전문가, 15년차)
+> "인덱스 풀 스캔이 발생하면 인덱스를 삭제하는 게 나을 수 있습니다. 인덱스는 읽기는 빠르지만 쓰기(INSERT, UPDATE, DELETE)를 느리게 만들기 때문입니다."
+
+**해결 방법:**
+
+```sql
+-- 1. Full-Text Search 사용 (중간 매칭이 필요한 경우)
+CREATE FULLTEXT INDEX idx_fulltext ON products(category);
+
+SELECT * FROM products
+WHERE MATCH(category) AGAINST('전자' IN BOOLEAN MODE);
+
+-- 2. 조건 변경 (부정 → 긍정)
+-- ❌
+WHERE category != 'laptop'
+
+-- ✅
+WHERE category IN ('smartphone', 'tablet', 'desktop', ...)
+
+-- 3. 복합 인덱스 활용
+CREATE INDEX idx_category_price ON products(category, price);
+
+SELECT * FROM products
+WHERE category = 'laptop'
+  AND price BETWEEN 1000000 AND 2000000;
+```
+
+#### 정스타트업 (CTO, 7년차)
+> "초기에는 인덱스를 많이 만들었는데, 나중에 보니 절반 이상이 사용되지 않거나 풀 스캔만 발생하는 인덱스였습니다. 주기적으로 인덱스 사용률을 모니터링하세요."
+
+**인덱스 사용률 모니터링:**
+
+```sql
+-- MySQL: 인덱스 사용 통계
+SELECT
+    TABLE_NAME,
+    INDEX_NAME,
+    CARDINALITY,
+    STAT_VALUE AS 'Rows Read'
+FROM information_schema.STATISTICS s
+LEFT JOIN information_schema.INNODB_INDEX_STATS i
+    ON s.TABLE_NAME = i.TABLE_NAME
+    AND s.INDEX_NAME = i.INDEX_NAME
+WHERE s.TABLE_SCHEMA = 'ecommerce'
+ORDER BY STAT_VALUE DESC;
+
+-- 사용되지 않는 인덱스 찾기 (Performance Schema 필요)
+SELECT
+    object_schema,
+    object_name,
+    index_name
+FROM performance_schema.table_io_waits_summary_by_index_usage
+WHERE index_name IS NOT NULL
+  AND count_star = 0
+  AND object_schema = 'ecommerce'
+ORDER BY object_schema, object_name;
+```
+
 ---
 
 ## 5. 커넥션 풀 튜닝
