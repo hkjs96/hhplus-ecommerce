@@ -13,47 +13,6 @@
 
 ---
 
-## 🎭 전문가 페르소나 소개
-
-본 문서는 5명의 시니어 개발자 관점에서 동시성 문제를 분석하고 해결책을 제시합니다.
-
-### 1. **김데이터 (20년차, DBA 출신 백엔드 개발자)**
-- **전문 분야**: Database Performance Tuning, Transaction Management
-- **강점**: ACID 속성, 격리 수준, 인덱스 최적화에 대한 깊은 이해
-- **관점**: "동시성 문제는 데이터베이스 레벨에서 원천적으로 해결해야 한다"
-- **선호 방식**: Pessimistic Lock, Transaction Isolation Level 조정
-- **핵심 가치**: 데이터 정합성 > 성능
-
-### 2. **박트래픽 (15년차, 대용량 트래픽 처리 전문가)**
-- **전문 분야**: High Traffic System, Distributed System Architecture
-- **강점**: 대규모 동시 접속 환경에서의 성능 최적화 경험
-- **관점**: "Lock은 최소화하고, 분산 환경에서도 확장 가능한 구조를 설계해야 한다"
-- **선호 방식**: Optimistic Lock, Redis Distributed Lock, Queue 기반 처리
-- **핵심 가치**: 성능 및 확장성 > 완벽한 일관성
-
-### 3. **이금융 (12년차, 금융권 시스템 개발자)**
-- **전문 분야**: Financial Transaction System, Mission-Critical Application
-- **강점**: 결제, 정산 시스템에서의 Zero-Tolerance 에러 처리
-- **관점**: "돈과 관련된 로직은 절대 실패하면 안 된다. 멱등성과 보상 트랜잭션이 필수다"
-- **선호 방식**: Two-Phase Commit, Saga Pattern, Idempotency Key
-- **핵심 가치**: 정확성 및 추적 가능성
-
-### 4. **최아키텍트 (10년차, MSA 아키텍트)**
-- **전문 분야**: Microservices Architecture, Event-Driven Design
-- **강점**: 분산 시스템에서의 최종 일관성(Eventual Consistency) 설계
-- **관점**: "강한 일관성은 비용이 크다. 비즈니스 특성에 맞는 일관성 수준을 선택해야 한다"
-- **선호 방식**: Event Sourcing, Outbox Pattern, CQRS
-- **핵심 가치**: 시스템 분리 및 느슨한 결합
-
-### 5. **정스타트업 (7년차, 스타트업 CTO)**
-- **전문 분야**: Rapid Development, Cost-Effective Solutions
-- **강점**: 제한된 리소스에서 빠르게 MVP를 만들고 점진적 개선
-- **관점**: "완벽한 설계보다 빠른 검증이 중요하다. 단순하게 시작해서 필요할 때 고도화한다"
-- **선호 방식**: Application-Level Lock (synchronized), Simple Retry Logic
-- **핵심 가치**: 개발 속도 및 유지보수성
-
----
-
 ## 🔍 E-Commerce 시스템의 주요 동시성 이슈
 
 ### 1. **재고 차감 (Stock Deduction)**
@@ -121,25 +80,13 @@
 
 ---
 
-## 📊 전문가별 추천 방식
-
-| 시나리오 | 김데이터 (DBA) | 박트래픽 (성능) | 이금융 (정확성) | 최아키텍트 (MSA) | 정스타트업 (MVP) |
-|---------|--------------|--------------|--------------|----------------|----------------|
-| **재고 차감** | Pessimistic Lock | Optimistic Lock + Retry | Pessimistic Lock | Event Sourcing | Pessimistic Lock |
-| **쿠폰 발급** | Pessimistic Lock | Redis Distributed Lock | Queue + Batch | Outbox Pattern | Synchronized |
-| **결제 처리** | Serializable Isolation | Idempotency Key | 2PC / Saga | Saga Pattern | Idempotency Key |
-| **잔액 업데이트** | Pessimistic Lock | Optimistic Lock | Pessimistic Lock | Event Sourcing | Pessimistic Lock |
-| **주문 상태** | DB Constraint | Optimistic Lock | State Machine | Event Store | Enum Validation |
-
----
-
-## 🎯 베스트 프랙티스 (합의된 방식)
+## 🎯 실무 권장 방식
 
 ### ✅ 재고 차감: **Pessimistic Lock (비관적 락)**
-**근거:**
+**선택 이유:**
 - 재고는 충돌이 자주 발생하는 Hot Spot
 - 음수 재고는 절대 발생하면 안 됨 (비즈니스 크리티컬)
-- 대부분의 전문가가 동의 (5명 중 4명)
+- 실무에서 가장 안정적이고 검증된 방식
 
 **구현:**
 ```java
@@ -151,10 +98,10 @@ public void decreaseStock(Long productId, int quantity) {
 ```
 
 ### ✅ 쿠폰 발급: **Redis Distributed Lock + DB 동기화**
-**근거:**
-- 선착순은 극도로 높은 동시성 발생
-- 정확히 N개만 발급되어야 함
-- Redis로 빠르게 처리 후 DB 비동기 동기화
+**선택 이유:**
+- 선착순 이벤트는 극도로 높은 동시성 발생
+- 정확히 N개만 발급되어야 하므로 빠른 처리 필수
+- Redis로 빠르게 처리 후 DB 비동기 동기화하는 것이 일반적
 
 **구현:**
 ```java
@@ -176,10 +123,10 @@ public void issueCoupon(Long couponId, Long userId) {
 ```
 
 ### ✅ 결제 처리: **Idempotency Key + Pessimistic Lock**
-**근거:**
+**선택 이유:**
 - 중복 결제는 절대 발생하면 안 됨
 - 멱등성 키로 1차 방어, Lock으로 2차 방어
-- 금융권 전문가의 경험 반영
+- 금융권에서 검증된 안전한 패턴
 
 **구현:**
 ```java
@@ -201,15 +148,15 @@ public PaymentResult processPayment(String idempotencyKey, PaymentRequest reques
 ```
 
 ### ✅ 잔액 업데이트: **Pessimistic Lock (단순 케이스) / Event Sourcing (복잡한 케이스)**
-**근거:**
+**선택 이유:**
 - 단일 잔액 업데이트: Pessimistic Lock으로 충분
-- 복잡한 거래 (충전, 사용, 환불 동시): Event Sourcing으로 이력 관리
+- 복잡한 거래 (충전, 사용, 환불 동시): Event Sourcing으로 이력 관리 권장
 
 ### ✅ 주문 상태: **Optimistic Lock + State Machine Validation**
-**근거:**
+**선택 이유:**
 - 상태 변경 충돌은 드물게 발생
 - 상태 전이 규칙 검증이 더 중요
-- 낙관적 락으로 성능 유지
+- 낙관적 락으로 성능 유지 가능
 
 ---
 
@@ -248,7 +195,7 @@ docs/week5/
 
 ### Phase 2: 해결 방안 학습 (STEP09 Day 3-4)
 1. `SOLUTION_COMPARISON.md` 읽고 5가지 동시성 제어 방식 비교
-2. 전문가 의견 참고 (각 문서 내 페르소나별 분석)
+2. 각 방식의 장단점 이해
 3. 각 시나리오에 적합한 방식 선택 및 근거 작성
 
 ### Phase 3: 구현 (STEP09 Day 5-6)
@@ -272,7 +219,7 @@ docs/week5/
 ## 💡 핵심 메시지
 
 ### 완벽한 해결책은 없다
-- 모든 전문가가 다른 의견을 가질 수 있음
+- 상황에 따라 최적의 방식이 다를 수 있음
 - 비즈니스 요구사항, 트래픽 규모, 팀 역량에 따라 선택이 달라짐
 - **중요한 것은 선택의 근거를 명확히 설명할 수 있는 것**
 
@@ -300,9 +247,3 @@ docs/week5/
 - **구현 가이드**: [IMPLEMENTATION_GUIDE.md](./IMPLEMENTATION_GUIDE.md)
 - **테스트 전략**: [TEST_STRATEGY.md](./TEST_STRATEGY.md)
 - **성능 최적화**: [PERFORMANCE_OPTIMIZATION.md](./PERFORMANCE_OPTIMIZATION.md)
-
----
-
-**작성일**: 2025-11-18
-**버전**: 1.0
-**작성자**: HH+ E-Commerce Team
