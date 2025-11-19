@@ -32,7 +32,11 @@ public class IssueCouponUseCase {
         userRepository.findByIdOrThrow(userId);
 
         // 2. 쿠폰 조회 및 발급 가능 여부 검증
-        Coupon coupon = couponRepository.findByIdOrThrow(couponId);
+        // 동시성 제어: Pessimistic Lock (SELECT FOR UPDATE)
+        // - 5명 관점: 김데이터(O), 박트래픽(X:Redis), 이금융(X:Queue), 최아키텍트(X:Outbox), 정스타트업(X:sync)
+        // - 최종 선택: Pessimistic Lock (정확한 수량 보장, MVP 단계)
+        // - 향후 개선: 성능 이슈 발생 시 Redis Distributed Lock 전환
+        Coupon coupon = couponRepository.findByIdWithLockOrThrow(couponId);  // Pessimistic Lock
         coupon.validateIssuable();
 
         // 3. 중복 발급 방지

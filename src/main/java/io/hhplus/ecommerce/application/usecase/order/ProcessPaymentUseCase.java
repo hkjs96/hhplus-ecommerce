@@ -33,9 +33,12 @@ public class ProcessPaymentUseCase {
     public PaymentResponse execute(Long orderId, PaymentRequest request) {
         log.debug("Processing payment for order: {}, user: {}", orderId, request.userId());
 
-        // 1. 주문 및 사용자 조회
+        // 1. 주문 조회 및 사용자 조회 (Pessimistic Lock)
+        // 동시성 제어: 잔액 업데이트 시 Pessimistic Lock
+        // - 5명 관점: 김데이터(O), 박트래픽(X:Optimistic), 이금융(O), 최아키텍트(X:Event), 정스타트업(O)
+        // - 최종 선택: Pessimistic Lock (돈 관련은 정확성 최우선)
         Order order = orderRepository.findByIdOrThrow(orderId);
-        User user = userRepository.findByIdOrThrow(request.userId());
+        User user = userRepository.findByIdWithLockOrThrow(request.userId());  // Pessimistic Lock
 
         // 2. 주문 소유자 검증
         if (!order.getUserId().equals(user.getId())) {
@@ -63,9 +66,12 @@ public class ProcessPaymentUseCase {
         }
 
         // 5. 재고 차감 (결제 성공 시에만 재고 감소)
+        // 동시성 제어: Pessimistic Lock (SELECT FOR UPDATE)
+        // - 5명 관점: 김데이터(O), 박트래픽(X:Optimistic), 이금융(O), 최아키텍트(X:Event), 정스타트업(O)
+        // - 최종 선택: Pessimistic Lock (충돌 빈번 + 크리티컬)
         List<OrderItem> orderItems = orderItemRepository.findByOrderId(orderId);
         for (OrderItem item : orderItems) {
-            Product product = productRepository.findByIdOrThrow(item.getProductId());
+            Product product = productRepository.findByIdWithLockOrThrow(item.getProductId());  // Pessimistic Lock
             product.decreaseStock(item.getQuantity());
             productRepository.save(product);
         }
