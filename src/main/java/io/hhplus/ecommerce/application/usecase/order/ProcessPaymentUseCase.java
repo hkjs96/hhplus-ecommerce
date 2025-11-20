@@ -203,8 +203,12 @@ public class ProcessPaymentUseCase {
                 }
             }
 
-            idempotency.fail(e.getMessage());
-            paymentIdempotencyRepository.save(idempotency);
+            // idempotency가 아직 PROCESSING 상태일 때만 fail() 호출
+            // (PG 실패 등으로 이미 FAILED 상태일 수 있음)
+            if (!idempotency.isFailed() && !idempotency.isCompleted()) {
+                idempotency.fail(e.getMessage());
+                paymentIdempotencyRepository.save(idempotency);
+            }
             throw e;
 
         } catch (Exception e) {
@@ -222,8 +226,11 @@ public class ProcessPaymentUseCase {
                 }
             }
 
-            idempotency.fail("시스템 오류: " + e.getMessage());
-            paymentIdempotencyRepository.save(idempotency);
+            // idempotency가 아직 PROCESSING 상태일 때만 fail() 호출
+            if (!idempotency.isFailed() && !idempotency.isCompleted()) {
+                idempotency.fail("시스템 오류: " + e.getMessage());
+                paymentIdempotencyRepository.save(idempotency);
+            }
             throw new BusinessException(
                 ErrorCode.INTERNAL_SERVER_ERROR,
                 "결제 처리 중 오류가 발생했습니다."
