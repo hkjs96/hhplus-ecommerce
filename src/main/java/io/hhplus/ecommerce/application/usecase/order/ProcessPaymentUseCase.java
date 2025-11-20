@@ -166,8 +166,7 @@ public class ProcessPaymentUseCase {
                 );
 
                 // 멱등성 키 완료 처리
-                idempotency.complete(orderId, serializeResponse(response));
-                paymentIdempotencyRepository.save(idempotency);
+                saveIdempotencyCompletion(idempotency, orderId, response);
 
                 log.info("Payment completed successfully. orderId: {}, txId: {}",
                     orderId, pgResponse.getTransactionId());
@@ -179,8 +178,7 @@ public class ProcessPaymentUseCase {
                 compensatePayment(orderId, request.userId());
 
                 // 멱등성 키 실패 처리
-                idempotency.fail("PG 승인 실패: " + pgResponse.getMessage());
-                paymentIdempotencyRepository.save(idempotency);
+                saveIdempotencyFailure(idempotency, "PG 승인 실패: " + pgResponse.getMessage());
 
                 throw new BusinessException(
                     ErrorCode.PAYMENT_FAILED,
@@ -206,8 +204,7 @@ public class ProcessPaymentUseCase {
             // idempotency가 아직 PROCESSING 상태일 때만 fail() 호출
             // (PG 실패 등으로 이미 FAILED 상태일 수 있음)
             if (!idempotency.isFailed() && !idempotency.isCompleted()) {
-                idempotency.fail(e.getMessage());
-                paymentIdempotencyRepository.save(idempotency);
+                saveIdempotencyFailure(idempotency, e.getMessage());
             }
             throw e;
 
@@ -228,8 +225,7 @@ public class ProcessPaymentUseCase {
 
             // idempotency가 아직 PROCESSING 상태일 때만 fail() 호출
             if (!idempotency.isFailed() && !idempotency.isCompleted()) {
-                idempotency.fail("시스템 오류: " + e.getMessage());
-                paymentIdempotencyRepository.save(idempotency);
+                saveIdempotencyFailure(idempotency, "시스템 오류: " + e.getMessage());
             }
             throw new BusinessException(
                 ErrorCode.INTERNAL_SERVER_ERROR,
@@ -398,5 +394,23 @@ public class ProcessPaymentUseCase {
                 "응답 역직렬화 중 오류가 발생했습니다."
             );
         }
+    }
+
+    /**
+     * 멱등성 키 완료 처리 (트랜잭션)
+     */
+    @Transactional
+    protected void saveIdempotencyCompletion(PaymentIdempotency idempotency, Long orderId, PaymentResponse response) {
+        idempotency.complete(orderId, serializeResponse(response));
+        paymentIdempotencyRepository.save(idempotency);
+    }
+
+    /**
+     * 멱등성 키 실패 처리 (트랜잭션)
+     */
+    @Transactional
+    protected void saveIdempotencyFailure(PaymentIdempotency idempotency, String errorMessage) {
+        idempotency.fail(errorMessage);
+        paymentIdempotencyRepository.save(idempotency);
     }
 }
