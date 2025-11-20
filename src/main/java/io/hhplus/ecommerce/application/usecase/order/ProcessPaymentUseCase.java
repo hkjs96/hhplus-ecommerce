@@ -336,7 +336,7 @@ public class ProcessPaymentUseCase {
             List<OrderItem> orderItems = orderItemRepository.findByOrderId(orderId);
             for (OrderItem item : orderItems) {
                 Product product = productRepository.findByIdOrThrow(item.getProductId());
-                product.restoreStock(item.getQuantity());
+                product.increaseStock(item.getQuantity());  // restoreStock → increaseStock
                 productRepository.save(product);
             }
 

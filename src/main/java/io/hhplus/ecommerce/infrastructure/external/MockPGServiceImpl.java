@@ -13,7 +13,7 @@ import java.util.UUID;
  * 실제 외부 API가 없는 환경에서 PG 동작을 시뮬레이션합니다.
  * <p>
  * 시뮬레이션 규칙:
- * - orderId가 999로 끝나는 경우: 실패 응답 (테스트용)
+ * - Idempotency Key에 "FAIL" 포함: 실패 응답 (테스트용)
  * - 그 외: 성공 응답
  * <p>
  * 실제 PG 연동 시:
@@ -33,8 +33,8 @@ public class MockPGServiceImpl implements PGService {
      * Mock 결제 승인
      * <p>
      * 실제 PG API를 호출하지 않고 즉시 응답합니다.
-     * - 성공: orderId가 999로 끝나지 않는 경우
-     * - 실패: orderId가 999로 끝나는 경우 (테스트용)
+     * - 성공: Idempotency Key에 "FAIL"이 없는 경우
+     * - 실패: Idempotency Key에 "FAIL"이 포함된 경우 (테스트용)
      *
      * @param request 결제 요청
      * @return Mock PG 응답
@@ -42,9 +42,8 @@ public class MockPGServiceImpl implements PGService {
     @Override
     public PGResponse charge(PaymentRequest request) {
         log.info("=== Mock PG Service: Charge Request ===");
-        log.info("Order ID: {}", request.orderId());
         log.info("User ID: {}", request.userId());
-        log.info("Amount: {}", request.amount());
+        log.info("Idempotency Key: {}", request.idempotencyKey());
 
         // TODO: 실제 PG API 연동 시 아래 코드로 교체
         // - RestTemplate 또는 WebClient 사용
@@ -75,11 +74,12 @@ public class MockPGServiceImpl implements PGService {
         // }
 
         // Mock 응답 생성 (실제 API 없음)
-        boolean isTestFailure = request.orderId().toString().endsWith("999");
+        // Idempotency Key에 "FAIL"이 포함되면 실패 시뮬레이션 (테스트용)
+        boolean isTestFailure = request.idempotencyKey().toUpperCase().contains("FAIL");
 
         if (isTestFailure) {
             // 실패 시나리오 (테스트용)
-            log.warn("Mock PG: Simulating failure for orderId ending with 999");
+            log.warn("Mock PG: Simulating failure for idempotencyKey containing 'FAIL'");
             return PGResponse.failure("PG 승인 실패: 잔액 부족 (Mock)");
         }
 

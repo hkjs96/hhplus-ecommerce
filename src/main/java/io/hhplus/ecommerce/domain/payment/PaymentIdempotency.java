@@ -164,6 +164,13 @@ public class PaymentIdempotency {
         return this.status == IdempotencyStatus.COMPLETED;
     }
 
+    /**
+     * 실패했는지 확인
+     */
+    public boolean isFailed() {
+        return this.status == IdempotencyStatus.FAILED;
+    }
+
     private static void validateIdempotencyKey(String idempotencyKey) {
         if (idempotencyKey == null || idempotencyKey.trim().isEmpty()) {
             throw new BusinessException(

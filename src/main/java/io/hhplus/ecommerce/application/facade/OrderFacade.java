@@ -9,6 +9,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.util.UUID;
+
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -32,7 +34,8 @@ public class OrderFacade {
         log.debug("Order created: {}", order.orderId());
 
         // 2. 즉시 결제
-        PaymentRequest paymentRequest = new PaymentRequest(request.userId());
+        String idempotencyKey = "ORDER_" + order.orderId() + "_" + UUID.randomUUID().toString();
+        PaymentRequest paymentRequest = new PaymentRequest(request.userId(), idempotencyKey);
 
         PaymentResponse payment = processPaymentUseCase.execute(order.orderId(), paymentRequest);
         log.debug("Payment processed: {}", payment.status());
