@@ -150,13 +150,17 @@ public class ProcessPaymentUseCase {
                 // Step 3: 성공 시 상태 업데이트 (트랜잭션, 50ms)
                 updatePaymentSuccess(orderId, pgResponse.getTransactionId());
 
+                // Get updated order and user after payment success
+                Order updatedOrder = orderRepository.findByIdOrThrow(orderId);
+                User user = userRepository.findByIdOrThrow(request.userId());
+
                 PaymentResponse response = PaymentResponse.of(
-                    order.getId(),
-                    order.getTotalAmount(),
-                    null,  // 보안상 잔액 노출 안 함
+                    updatedOrder.getId(),
+                    updatedOrder.getTotalAmount(),
+                    user.getBalance(),  // 결제 후 잔액
                     "SUCCESS",
                     "PG_APPROVED: " + pgResponse.getTransactionId(),
-                    order.getPaidAt()
+                    updatedOrder.getPaidAt()
                 );
 
                 // 멱등성 키 완료 처리
