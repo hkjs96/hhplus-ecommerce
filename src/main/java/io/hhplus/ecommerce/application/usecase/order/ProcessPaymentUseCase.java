@@ -149,20 +149,11 @@ public class ProcessPaymentUseCase {
             PGResponse pgResponse = pgService.charge(request);
 
             if (pgResponse.isSuccess()) {
-                // Step 3: 성공 시 상태 업데이트 (트랜잭션, 50ms)
-                updatePaymentSuccess(orderId, pgResponse.getTransactionId());
-
-                // Get updated order and user after payment success
-                Order updatedOrder = orderRepository.findByIdOrThrow(orderId);
-                User user = userRepository.findByIdOrThrow(request.userId());
-
-                PaymentResponse response = PaymentResponse.of(
-                    updatedOrder.getId(),
-                    updatedOrder.getTotalAmount(),
-                    user.getBalance(),  // 결제 후 잔액
-                    "SUCCESS",
-                    "PG_APPROVED: " + pgResponse.getTransactionId(),
-                    updatedOrder.getPaidAt()
+                // Step 3: 성공 시 상태 업데이트 및 응답 생성 (트랜잭션, 50ms)
+                PaymentResponse response = updatePaymentSuccessAndCreateResponse(
+                    orderId,
+                    request.userId(),
+                    pgResponse.getTransactionId()
                 );
 
                 // 멱등성 키 완료 처리
@@ -299,26 +290,47 @@ public class ProcessPaymentUseCase {
     }
 
     /**
-     * Step 3: 결제 성공 시 상태 업데이트 (트랜잭션)
+     * Step 3: 결제 성공 시 상태 업데이트 및 응답 생성 (트랜잭션)
      * <p>
      * PG 승인 성공 후 DB 상태 업데이트:
      * - 주문 상태 → COMPLETED
      * - 결제 완료 시간 기록
+     * - User 잔액 조회
+     * - PaymentResponse 생성
      * <p>
      * 트랜잭션 보유 시간: 약 50ms
      *
      * @param orderId 주문 ID
+     * @param userId 사용자 ID
      * @param pgTransactionId PG사 트랜잭션 ID
+     * @return PaymentResponse
      */
     @Transactional
-    protected void updatePaymentSuccess(Long orderId, String pgTransactionId) {
+    protected PaymentResponse updatePaymentSuccessAndCreateResponse(
+            Long orderId,
+            Long userId,
+            String pgTransactionId) {
         log.debug("Updating payment success. orderId: {}, txId: {}", orderId, pgTransactionId);
 
+        // 주문 상태 업데이트
         Order order = orderRepository.findByIdOrThrow(orderId);
         order.complete();
         orderRepository.save(order);
 
+        // 사용자 잔액 조회
+        User user = userRepository.findByIdOrThrow(userId);
+
         log.info("Payment status updated to COMPLETED. orderId: {}, txId: {}", orderId, pgTransactionId);
+
+        // 응답 생성
+        return PaymentResponse.of(
+            order.getId(),
+            order.getTotalAmount(),
+            user.getBalance(),  // 결제 후 잔액
+            "SUCCESS",
+            "PG_APPROVED: " + pgTransactionId,
+            order.getPaidAt()
+        );
     }
 
     /**
