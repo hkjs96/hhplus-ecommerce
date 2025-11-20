@@ -46,6 +46,7 @@ class IssueCouponConcurrencyTest {
             "테스트 쿠폰",
             10,
             100,
+            LocalDateTime.now(),
             LocalDateTime.now().plusDays(30)
         );
         couponRepository.save(coupon);
@@ -100,6 +101,7 @@ class IssueCouponConcurrencyTest {
             "한정 쿠폰",
             10,
             5,  // 총 5개
+            LocalDateTime.now(),
             LocalDateTime.now().plusDays(30)
         );
         couponRepository.save(coupon);
