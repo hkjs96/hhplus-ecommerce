@@ -137,9 +137,11 @@ public class ProcessPaymentUseCase {
             }
         });
 
+        boolean reserveSucceeded = false;
         try {
             // Step 1: 잔액 차감 (트랜잭션, 50ms)
             Order order = reservePayment(orderId, request);
+            reserveSucceeded = true;  // Reserve transaction committed successfully
             log.info("Payment reserved successfully. orderId: {}, amount: {}", orderId, order.getTotalAmount());
 
             // Step 2: 외부 PG API 호출 (트랜잭션 밖, 5초)
@@ -190,8 +192,9 @@ public class ProcessPaymentUseCase {
             // 비즈니스 예외 발생 시 보상 트랜잭션
             log.error("Payment failed for orderId: {}, error: {}", orderId, e.getMessage());
 
-            // 잔액 차감까지는 완료된 경우에만 보상
-            if (!idempotency.isFailed()) {
+            // reservePayment() 성공 후 실패한 경우에만 보상 필요
+            // (reservePayment() 실패 시 @Transactional이 자동 롤백 처리)
+            if (reserveSucceeded && !idempotency.isFailed()) {
                 try {
                     compensatePayment(orderId, request.userId());
                 } catch (Exception compensateError) {
@@ -208,8 +211,9 @@ public class ProcessPaymentUseCase {
             // 시스템 예외 발생 시 보상 트랜잭션
             log.error("Unexpected error during payment for orderId: {}", orderId, e);
 
-            // 잔액 차감까지는 완료된 경우에만 보상
-            if (!idempotency.isFailed()) {
+            // reservePayment() 성공 후 실패한 경우에만 보상 필요
+            // (reservePayment() 실패 시 @Transactional이 자동 롤백 처리)
+            if (reserveSucceeded && !idempotency.isFailed()) {
                 try {
                     compensatePayment(orderId, request.userId());
                 } catch (Exception compensateError) {
