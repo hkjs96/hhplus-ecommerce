@@ -86,13 +86,11 @@
 
 ## 🔗 **주요 구현 커밋**
 
-<!-- 커밋 해시와 함께 작성해주세요 -->
-- 동시성 문제 분석 문서 작성: [`48a5801`](../../commit/48a5801) - Week 5 concurrency control documentation
-- 비관적 락 구현: [`db794bb`](../../commit/db794bb) - Pessimistic Lock 기반 구현 (재고, 쿠폰, 결제)
-- 낙관적 락 구현: [`4177a7c`](../../commit/4177a7c) - Optimistic Lock 적용 (잔액 충전, 주문)
-- 트랜잭션 격리 수준 설정: [`db794bb`](../../commit/db794bb) - READ_COMMITTED 격리 수준 (application.yml)
-- 동시성 통합 테스트 작성: [`aa7179f`](../../commit/aa7179f) - Concurrency control tests (3개 파일)
-- 성능 테스트 및 최적화: [`c9a536d`](../../commit/c9a536d) - 외부 API 트랜잭션 분리 (성능 개선)
+- `48a5801` - docs: Add comprehensive Week 5 concurrency control documentation
+- `db794bb` - feat: Week 5 동시성 제어 구현 (Pessimistic Lock 기반)
+- `4177a7c` - feat: Apply concurrency improvements (7-persona consensus)
+- `aa7179f` - test: Add concurrency control tests (7-persona consensus)
+- `c9a536d` - feat: Separate external API from DB transaction (외부 API 트랜잭션 분리)
 
 ---
 
