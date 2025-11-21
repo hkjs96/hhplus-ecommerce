@@ -1,7 +1,5 @@
 package io.hhplus.ecommerce.application.usecase.order;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.hhplus.ecommerce.application.order.dto.PaymentRequest;
 import io.hhplus.ecommerce.application.order.dto.PaymentResponse;
 import io.hhplus.ecommerce.application.usecase.UseCase;
@@ -12,7 +10,6 @@ import io.hhplus.ecommerce.domain.order.OrderItem;
 import io.hhplus.ecommerce.domain.order.OrderItemRepository;
 import io.hhplus.ecommerce.domain.order.OrderRepository;
 import io.hhplus.ecommerce.domain.payment.PaymentIdempotency;
-import io.hhplus.ecommerce.domain.payment.PaymentIdempotencyRepository;
 import io.hhplus.ecommerce.domain.product.Product;
 import io.hhplus.ecommerce.domain.product.ProductRepository;
 import io.hhplus.ecommerce.domain.user.User;
@@ -21,11 +18,9 @@ import io.hhplus.ecommerce.infrastructure.external.PGResponse;
 import io.hhplus.ecommerce.infrastructure.external.PGService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
 
 /**
  * 결제 처리 UseCase
@@ -76,9 +71,8 @@ public class ProcessPaymentUseCase {
     private final OrderItemRepository orderItemRepository;
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
-    private final PaymentIdempotencyRepository paymentIdempotencyRepository;
+    private final PaymentIdempotencyService idempotencyService;
     private final PGService pgService;
-    private final ObjectMapper objectMapper;
 
     /**
      * 결제 처리 (보상 트랜잭션 패턴)
@@ -98,7 +92,7 @@ public class ProcessPaymentUseCase {
             orderId, request.userId(), request.idempotencyKey());
 
         // 0. 멱등성 키 조회 또는 생성 (트랜잭션)
-        PaymentIdempotencyResult idempotencyResult = getOrCreateIdempotency(request);
+        PaymentIdempotencyService.PaymentIdempotencyResult idempotencyResult = idempotencyService.getOrCreate(request);
 
         // COMPLETED: 기존 결과 반환 (캐시된 응답)
         if (idempotencyResult.isCompleted()) {
@@ -128,7 +122,7 @@ public class ProcessPaymentUseCase {
                 );
 
                 // 멱등성 키 완료 처리
-                saveIdempotencyCompletion(idempotency, orderId, response);
+                idempotencyService.saveCompletion(idempotency, orderId, response);
 
                 log.info("Payment completed successfully. orderId: {}, txId: {}",
                     orderId, pgResponse.getTransactionId());
@@ -140,7 +134,7 @@ public class ProcessPaymentUseCase {
                 compensatePayment(orderId, request.userId());
 
                 // 멱등성 키 실패 처리
-                saveIdempotencyFailure(idempotency, "PG 승인 실패: " + pgResponse.getMessage());
+                idempotencyService.saveFailure(idempotency, "PG 승인 실패: " + pgResponse.getMessage());
 
                 throw new BusinessException(
                     ErrorCode.PAYMENT_FAILED,
@@ -166,7 +160,7 @@ public class ProcessPaymentUseCase {
             // idempotency가 아직 PROCESSING 상태일 때만 fail() 호출
             // (PG 실패 등으로 이미 FAILED 상태일 수 있음)
             if (!idempotency.isFailed() && !idempotency.isCompleted()) {
-                saveIdempotencyFailure(idempotency, e.getMessage());
+                idempotencyService.saveFailure(idempotency, e.getMessage());
             }
             throw e;
 
@@ -187,7 +181,7 @@ public class ProcessPaymentUseCase {
 
             // idempotency가 아직 PROCESSING 상태일 때만 fail() 호출
             if (!idempotency.isFailed() && !idempotency.isCompleted()) {
-                saveIdempotencyFailure(idempotency, "시스템 오류: " + e.getMessage());
+                idempotencyService.saveFailure(idempotency, "시스템 오류: " + e.getMessage());
             }
             throw new BusinessException(
                 ErrorCode.INTERNAL_SERVER_ERROR,
@@ -349,145 +343,4 @@ public class ProcessPaymentUseCase {
         }
     }
 
-    /**
-     * PaymentResponse를 JSON으로 직렬화
-     */
-    private String serializeResponse(PaymentResponse response) {
-        try {
-            return objectMapper.writeValueAsString(response);
-        } catch (JsonProcessingException e) {
-            log.error("Failed to serialize PaymentResponse", e);
-            throw new BusinessException(
-                ErrorCode.INTERNAL_SERVER_ERROR,
-                "응답 직렬화 중 오류가 발생했습니다."
-            );
-        }
-    }
-
-    /**
-     * JSON을 PaymentResponse로 역직렬화
-     */
-    private PaymentResponse deserializeResponse(String json) {
-        try {
-            return objectMapper.readValue(json, PaymentResponse.class);
-        } catch (JsonProcessingException e) {
-            log.error("Failed to deserialize PaymentResponse", e);
-            throw new BusinessException(
-                ErrorCode.INTERNAL_SERVER_ERROR,
-                "응답 역직렬화 중 오류가 발생했습니다."
-            );
-        }
-    }
-
-    /**
-     * 멱등성 키 완료 처리 (트랜잭션)
-     */
-    @Transactional
-    protected void saveIdempotencyCompletion(PaymentIdempotency idempotency, Long orderId, PaymentResponse response) {
-        idempotency.complete(orderId, serializeResponse(response));
-        paymentIdempotencyRepository.save(idempotency);
-    }
-
-    /**
-     * 멱등성 키 실패 처리 (트랜잭션)
-     */
-    @Transactional
-    protected void saveIdempotencyFailure(PaymentIdempotency idempotency, String errorMessage) {
-        idempotency.fail(errorMessage);
-        paymentIdempotencyRepository.save(idempotency);
-    }
-
-    /**
-     * 멱등성 키 조회 또는 생성 (트랜잭션)
-     * <p>
-     * 중복 결제 방지를 위한 멱등성 키 처리:
-     * - COMPLETED: 기존 결과 반환 (캐시된 응답)
-     * - PROCESSING: 409 Conflict (동시 요청)
-     * - FAILED: 재시도 가능 (새로 처리)
-     * - 없음: 새로 생성 (PROCESSING 상태)
-     *
-     * @param request 결제 요청
-     * @return PaymentIdempotencyResult 결과 객체
-     */
-    @Transactional
-    protected PaymentIdempotencyResult getOrCreateIdempotency(PaymentRequest request) {
-        Optional<PaymentIdempotency> existing = paymentIdempotencyRepository
-            .findByIdempotencyKey(request.idempotencyKey());
-
-        if (existing.isPresent()) {
-            PaymentIdempotency idempotency = existing.get();
-
-            // COMPLETED: 기존 결과 반환
-            if (idempotency.isCompleted()) {
-                log.info("Found completed payment for idempotencyKey: {}", request.idempotencyKey());
-                PaymentResponse cachedResponse = deserializeResponse(idempotency.getResponsePayload());
-                return PaymentIdempotencyResult.completed(cachedResponse);
-            }
-
-            // PROCESSING: 동시 요청 (409 Conflict)
-            if (idempotency.isProcessing()) {
-                log.warn("Concurrent payment request detected for idempotencyKey: {}", request.idempotencyKey());
-                throw new BusinessException(
-                    ErrorCode.DUPLICATE_REQUEST,
-                    "동일한 결제 요청이 처리 중입니다. 잠시 후 다시 시도해주세요."
-                );
-            }
-
-            // FAILED: 재시도 가능하므로 진행
-            log.info("Retrying failed payment for idempotencyKey: {}", request.idempotencyKey());
-            return PaymentIdempotencyResult.retry(idempotency);
-        }
-
-        // 새로 생성 (PROCESSING 상태)
-        try {
-            PaymentIdempotency newKey = PaymentIdempotency.create(request.idempotencyKey(), request.userId());
-            PaymentIdempotency saved = paymentIdempotencyRepository.save(newKey);
-            return PaymentIdempotencyResult.newRequest(saved);
-        } catch (DataIntegrityViolationException e) {
-            log.warn("Duplicate idempotency key creation attempted: {}", request.idempotencyKey());
-            throw new BusinessException(
-                ErrorCode.DUPLICATE_REQUEST,
-                "동일한 결제 요청이 처리 중입니다. 잠시 후 다시 시도해주세요."
-            );
-        }
-    }
-
-    /**
-     * 멱등성 키 조회 결과를 담는 내부 클래스
-     */
-    protected static class PaymentIdempotencyResult {
-        private final boolean completed;
-        private final PaymentResponse cachedResponse;
-        private final PaymentIdempotency idempotency;
-
-        private PaymentIdempotencyResult(boolean completed, PaymentResponse cachedResponse, PaymentIdempotency idempotency) {
-            this.completed = completed;
-            this.cachedResponse = cachedResponse;
-            this.idempotency = idempotency;
-        }
-
-        public static PaymentIdempotencyResult completed(PaymentResponse cachedResponse) {
-            return new PaymentIdempotencyResult(true, cachedResponse, null);
-        }
-
-        public static PaymentIdempotencyResult retry(PaymentIdempotency idempotency) {
-            return new PaymentIdempotencyResult(false, null, idempotency);
-        }
-
-        public static PaymentIdempotencyResult newRequest(PaymentIdempotency idempotency) {
-            return new PaymentIdempotencyResult(false, null, idempotency);
-        }
-
-        public boolean isCompleted() {
-            return completed;
-        }
-
-        public PaymentResponse getCachedResponse() {
-            return cachedResponse;
-        }
-
-        public PaymentIdempotency getIdempotency() {
-            return idempotency;
-        }
-    }
 }
