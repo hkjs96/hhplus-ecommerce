@@ -94,15 +94,15 @@ public class DataInitializer implements ApplicationRunner {
         user3.charge(100000L);  // 10만원 충전
         userRepository.save(user3);
 
-        // K6 부하 테스트용 추가 사용자 10명 (각 1억원)
-        for (int i = 4; i <= 13; i++) {
+        // K6 부하 테스트용 추가 사용자 100명 (각 1억원) - 동시성 테스트용
+        for (int i = 4; i <= 103; i++) {
             User user = User.create("testuser" + i + "@example.com", "테스트사용자" + i);
             user.charge(100000000L);  // 각 1억원 충전 (K6 부하 테스트용)
             userRepository.save(user);
         }
 
-        log.info("   ✓ Created 13 test users (기본 3명 + K6 테스트 10명)");
-        log.info("   💰 K6 test users (1-13): 각 100,000,000원 (지속적인 부하 테스트 가능)");
+        log.info("   ✓ Created 103 test users (기본 3명 + K6 테스트 100명)");
+        log.info("   💰 K6 test users (1-103): 각 100,000,000원 (지속적인 부하 테스트 가능)");
     }
 
     private void initProducts() {
@@ -148,34 +148,34 @@ public class DataInitializer implements ApplicationRunner {
 
         LocalDateTime now = LocalDateTime.now();
 
-        // Coupon 1: 10% 할인 (K6 부하 테스트용 - 수량 많음)
+        // Coupon 1: 10% 할인 (K6 동시성 테스트용 - 100명 vs 200개)
         Coupon coupon1 = Coupon.create(
                 "WELCOME10",
                 "신규 가입 10% 할인",
                 10,  // 10% 할인
-                10000,  // 총 10,000개 (K6 부하 테스트용)
+                200,  // 총 200개 (동시성 테스트: 100명이 200개 쟁탈)
                 now,
                 now.plusMonths(3)  // 3개월 유효
         );
         couponRepository.save(coupon1);
 
-        // Coupon 2: 20% 할인 (K6 부하 테스트용)
+        // Coupon 2: 20% 할인 (K6 동시성 테스트용)
         Coupon coupon2 = Coupon.create(
                 "VIP20",
                 "VIP 회원 20% 할인",
                 20,  // 20% 할인
-                10000,  // 총 10,000개 (K6 부하 테스트용)
+                200,  // 총 200개 (동시성 테스트)
                 now,
                 now.plusMonths(1)  // 1개월 유효
         );
         couponRepository.save(coupon2);
 
-        // Coupon 3: 15% 할인 (K6 부하 테스트용)
+        // Coupon 3: 15% 할인 (K6 동시성 테스트용)
         Coupon coupon3 = Coupon.create(
                 "EARLYBIRD15",
                 "얼리버드 15% 할인",
                 15,  // 15% 할인
-                10000,  // 총 10,000개 (K6 부하 테스트용)
+                200,  // 총 200개 (동시성 테스트)
                 now.minusDays(20),  // 20일 전부터 시작
                 now.plusDays(10)  // 10일 후 만료
         );
@@ -205,7 +205,7 @@ public class DataInitializer implements ApplicationRunner {
         couponRepository.save(expiredCoupon);
 
         log.info("   ✓ Created 5 test coupons");
-        log.info("   🎫 K6 test coupons (1-3): 각 10,000개 (지속적인 부하 테스트 가능)");
+        log.info("   🎫 K6 test coupons (1-3): 각 200개 (동시성 테스트: 100명 vs 200개 경합)");
         log.info("   ⚠️ Edge cases: SOLDOUT(품절), EXPIRED30(만료됨)");
     }
 
