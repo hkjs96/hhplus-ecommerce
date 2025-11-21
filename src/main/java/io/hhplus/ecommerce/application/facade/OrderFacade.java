@@ -8,6 +8,7 @@ import io.hhplus.ecommerce.domain.order.OrderRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
@@ -41,7 +42,7 @@ public class OrderFacade {
         log.debug("Payment processed: {}", payment.status());
 
         // 3. 결제 후 최신 주문 상태 반영
-        Order updatedOrder = orderRepository.findByIdOrThrow(order.orderId());
+        Order updatedOrder = getUpdatedOrder(order.orderId());
         CreateOrderResponse updatedOrderResponse = new CreateOrderResponse(
                 updatedOrder.getId(),
                 updatedOrder.getUserId(),
@@ -56,6 +57,11 @@ public class OrderFacade {
 
         // 4. 통합 응답
         return new CompleteOrderResponse(updatedOrderResponse, payment);
+    }
+
+    @Transactional(readOnly = true)
+    protected Order getUpdatedOrder(Long orderId) {
+        return orderRepository.findByIdOrThrow(orderId);
     }
 }
 
