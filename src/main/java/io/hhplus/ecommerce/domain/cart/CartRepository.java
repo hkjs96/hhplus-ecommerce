@@ -4,7 +4,7 @@ import java.util.Optional;
 
 public interface CartRepository {
 
-    Optional<Cart> findByUserId(String userId);
+    Optional<Cart> findByUserId(Long userId);
 
     Cart save(Cart cart);
 }
