@@ -54,15 +54,18 @@ class CartControllerIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        // 테스트용 사용자 데이터 생성
-        User user = User.create("test@example.com", "테스트유저");
+        // 테스트용 사용자 데이터 생성 (UUID로 고유한 email 생성)
+        String uniqueEmail = "test-" + java.util.UUID.randomUUID().toString().substring(0, 8) + "@example.com";
+        User user = User.create(uniqueEmail, "테스트유저");
         user.charge(500000L);
         User savedUser = userRepository.save(user);
         testUserId = savedUser.getId();
 
-        // 테스트용 상품 데이터 생성
-        Product product1 = Product.create("TEST_P001", "테스트노트북", "고성능 노트북", 890000L, "전자제품", 10);
-        Product product2 = Product.create("TEST_P002", "테스트키보드", "기계식 키보드", 120000L, "주변기기", 20);
+        // 테스트용 상품 데이터 생성 (UUID로 고유한 product code 생성)
+        String uniqueCode1 = "TEST_P001_" + java.util.UUID.randomUUID().toString().substring(0, 8);
+        String uniqueCode2 = "TEST_P002_" + java.util.UUID.randomUUID().toString().substring(0, 8);
+        Product product1 = Product.create(uniqueCode1, "테스트노트북", "고성능 노트북", 890000L, "전자제품", 10);
+        Product product2 = Product.create(uniqueCode2, "테스트키보드", "기계식 키보드", 120000L, "주변기기", 20);
         Product savedProduct1 = productRepository.save(product1);
         Product savedProduct2 = productRepository.save(product2);
         testProduct1Id = savedProduct1.getId();
