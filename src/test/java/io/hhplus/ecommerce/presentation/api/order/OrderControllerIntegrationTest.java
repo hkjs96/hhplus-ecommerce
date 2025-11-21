@@ -265,10 +265,11 @@ class OrderControllerIntegrationTest {
                         .content(objectMapper.writeValueAsString(paymentRequest)))
                 .andExpect(status().isOk());
 
-        // When & Then - Second payment fails
+        // When & Then - Second payment with NEW idempotency key should fail (order already completed)
+        PaymentRequest secondPaymentRequest = new PaymentRequest(testUserId, UUID.randomUUID().toString());
         mockMvc.perform(post("/api/orders/" + orderId + "/payment")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(paymentRequest)))
+                        .content(objectMapper.writeValueAsString(secondPaymentRequest)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("O003"));
     }
