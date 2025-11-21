@@ -123,7 +123,7 @@ function testProductList(headers) {
         'Product list has data': (r) => {
             try {
                 const body = JSON.parse(r.body);
-                return body.data && Array.isArray(body.data);
+                return body.products && Array.isArray(body.products);
             } catch (e) {
                 return false;
             }
@@ -166,19 +166,19 @@ function testOrderAndPaymentFlow(headers) {
     const orderDurationMs = new Date().getTime() - orderStart;
     orderDuration.add(orderDurationMs);
 
-    const orderSuccess = check(orderResponse, {
-        'Order creation status is 200': (r) => r.status === 200,
+    const orderCheckSuccess = check(orderResponse, {
+        'Order creation status is 201': (r) => r.status === 201,
         'Order has orderId': (r) => {
             try {
                 const body = JSON.parse(r.body);
-                return body.data && body.data.orderId;
+                return body.orderId != null;
             } catch (e) {
                 return false;
             }
         },
     });
 
-    if (!orderSuccess) {
+    if (!orderCheckSuccess) {
         errorRate.add(1);
         orderFailure.add(1);
         console.error(`Order creation failed: ${orderResponse.status} - ${orderResponse.body}`);
@@ -192,7 +192,7 @@ function testOrderAndPaymentFlow(headers) {
     let orderId;
     try {
         const orderBody = JSON.parse(orderResponse.body);
-        orderId = orderBody.data.orderId;
+        orderId = orderBody.orderId;
     } catch (e) {
         console.error('Failed to parse order response');
         return;
