@@ -6,21 +6,11 @@ import io.hhplus.ecommerce.application.usecase.UseCase;
 import io.hhplus.ecommerce.common.exception.BusinessException;
 import io.hhplus.ecommerce.common.exception.ErrorCode;
 import io.hhplus.ecommerce.domain.order.Order;
-import io.hhplus.ecommerce.domain.order.OrderItem;
-import io.hhplus.ecommerce.domain.order.OrderItemRepository;
-import io.hhplus.ecommerce.domain.order.OrderRepository;
 import io.hhplus.ecommerce.domain.payment.PaymentIdempotency;
-import io.hhplus.ecommerce.domain.product.Product;
-import io.hhplus.ecommerce.domain.product.ProductRepository;
-import io.hhplus.ecommerce.domain.user.User;
-import io.hhplus.ecommerce.domain.user.UserRepository;
 import io.hhplus.ecommerce.infrastructure.external.PGResponse;
 import io.hhplus.ecommerce.infrastructure.external.PGService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 
 /**
  * 결제 처리 UseCase
@@ -67,10 +57,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ProcessPaymentUseCase {
 
-    private final OrderRepository orderRepository;
-    private final OrderItemRepository orderItemRepository;
-    private final ProductRepository productRepository;
-    private final UserRepository userRepository;
+    private final PaymentTransactionService transactionService;
     private final PaymentIdempotencyService idempotencyService;
     private final PGService pgService;
 
@@ -105,7 +92,7 @@ public class ProcessPaymentUseCase {
         boolean reserveSucceeded = false;
         try {
             // Step 1: 잔액 차감 (트랜잭션, 50ms)
-            Order order = reservePayment(orderId, request);
+            Order order = transactionService.reservePayment(orderId, request);
             reserveSucceeded = true;  // Reserve transaction committed successfully
             log.info("Payment reserved successfully. orderId: {}, amount: {}", orderId, order.getTotalAmount());
 
@@ -115,7 +102,7 @@ public class ProcessPaymentUseCase {
 
             if (pgResponse.isSuccess()) {
                 // Step 3: 성공 시 상태 업데이트 및 응답 생성 (트랜잭션, 50ms)
-                PaymentResponse response = updatePaymentSuccessAndCreateResponse(
+                PaymentResponse response = transactionService.updatePaymentSuccessAndCreateResponse(
                     orderId,
                     request.userId(),
                     pgResponse.getTransactionId()
@@ -131,7 +118,7 @@ public class ProcessPaymentUseCase {
             } else {
                 // Step 4: PG 승인 실패 시 보상 트랜잭션 (트랜잭션, 50ms)
                 log.warn("PG approval failed. orderId: {}, message: {}", orderId, pgResponse.getMessage());
-                compensatePayment(orderId, request.userId());
+                transactionService.compensatePayment(orderId, request.userId());
 
                 // 멱등성 키 실패 처리
                 idempotencyService.saveFailure(idempotency, "PG 승인 실패: " + pgResponse.getMessage());
@@ -150,7 +137,7 @@ public class ProcessPaymentUseCase {
             // (reservePayment() 실패 시 @Transactional이 자동 롤백 처리)
             if (reserveSucceeded && !idempotency.isFailed()) {
                 try {
-                    compensatePayment(orderId, request.userId());
+                    transactionService.compensatePayment(orderId, request.userId());
                 } catch (Exception compensateError) {
                     log.error("Compensation failed for orderId: {}. Manual intervention required!",
                         orderId, compensateError);
@@ -172,7 +159,7 @@ public class ProcessPaymentUseCase {
             // (reservePayment() 실패 시 @Transactional이 자동 롤백 처리)
             if (reserveSucceeded && !idempotency.isFailed()) {
                 try {
-                    compensatePayment(orderId, request.userId());
+                    transactionService.compensatePayment(orderId, request.userId());
                 } catch (Exception compensateError) {
                     log.error("Compensation failed for orderId: {}. Manual intervention required!",
                         orderId, compensateError);
@@ -189,158 +176,4 @@ public class ProcessPaymentUseCase {
             );
         }
     }
-
-    /**
-     * Step 1: 잔액 차감 (트랜잭션)
-     * <p>
-     * DB 트랜잭션 내에서 수행:
-     * - 주문 조회 및 검증
-     * - 잔액 차감 (Pessimistic Lock)
-     * - 재고 차감 (Pessimistic Lock)
-     * - 주문 상태 PENDING 유지 (결제 대기)
-     * <p>
-     * 트랜잭션 보유 시간: 약 50ms (외부 API 제외)
-     *
-     * @param orderId 주문 ID
-     * @param request 결제 요청
-     * @return 주문 엔티티
-     */
-    @Transactional
-    protected Order reservePayment(Long orderId, PaymentRequest request) {
-        log.debug("Reserving payment for order: {}", orderId);
-
-        // 1. 주문 조회 및 사용자 조회 (Pessimistic Lock)
-        Order order = orderRepository.findByIdOrThrow(orderId);
-        User user = userRepository.findByIdWithLockOrThrow(request.userId());
-
-        // 2. 주문 소유자 검증
-        if (!order.getUserId().equals(user.getId())) {
-            throw new BusinessException(
-                ErrorCode.INVALID_INPUT,
-                "주문한 사용자와 결제 요청 사용자가 다릅니다."
-            );
-        }
-
-        // 3. 주문 상태 검증
-        if (order.getStatus() != io.hhplus.ecommerce.domain.order.OrderStatus.PENDING) {
-            throw new BusinessException(
-                ErrorCode.INVALID_ORDER_STATUS,
-                "결제할 수 없는 주문 상태입니다. 현재 상태: " + order.getStatus()
-            );
-        }
-
-        // 4. 잔액 검증
-        if (user.getBalance() < order.getTotalAmount()) {
-            throw new BusinessException(
-                ErrorCode.INSUFFICIENT_BALANCE,
-                String.format("잔액이 부족합니다. (필요: %d원, 보유: %d원)",
-                    order.getTotalAmount(), user.getBalance())
-            );
-        }
-
-        // 5. 재고 차감 (결제 성공 시에만 재고 감소)
-        List<OrderItem> orderItems = orderItemRepository.findByOrderId(orderId);
-        for (OrderItem item : orderItems) {
-            Product product = productRepository.findByIdWithLockOrThrow(item.getProductId());
-            product.decreaseStock(item.getQuantity());
-            productRepository.save(product);
-        }
-
-        // 6. 잔액 차감
-        user.deduct(order.getTotalAmount());
-        userRepository.save(user);
-
-        log.debug("Payment reserved. orderId: {}, amount: {}", orderId, order.getTotalAmount());
-        return order;
-    }
-
-    /**
-     * Step 3: 결제 성공 시 상태 업데이트 및 응답 생성 (트랜잭션)
-     * <p>
-     * PG 승인 성공 후 DB 상태 업데이트:
-     * - 주문 상태 → COMPLETED
-     * - 결제 완료 시간 기록
-     * - User 잔액 조회
-     * - PaymentResponse 생성
-     * <p>
-     * 트랜잭션 보유 시간: 약 50ms
-     *
-     * @param orderId 주문 ID
-     * @param userId 사용자 ID
-     * @param pgTransactionId PG사 트랜잭션 ID
-     * @return PaymentResponse
-     */
-    @Transactional
-    protected PaymentResponse updatePaymentSuccessAndCreateResponse(
-            Long orderId,
-            Long userId,
-            String pgTransactionId) {
-        log.debug("Updating payment success. orderId: {}, txId: {}", orderId, pgTransactionId);
-
-        // 주문 상태 업데이트
-        Order order = orderRepository.findByIdOrThrow(orderId);
-        order.complete();
-        orderRepository.save(order);
-
-        // 사용자 잔액 조회
-        User user = userRepository.findByIdOrThrow(userId);
-
-        log.info("Payment status updated to COMPLETED. orderId: {}, txId: {}", orderId, pgTransactionId);
-
-        // 응답 생성
-        return PaymentResponse.of(
-            order.getId(),
-            order.getTotalAmount(),
-            user.getBalance(),  // 결제 후 잔액
-            "SUCCESS",
-            "PG_APPROVED: " + pgTransactionId,
-            order.getPaidAt()
-        );
-    }
-
-    /**
-     * Step 4: 결제 실패 시 보상 트랜잭션 (트랜잭션)
-     * <p>
-     * 잔액 차감은 성공했지만 PG 승인 실패 시:
-     * - 잔액 복구 (user.charge)
-     * - 재고 복구 (product.restoreStock)
-     * <p>
-     * 트랜잭션 보유 시간: 약 50ms
-     * <p>
-     * ⚠️ 보상 실패 시 수동 개입 필요 (로그 남김)
-     *
-     * @param orderId 주문 ID
-     * @param userId 사용자 ID
-     */
-    @Transactional
-    protected void compensatePayment(Long orderId, Long userId) {
-        log.warn("Compensating payment. orderId: {}, userId: {}", orderId, userId);
-
-        try {
-            // 1. 주문 조회
-            Order order = orderRepository.findByIdOrThrow(orderId);
-
-            // 2. 재고 복구
-            List<OrderItem> orderItems = orderItemRepository.findByOrderId(orderId);
-            for (OrderItem item : orderItems) {
-                Product product = productRepository.findByIdOrThrow(item.getProductId());
-                product.increaseStock(item.getQuantity());  // restoreStock → increaseStock
-                productRepository.save(product);
-            }
-
-            // 3. 잔액 복구
-            User user = userRepository.findByIdOrThrow(userId);
-            user.charge(order.getTotalAmount());
-            userRepository.save(user);
-
-            log.info("Payment compensation completed. orderId: {}, refundedAmount: {}",
-                orderId, order.getTotalAmount());
-
-        } catch (Exception e) {
-            log.error("CRITICAL: Compensation failed for orderId: {}. Manual intervention required!",
-                orderId, e);
-            throw e;  // 보상 실패 시 예외 발생 (수동 처리 필요)
-        }
-    }
-
 }
