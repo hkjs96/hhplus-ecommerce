@@ -86,12 +86,12 @@
 
 ## 🔗 **주요 구현 커밋**
 
-- 동시성 문제 분석 문서 작성: `48a5801`
-- 비관적 락 구현: `db794bb`
-- 낙관적 락 구현: `4177a7c`
-- 동시성 통합 테스트 작성: `aa7179f`
-- 트랜잭션 격리 수준 설정: `db794bb`
-- 성능 테스트 및 최적화: `c9a536d`
+- 동시성 문제 분석 문서 작성: [`48a5801`](https://github.com/hkjs96/hhplus-ecommerce/commit/48a5801)
+- 비관적 락 구현: [`db794bb`](https://github.com/hkjs96/hhplus-ecommerce/commit/db794bb)
+- 낙관적 락 구현: [`4177a7c`](https://github.com/hkjs96/hhplus-ecommerce/commit/4177a7c)
+- 동시성 통합 테스트 작성: [`aa7179f`](https://github.com/hkjs96/hhplus-ecommerce/commit/aa7179f)
+- 트랜잭션 격리 수준 설정: [`db794bb`](https://github.com/hkjs96/hhplus-ecommerce/commit/db794bb)
+- 성능 테스트 및 최적화: [`c9a536d`](https://github.com/hkjs96/hhplus-ecommerce/commit/c9a536d)
 
 ---
 
