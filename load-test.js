@@ -60,10 +60,14 @@ export const options = {
 // 환경 변수 설정
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:8080';
 const TEST_DATA = {
-    userId: 1,
     productId: 1,
     couponId: 1,
 };
+
+// 랜덤 사용자 ID 생성 함수 (1~10)
+function getRandomUserId() {
+    return Math.floor(Math.random() * 10) + 1;
+}
 
 // 테스트 시작 시 초기 데이터 확인
 export function setup() {
@@ -140,11 +144,13 @@ function testProductList(headers) {
 
 // 주문 + 결제 플로우 테스트
 function testOrderAndPaymentFlow(headers) {
+    const userId = getRandomUserId();  // 랜덤 사용자 (1~10)
+
     // Step 1: 주문 생성
     const orderStart = new Date().getTime();
 
     const orderPayload = JSON.stringify({
-        userId: TEST_DATA.userId,
+        userId: userId,
         items: [
             {
                 productId: TEST_DATA.productId,
@@ -201,7 +207,7 @@ function testOrderAndPaymentFlow(headers) {
     const paymentStart = new Date().getTime();
 
     const paymentPayload = JSON.stringify({
-        userId: TEST_DATA.userId,
+        userId: userId,  // 주문과 동일한 사용자
         idempotencyKey: `test-${Date.now()}-${Math.random()}`,
         paymentMethod: 'BALANCE'
     });
@@ -238,10 +244,11 @@ function testOrderAndPaymentFlow(headers) {
 
 // 쿠폰 발급 테스트
 function testCouponIssuance(headers) {
+    const userId = getRandomUserId();  // 랜덤 사용자 (1~10)
     const start = new Date().getTime();
 
     const payload = JSON.stringify({
-        userId: TEST_DATA.userId + Math.floor(Math.random() * 100),  // 다양한 유저 시뮬레이션
+        userId: userId,
     });
 
     const response = http.post(
