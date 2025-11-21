@@ -9,6 +9,7 @@ import io.hhplus.ecommerce.domain.order.Order;
 import io.hhplus.ecommerce.domain.payment.PaymentIdempotency;
 import io.hhplus.ecommerce.infrastructure.external.PGResponse;
 import io.hhplus.ecommerce.infrastructure.external.PGService;
+import io.hhplus.ecommerce.infrastructure.metrics.MetricsCollector;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -60,6 +61,7 @@ public class ProcessPaymentUseCase {
     private final PaymentTransactionService transactionService;
     private final PaymentIdempotencyService idempotencyService;
     private final PGService pgService;
+    private final MetricsCollector metricsCollector;
 
     /**
      * 결제 처리 (보상 트랜잭션 패턴)
@@ -75,6 +77,7 @@ public class ProcessPaymentUseCase {
      * @return 결제 응답
      */
     public PaymentResponse execute(Long orderId, PaymentRequest request) {
+        long startTime = System.currentTimeMillis();
         log.info("Processing payment for order: {}, user: {}, idempotencyKey: {}",
             orderId, request.userId(), request.idempotencyKey());
 
@@ -111,6 +114,10 @@ public class ProcessPaymentUseCase {
                 // 멱등성 키 완료 처리
                 idempotencyService.saveCompletion(idempotency, orderId, response);
 
+                // 메트릭 기록: 결제 성공
+                metricsCollector.recordPaymentSuccess();
+                metricsCollector.recordPaymentDuration(startTime);
+
                 log.info("Payment completed successfully. orderId: {}, txId: {}",
                     orderId, pgResponse.getTransactionId());
                 return response;
@@ -123,6 +130,9 @@ public class ProcessPaymentUseCase {
                 // 멱등성 키 실패 처리
                 idempotencyService.saveFailure(idempotency, "PG 승인 실패: " + pgResponse.getMessage());
 
+                // 메트릭 기록: 결제 실패
+                metricsCollector.recordPaymentFailure();
+
                 throw new BusinessException(
                     ErrorCode.PAYMENT_FAILED,
                     "PG 승인 실패: " + pgResponse.getMessage()
@@ -132,6 +142,9 @@ public class ProcessPaymentUseCase {
         } catch (BusinessException e) {
             // 비즈니스 예외 발생 시 보상 트랜잭션
             log.error("Payment failed for orderId: {}, error: {}", orderId, e.getMessage());
+
+            // 메트릭 기록: 결제 실패
+            metricsCollector.recordPaymentFailure();
 
             // reservePayment() 성공 후 실패한 경우에만 보상 필요
             // (reservePayment() 실패 시 @Transactional이 자동 롤백 처리)
@@ -154,6 +167,9 @@ public class ProcessPaymentUseCase {
         } catch (Exception e) {
             // 시스템 예외 발생 시 보상 트랜잭션
             log.error("Unexpected error during payment for orderId: {}", orderId, e);
+
+            // 메트릭 기록: 결제 실패
+            metricsCollector.recordPaymentFailure();
 
             // reservePayment() 성공 후 실패한 경우에만 보상 필요
             // (reservePayment() 실패 시 @Transactional이 자동 롤백 처리)
