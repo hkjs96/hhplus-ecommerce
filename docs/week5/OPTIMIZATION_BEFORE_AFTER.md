@@ -442,9 +442,3 @@ ROI = (3,000 - 300) / 300 × 100 = 900%
 - [load-test.js](../../load-test.js) - K6 부하 테스트 스크립트
 - `MetricsCollector.java` - 메트릭 수집 컴포넌트
 - `application.yml` - HikariCP 최적화 설정
-
----
-
-**작성일:** 2025-11-21
-**작성자:** Claude Code
-**버전:** 1.0
