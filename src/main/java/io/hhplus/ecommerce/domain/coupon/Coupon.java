@@ -67,6 +67,12 @@ public class Coupon {
         return coupon;
     }
 
+    /**
+     * 쿠폰 발급 (동시성 제어: Pessimistic Lock)
+     * - Repository에서 findByIdWithLock()으로 조회 후 사용
+     * - synchronized 제거: 분산 환경에서 무용지물
+     * - Pessimistic Lock으로 트랜잭션 레벨 동시성 제어
+     */
     public void issue() {
         if (issuedQuantity >= totalQuantity) {
             throw new BusinessException(
@@ -75,14 +81,6 @@ public class Coupon {
             );
         }
         this.issuedQuantity++;
-    }
-
-    public synchronized boolean tryIssue() {
-        if (issuedQuantity >= totalQuantity) {
-            return false;
-        }
-        this.issuedQuantity++;
-        return true;
     }
 
     public boolean isValid(LocalDateTime now) {

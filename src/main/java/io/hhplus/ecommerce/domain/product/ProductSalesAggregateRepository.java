@@ -1,5 +1,7 @@
 package io.hhplus.ecommerce.domain.product;
 
+import io.hhplus.ecommerce.application.product.dto.TopProductItem;
+
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -42,6 +44,19 @@ public interface ProductSalesAggregateRepository {
      * @return 인기 상품 TOP 5
      */
     List<TopProductProjection> findTopProductsByDateRange(LocalDate startDate, LocalDate endDate);
+
+    /**
+     * 여러 날짜의 인기 상품 TOP 5 조회 (DTO 변환 포함)
+     * <p>
+     * 코치 피드백 반영: Projection → DTO 변환을 Repository에서 수행
+     * - UseCase 책임 감소
+     * - 테스트 복잡도 감소
+     * - rank 자동 설정
+     *
+     * @param dates 조회할 날짜 리스트 (예: 최근 3일)
+     * @return 인기 상품 TOP 5 (DTO, rank 포함)
+     */
+    List<TopProductItem> findTopProductItemsByDates(List<LocalDate> dates);
 
     /**
      * 집계 데이터 저장

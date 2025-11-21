@@ -3,9 +3,12 @@ package io.hhplus.ecommerce.infrastructure.persistence.product;
 import io.hhplus.ecommerce.domain.product.Product;
 import io.hhplus.ecommerce.domain.product.ProductRepository;
 import io.hhplus.ecommerce.domain.product.TopProductProjection;
+import jakarta.persistence.LockModeType;
 import org.springframework.context.annotation.Primary;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -27,6 +30,16 @@ public interface JpaProductRepository extends JpaRepository<Product, Long>, Prod
 
     @Override
     Optional<Product> findByProductCode(String productCode);
+
+    /**
+     * Pessimistic Write Lock (SELECT FOR UPDATE)
+     * - 재고 차감 시 사용
+     * - 충돌이 빈번한 경우 Optimistic Lock보다 효율적
+     */
+    @Override
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT p FROM Product p WHERE p.id = :id")
+    Optional<Product> findByIdWithLock(@Param("id") Long id);
 
     // ============================================================
     // ⚠️ DEPRECATED: 실시간 집계 쿼리 (성능 이슈)

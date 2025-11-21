@@ -33,4 +33,19 @@ public interface ProductRepository {
                 "상품을 찾을 수 없습니다. productCode: " + productCode
             ));
     }
+
+    /**
+     * Pessimistic Lock을 사용한 상품 조회 (SELECT FOR UPDATE)
+     * - 동시성 제어: 재고 차감 시 사용
+     * - 충돌이 빈번한 Hot Spot 데이터에 적합
+     */
+    Optional<Product> findByIdWithLock(Long id);
+
+    default Product findByIdWithLockOrThrow(Long id) {
+        return findByIdWithLock(id)
+            .orElseThrow(() -> new BusinessException(
+                ErrorCode.PRODUCT_NOT_FOUND,
+                "상품을 찾을 수 없습니다. productId: " + id
+            ));
+    }
 }

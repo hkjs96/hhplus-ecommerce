@@ -12,6 +12,7 @@ import io.hhplus.ecommerce.domain.coupon.UserCouponRepository;
 import io.hhplus.ecommerce.domain.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
@@ -32,7 +33,11 @@ public class IssueCouponUseCase {
         userRepository.findByIdOrThrow(userId);
 
         // 2. 쿠폰 조회 및 발급 가능 여부 검증
-        Coupon coupon = couponRepository.findByIdOrThrow(couponId);
+        // 동시성 제어: Pessimistic Lock (SELECT FOR UPDATE)
+        // - 5명 관점: 김데이터(O), 박트래픽(X:Redis), 이금융(X:Queue), 최아키텍트(X:Outbox), 정스타트업(X:sync)
+        // - 최종 선택: Pessimistic Lock (정확한 수량 보장, MVP 단계)
+        // - 향후 개선: 성능 이슈 발생 시 Redis Distributed Lock 전환
+        Coupon coupon = couponRepository.findByIdWithLockOrThrow(couponId);  // Pessimistic Lock
         coupon.validateIssuable();
 
         // 3. 중복 발급 방지
@@ -46,9 +51,22 @@ public class IssueCouponUseCase {
         // 4. 쿠폰 수량 차감 (재고 체크 포함)
         coupon.issue();
 
-        // 5. 사용자 쿠폰 생성
+        // 5. 사용자 쿠폰 생성 (DB Unique Constraint로 중복 방지)
+        // 동시성 제어: DB Unique Constraint (uk_user_coupon)
+        // - 7명 합의: DB Unique Constraint (100% 방어, 마지막 보루)
+        // - TOCTOU 갭 제거 (애플리케이션 체크는 최적화용)
         UserCoupon userCoupon = UserCoupon.create(userId, couponId, coupon.getExpiresAt());
-        userCouponRepository.save(userCoupon);
+        try {
+            userCouponRepository.save(userCoupon);
+        } catch (DataIntegrityViolationException e) {
+            // Unique Constraint 위반 (동시 요청으로 인한 중복 발급 시도)
+            log.warn("Duplicate coupon issuance attempt blocked by DB constraint. userId: {}, couponId: {}",
+                userId, couponId);
+            throw new BusinessException(
+                ErrorCode.ALREADY_ISSUED_COUPON,
+                "이미 발급받은 쿠폰입니다. (동시 요청 감지)"
+            );
+        }
         couponRepository.save(coupon);
 
         log.debug("Coupon issued successfully. userCouponId: {}, remaining quantity: {}",

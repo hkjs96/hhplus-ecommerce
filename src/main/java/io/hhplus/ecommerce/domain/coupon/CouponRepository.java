@@ -28,4 +28,19 @@ public interface CouponRepository {
                 "쿠폰을 찾을 수 없습니다. couponCode: " + couponCode
             ));
     }
+
+    /**
+     * Pessimistic Lock을 사용한 쿠폰 조회 (SELECT FOR UPDATE)
+     * - 동시성 제어: 쿠폰 발급 시 사용
+     * - 선착순 이벤트에서 정확한 수량 제어 보장
+     */
+    Optional<Coupon> findByIdWithLock(Long id);
+
+    default Coupon findByIdWithLockOrThrow(Long id) {
+        return findByIdWithLock(id)
+            .orElseThrow(() -> new BusinessException(
+                ErrorCode.INVALID_COUPON,
+                "쿠폰을 찾을 수 없습니다. couponId: " + id
+            ));
+    }
 }

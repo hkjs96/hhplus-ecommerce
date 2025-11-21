@@ -1,5 +1,6 @@
 package io.hhplus.ecommerce.infrastructure.persistence.coupon;
 
+import io.hhplus.ecommerce.application.coupon.dto.UserCouponResponse;
 import io.hhplus.ecommerce.domain.coupon.UserCoupon;
 import io.hhplus.ecommerce.domain.coupon.UserCouponProjection;
 import io.hhplus.ecommerce.domain.coupon.UserCouponRepository;
@@ -49,4 +50,22 @@ public interface JpaUserCouponRepository extends JpaRepository<UserCoupon, Long>
         @Param("userId") Long userId,
         @Param("status") String status
     );
+
+    @Override
+    default List<UserCouponResponse> findUserCouponsAsDto(Long userId, String status) {
+        List<UserCouponProjection> projections = findUserCouponsWithDetails(userId, status);
+
+        return projections.stream()
+            .map(proj -> new UserCouponResponse(
+                proj.getUserCouponId(),
+                proj.getCouponId(),
+                proj.getCouponName(),
+                proj.getDiscountRate(),
+                proj.getStatus(),
+                proj.getIssuedAt(),
+                proj.getUsedAt(),
+                proj.getExpiresAt()
+            ))
+            .toList();
+    }
 }

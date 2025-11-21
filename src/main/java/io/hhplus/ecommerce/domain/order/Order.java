@@ -54,6 +54,14 @@ public class Order extends BaseEntity {
     @Column(name = "paid_at")
     private LocalDateTime paidAt;
 
+    /**
+     * Optimistic Lock (동시성 제어)
+     * - complete()와 cancel() 동시 호출 시 Lost Update 방지
+     * - 7명 합의: Optimistic Lock (충돌 빈도 낮음, 성능 우선)
+     */
+    @Version
+    private Long version;
+
     public static Order create(String orderNumber, Long userId, Long subtotalAmount, Long discountAmount) {
         validateOrderNumber(orderNumber);
         validateUserId(userId);

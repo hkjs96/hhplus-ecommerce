@@ -57,6 +57,14 @@ public class CartItem extends BaseEntity {
     private Integer quantity;
 
     /**
+     * Optimistic Lock (동시성 제어)
+     * - 동일 사용자가 동시에 장바구니 수량 변경 시 Lost Update 방지
+     * - 7명 합의: Optimistic Lock (충돌 빈도 매우 낮음, 행 단위 격리)
+     */
+    @Version
+    private Long version;
+
+    /**
      * CartItem 생성 (Cart 엔티티 직접 참조)
      */
     public static CartItem create(Cart cart, Product product, Integer quantity) {
