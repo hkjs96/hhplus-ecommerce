@@ -6,7 +6,11 @@
 
 K6 테스트 결과에서 쿠폰 발급 실패율이 99% (1,084/1,096)로 높게 나온 이유는:
 - ❌ 동시성 제어 실패가 아니라
-- ✅ **쿠폰 수량 부족** (초기 수량 ~10-20개)
+- ✅ **단일 사용자 고정** (이전: userId=1 고정 사용 → 중복 발급 불가)
+
+**해결 방법:**
+1. ✅ K6 스크립트 개선: 랜덤 userId (1~10) 분산
+2. ✅ DataInitializer 개선: User 잔액 1억원, Coupon 수량 10,000개 (자동 초기화)
 
 동시성 제어는 **Pessimistic Lock + DB Unique Constraint**로 이중 방어되어 정상 작동 중입니다.
 
@@ -126,18 +130,24 @@ http_req_failed (Coupon 실패율): 99%
 |-----|---------|-----|
 | ❌ 동시성 제어 실패 (Race Condition) | **FALSE** | Pessimistic Lock으로 완전 차단됨 |
 | ❌ 중복 발급 발생 | **FALSE** | DB Unique Constraint로 방어됨 |
-| ✅ 쿠폰 수량 부족 | **TRUE** | 초기 수량 ~10-20개, 12번 발급 후 소진 |
+| ✅ 단일 사용자 고정 (userId=1) | **TRUE** | K6 스크립트에서 userId=1 고정 → 중복 발급 불가 |
 
 **증거:**
 
-1. **12건 성공** = 초기 쿠폰 수량과 일치
-   - `DataInitializer`에서 설정한 수량이 ~10-20개
-   - 12번 발급 후 `quantity = 0` → 나머지 1,084건은 수량 부족으로 실패
+1. **12건 성공, 1,084건 실패** = 단일 사용자 제약
+   - K6 스크립트: `userId: 1` (고정) → User 1은 **한 번만** 발급 가능
+   - User 1의 첫 번째 요청: 성공 (200 OK)
+   - User 1의 나머지 요청: 중복 발급 차단 (409 Conflict 또는 비즈니스 에러)
 
-2. **409 Conflict 발생** = 중복 발급 방지 작동 증명
+2. **실제 초기 쿠폰 수량** = 1,000개 (WELCOME10)
+   - `DataInitializer.java:156`: `quantity = 10000` (현재)
+   - 이전 버전: `quantity = 1000` → 충분한 수량 보유
+
+3. **409 Conflict 발생** = 중복 발급 방지 작동 증명
    - 동일 사용자가 동일 쿠폰 재요청 시 정상적으로 차단됨
+   - DB Unique Constraint (user_id, coupon_id) 정상 작동
 
-3. **시스템 에러(5xx) 0건** = 동시성 문제 없음
+4. **시스템 에러(5xx) 0건** = 동시성 문제 없음
    - Race Condition이 있었다면 Deadlock, Timeout, ConcurrentModificationException 등 발생
    - 실제로는 모두 비즈니스 에러(4xx)로 정상 처리됨
 
@@ -303,18 +313,23 @@ grep "select .* from coupons .* for update" logs/application.log | head -5
 
 ## 5. 개선 후 예상 결과
 
-### 5.1 테스트 데이터 증가 후
+### 5.1 DataInitializer 및 K6 개선 후
 
-**적용:**
-```sql
-UPDATE users SET balance = 100000000 WHERE id BETWEEN 1 AND 10;
-UPDATE coupons SET quantity = 10000 WHERE id IN (1, 2, 3);
+**DataInitializer 자동 초기화:**
+```java
+// User 잔액: 1억원 (User 1-13)
+user.charge(100000000L);
+
+// Coupon 수량: 10,000개 (Coupon 1-3)
+Coupon.create("WELCOME10", "신규 가입 10% 할인", 10, 10000, now, now.plusMonths(3));
 ```
 
 **K6 수정:**
 ```javascript
 // 랜덤 사용자 (1~10)
-const userId = getRandomUserId();
+function getRandomUserId() {
+    return Math.floor(Math.random() * 10) + 1;
+}
 ```
 
 **예상 결과:**
@@ -354,16 +369,16 @@ Order + Payment:
 
 ### 📊 K6 테스트 결과 해석
 
-- **99% 실패율** = 수량 부족 (정상 동작)
-- **12건 성공** = 초기 수량과 정확히 일치
+- **99% 실패율** = 단일 사용자 고정 (userId=1 → 중복 발급 불가)
+- **실제 쿠폰 수량** = 1,000개 (충분했으나 userId=1만 사용)
 - **시스템 에러 0건** = 동시성 제어 정상
 
-### 🚀 다음 단계
+### 🚀 개선 완료
 
-1. ✅ 테스트 데이터 증가 (`scripts/increase-test-data.sql`)
-2. ✅ 랜덤 사용자 분산 (`load-test.js` 수정)
-3. 🔄 K6 재실행 및 결과 비교
-4. 📈 성능 문서 업데이트
+1. ✅ DataInitializer 개선 (User 잔액 1억원, Coupon 수량 10,000개 - 자동 초기화)
+2. ✅ K6 스크립트 개선 (랜덤 userId 1~10 분산)
+3. 🔄 K6 재실행 및 결과 비교 (다음 단계)
+4. 📈 성능 문서 업데이트 (완료 후)
 
 ---
 

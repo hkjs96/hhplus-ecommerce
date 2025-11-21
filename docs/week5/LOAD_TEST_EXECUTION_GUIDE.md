@@ -2,9 +2,10 @@
 
 ## 📋 변경 사항 요약
 
-### 1. 테스트 데이터 증가
-- **사용자 잔액**: 100만원 → **1억원** (100배 증가)
-- **쿠폰 수량**: ~10개 → **10,000개** (1,000배 증가)
+### 1. DataInitializer 개선 (자동 초기화 ✅)
+- **사용자 잔액**: 100만원 → **1억원** (User 1-13, 각 100배 증가)
+- **쿠폰 수량**: 1,000개 → **10,000개** (Coupon 1-3, 10배 증가)
+- 애플리케이션 시작 시 **자동으로 테스트 데이터 생성** (별도 SQL 실행 불필요)
 
 ### 2. K6 스크립트 개선
 - **사용자 분산**: userId=1 고정 → **랜덤 1~10** (부하 분산)
@@ -20,36 +21,59 @@
 # MySQL 시작
 docker-compose up -d
 
-# 애플리케이션 실행
+# 애플리케이션 실행 (DataInitializer가 자동으로 테스트 데이터 생성)
 ./gradlew bootRun
 
 # 헬스 체크
 curl http://localhost:8080/actuator/health
 ```
 
-### Step 2: 테스트 데이터 증가
-
-**Option A: MySQL CLI 사용**
-```bash
-mysql -u root -p ecommerce < scripts/increase-test-data.sql
+**애플리케이션 로그 확인 (DataInitializer):**
+```
+🚀 Starting initial data loading...
+📝 Creating test users...
+   ✓ Created 13 test users (기본 3명 + K6 테스트 10명)
+   💰 K6 test users (1-13): 각 100,000,000원 (지속적인 부하 테스트 가능)
+🎟️ Creating test coupons...
+   ✓ Created 5 test coupons
+   🎫 K6 test coupons (1-3): 각 10,000개 (지속적인 부하 테스트 가능)
+✅ Initial data loading completed!
 ```
 
-**Option B: MySQL Workbench 또는 DBeaver**
-1. `scripts/increase-test-data.sql` 파일 열기
-2. 전체 스크립트 실행 (Ctrl+Shift+Enter)
-3. 결과 확인:
-   ```
-   Users 테이블: balance = 100,000,000원
-   Coupons 테이블: quantity = 10,000개
-   ```
+### Step 2: 테스트 데이터 검증 (선택)
 
-**검증:**
+**DataInitializer가 자동으로 생성한 데이터 확인:**
 ```sql
-SELECT id, name, FORMAT(balance, 0) as balance
-FROM users WHERE id BETWEEN 1 AND 10;
+-- 사용자 잔액 확인 (User 1-13: 각 1억원)
+SELECT id, email, name, FORMAT(balance, 0) as balance
+FROM users WHERE id BETWEEN 1 AND 13;
 
-SELECT id, name, quantity
+-- 쿠폰 수량 확인 (Coupon 1-3: 각 10,000개)
+SELECT id, coupon_code, name, quantity
 FROM coupons WHERE id IN (1, 2, 3);
+```
+
+**예상 결과:**
+```
+Users:
++----+---------------------------+----------------+---------------+
+| id | email                     | name           | balance       |
++----+---------------------------+----------------+---------------+
+| 1  | hanghae@example.com       | 김항해         | 100,000,000원 |
+| 2  | plus@example.com          | 이플러스       | 500,000원     |
+| 3  | backend@example.com       | 박백엔드       | 100,000원     |
+| 4  | testuser4@example.com     | 테스트사용자4  | 100,000,000원 |
+| ...| ...                       | ...            | ...           |
++----+---------------------------+----------------+---------------+
+
+Coupons:
++----+--------------+------------------------+----------+
+| id | coupon_code  | name                   | quantity |
++----+--------------+------------------------+----------+
+| 1  | WELCOME10    | 신규 가입 10% 할인     | 9999     |
+| 2  | VIP20        | VIP 회원 20% 할인      | 9999     |
+| 3  | EARLYBIRD15  | 얼리버드 15% 할인      | 9999     |
++----+--------------+------------------------+----------+
 ```
 
 ### Step 3: K6 부하 테스트 실행
@@ -352,9 +376,9 @@ spring:
 
 - [ ] MySQL 실행 중
 - [ ] 애플리케이션 실행 중 (포트 8080)
+- [ ] DataInitializer 로그 확인 (테스트 데이터 자동 생성 완료)
 - [ ] 헬스 체크 성공 (`curl http://localhost:8080/actuator/health`)
-- [ ] 테스트 데이터 증가 스크립트 실행 (`increase-test-data.sql`)
-- [ ] 데이터 증가 확인 (User 잔액 1억원, Coupon 수량 10,000개)
+- [ ] 테스트 데이터 검증 (User 잔액 1억원, Coupon 수량 10,000개)
 - [ ] K6 부하 테스트 실행 (`k6 run load-test.js`)
 - [ ] 결과 분석 (TPS, P95, 성공률)
 - [ ] 데이터베이스 검증 (중복 발급 0건, 수량 정합성 일치)
