@@ -97,45 +97,16 @@ public class ProcessPaymentUseCase {
         log.info("Processing payment for order: {}, user: {}, idempotencyKey: {}",
             orderId, request.userId(), request.idempotencyKey());
 
-        // 0. 멱등성 체크 (중복 결제 방지)
-        Optional<PaymentIdempotency> existing = paymentIdempotencyRepository
-            .findByIdempotencyKey(request.idempotencyKey());
+        // 0. 멱등성 키 조회 또는 생성 (트랜잭션)
+        PaymentIdempotencyResult idempotencyResult = getOrCreateIdempotency(request);
 
-        if (existing.isPresent()) {
-            PaymentIdempotency idempotency = existing.get();
-
-            // COMPLETED: 기존 결과 반환
-            if (idempotency.isCompleted()) {
-                log.info("Returning cached payment result for idempotencyKey: {}", request.idempotencyKey());
-                return deserializeResponse(idempotency.getResponsePayload());
-            }
-
-            // PROCESSING: 동시 요청 (409 Conflict)
-            if (idempotency.isProcessing()) {
-                log.warn("Concurrent payment request detected for idempotencyKey: {}", request.idempotencyKey());
-                throw new BusinessException(
-                    ErrorCode.DUPLICATE_REQUEST,
-                    "동일한 결제 요청이 처리 중입니다. 잠시 후 다시 시도해주세요."
-                );
-            }
-
-            // FAILED: 재시도 가능하므로 진행
-            log.info("Retrying failed payment for idempotencyKey: {}", request.idempotencyKey());
+        // COMPLETED: 기존 결과 반환 (캐시된 응답)
+        if (idempotencyResult.isCompleted()) {
+            log.info("Returning cached payment result for idempotencyKey: {}", request.idempotencyKey());
+            return idempotencyResult.getCachedResponse();
         }
 
-        // 멱등성 키 생성 (PROCESSING 상태)
-        PaymentIdempotency idempotency = existing.orElseGet(() -> {
-            try {
-                PaymentIdempotency newKey = PaymentIdempotency.create(request.idempotencyKey(), request.userId());
-                return paymentIdempotencyRepository.save(newKey);
-            } catch (DataIntegrityViolationException e) {
-                log.warn("Duplicate idempotency key creation attempted: {}", request.idempotencyKey());
-                throw new BusinessException(
-                    ErrorCode.DUPLICATE_REQUEST,
-                    "동일한 결제 요청이 처리 중입니다. 잠시 후 다시 시도해주세요."
-                );
-            }
-        });
+        PaymentIdempotency idempotency = idempotencyResult.getIdempotency();
 
         boolean reserveSucceeded = false;
         try {
@@ -424,5 +395,99 @@ public class ProcessPaymentUseCase {
     protected void saveIdempotencyFailure(PaymentIdempotency idempotency, String errorMessage) {
         idempotency.fail(errorMessage);
         paymentIdempotencyRepository.save(idempotency);
+    }
+
+    /**
+     * 멱등성 키 조회 또는 생성 (트랜잭션)
+     * <p>
+     * 중복 결제 방지를 위한 멱등성 키 처리:
+     * - COMPLETED: 기존 결과 반환 (캐시된 응답)
+     * - PROCESSING: 409 Conflict (동시 요청)
+     * - FAILED: 재시도 가능 (새로 처리)
+     * - 없음: 새로 생성 (PROCESSING 상태)
+     *
+     * @param request 결제 요청
+     * @return PaymentIdempotencyResult 결과 객체
+     */
+    @Transactional
+    protected PaymentIdempotencyResult getOrCreateIdempotency(PaymentRequest request) {
+        Optional<PaymentIdempotency> existing = paymentIdempotencyRepository
+            .findByIdempotencyKey(request.idempotencyKey());
+
+        if (existing.isPresent()) {
+            PaymentIdempotency idempotency = existing.get();
+
+            // COMPLETED: 기존 결과 반환
+            if (idempotency.isCompleted()) {
+                log.info("Found completed payment for idempotencyKey: {}", request.idempotencyKey());
+                PaymentResponse cachedResponse = deserializeResponse(idempotency.getResponsePayload());
+                return PaymentIdempotencyResult.completed(cachedResponse);
+            }
+
+            // PROCESSING: 동시 요청 (409 Conflict)
+            if (idempotency.isProcessing()) {
+                log.warn("Concurrent payment request detected for idempotencyKey: {}", request.idempotencyKey());
+                throw new BusinessException(
+                    ErrorCode.DUPLICATE_REQUEST,
+                    "동일한 결제 요청이 처리 중입니다. 잠시 후 다시 시도해주세요."
+                );
+            }
+
+            // FAILED: 재시도 가능하므로 진행
+            log.info("Retrying failed payment for idempotencyKey: {}", request.idempotencyKey());
+            return PaymentIdempotencyResult.retry(idempotency);
+        }
+
+        // 새로 생성 (PROCESSING 상태)
+        try {
+            PaymentIdempotency newKey = PaymentIdempotency.create(request.idempotencyKey(), request.userId());
+            PaymentIdempotency saved = paymentIdempotencyRepository.save(newKey);
+            return PaymentIdempotencyResult.newRequest(saved);
+        } catch (DataIntegrityViolationException e) {
+            log.warn("Duplicate idempotency key creation attempted: {}", request.idempotencyKey());
+            throw new BusinessException(
+                ErrorCode.DUPLICATE_REQUEST,
+                "동일한 결제 요청이 처리 중입니다. 잠시 후 다시 시도해주세요."
+            );
+        }
+    }
+
+    /**
+     * 멱등성 키 조회 결과를 담는 내부 클래스
+     */
+    protected static class PaymentIdempotencyResult {
+        private final boolean completed;
+        private final PaymentResponse cachedResponse;
+        private final PaymentIdempotency idempotency;
+
+        private PaymentIdempotencyResult(boolean completed, PaymentResponse cachedResponse, PaymentIdempotency idempotency) {
+            this.completed = completed;
+            this.cachedResponse = cachedResponse;
+            this.idempotency = idempotency;
+        }
+
+        public static PaymentIdempotencyResult completed(PaymentResponse cachedResponse) {
+            return new PaymentIdempotencyResult(true, cachedResponse, null);
+        }
+
+        public static PaymentIdempotencyResult retry(PaymentIdempotency idempotency) {
+            return new PaymentIdempotencyResult(false, null, idempotency);
+        }
+
+        public static PaymentIdempotencyResult newRequest(PaymentIdempotency idempotency) {
+            return new PaymentIdempotencyResult(false, null, idempotency);
+        }
+
+        public boolean isCompleted() {
+            return completed;
+        }
+
+        public PaymentResponse getCachedResponse() {
+            return cachedResponse;
+        }
+
+        public PaymentIdempotency getIdempotency() {
+            return idempotency;
+        }
     }
 }
