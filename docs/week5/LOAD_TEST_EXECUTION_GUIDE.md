@@ -3,13 +3,13 @@
 ## 📋 변경 사항 요약
 
 ### 1. DataInitializer 개선 (자동 초기화 ✅)
-- **사용자**: User 103명 (기본 3명 + K6 테스트 100명, 각 1억원)
-- **쿠폰 수량**: **200개** (Coupon 1-3, 동시성 테스트용)
+- **사용자**: User 153명 (기본 3명 + K6 테스트 150명, 각 1억원)
+- **쿠폰 수량**: **100개** (Coupon 1-3, 동시성 테스트용)
 - 애플리케이션 시작 시 **자동으로 테스트 데이터 생성** (별도 SQL 실행 불필요)
 
 ### 2. K6 스크립트 개선
-- **사용자 분산**: userId=1 고정 → **랜덤 1~100** (실제 경합 상황 생성)
-- **동시성 검증**: **100명이 200개 쿠폰 쟁탈** → Pessimistic Lock 검증
+- **사용자 분산**: userId=1 고정 → **랜덤 1~150** (실제 경합 상황 생성)
+- **동시성 검증**: **150명이 100개 쿠폰 쟁탈 → 50명 탈락** → Pessimistic Lock 검증
 
 ---
 
@@ -32,11 +32,11 @@ curl http://localhost:8080/actuator/health
 ```
 🚀 Starting initial data loading...
 📝 Creating test users...
-   ✓ Created 103 test users (기본 3명 + K6 테스트 100명)
-   💰 K6 test users (1-103): 각 100,000,000원 (지속적인 부하 테스트 가능)
+   ✓ Created 153 test users (기본 3명 + K6 테스트 150명)
+   💰 K6 test users (1-153): 각 100,000,000원 (지속적인 부하 테스트 가능)
 🎟️ Creating test coupons...
    ✓ Created 5 test coupons
-   🎫 K6 test coupons (1-3): 각 200개 (동시성 테스트: 100명 vs 200개 경합)
+   🎫 K6 test coupons (1-3): 각 100개 (동시성 테스트: 150명 vs 100개, 50명 탈락)
 ✅ Initial data loading completed!
 ```
 
@@ -44,12 +44,12 @@ curl http://localhost:8080/actuator/health
 
 **DataInitializer가 자동으로 생성한 데이터 확인:**
 ```sql
--- 사용자 잔액 확인 (User 1-103: K6 테스트용 100명)
+-- 사용자 잔액 확인 (User 1-153: K6 테스트용 150명)
 SELECT COUNT(*) as total_users,
        SUM(CASE WHEN balance >= 100000000 THEN 1 ELSE 0 END) as rich_users
 FROM users;
 
--- 쿠폰 수량 확인 (Coupon 1-3: 각 200개)
+-- 쿠폰 수량 확인 (Coupon 1-3: 각 100개)
 SELECT id, coupon_code, name, quantity
 FROM coupons WHERE id IN (1, 2, 3);
 ```
@@ -60,16 +60,16 @@ Users:
 +--------------+------------+
 | total_users  | rich_users |
 +--------------+------------+
-| 103          | 101        |  -- User 1, 4-103 (100명 + User 1)
+| 153          | 151        |  -- User 1, 4-153 (150명 + User 1)
 +--------------+------------+
 
-Coupons (동시성 테스트: 100명 vs 200개 경합):
+Coupons (동시성 테스트: 150명 vs 100개 경합, 50명 탈락):
 +----+--------------+------------------------+----------+
 | id | coupon_code  | name                   | quantity |
 +----+--------------+------------------------+----------+
-| 1  | WELCOME10    | 신규 가입 10% 할인     | 199      |  -- User 1에게 1개 발급됨
-| 2  | VIP20        | VIP 회원 20% 할인      | 199      |  -- User 2에게 1개 발급됨
-| 3  | EARLYBIRD15  | 얼리버드 15% 할인      | 199      |  -- User 3에게 1개 발급됨
+| 1  | WELCOME10    | 신규 가입 10% 할인     | 99       |  -- User 1에게 1개 발급됨
+| 2  | VIP20        | VIP 회원 20% 할인      | 99       |  -- User 2에게 1개 발급됨
+| 3  | EARLYBIRD15  | 얼리버드 15% 할인      | 99       |  -- User 3에게 1개 발급됨
 +----+--------------+------------------------+----------+
 ```
 
@@ -126,21 +126,21 @@ k6 run --vus 10 --duration 30s load-test.js
 
 ✅ Order + Payment Success.......: ~1,500건 (이전: 1건)
 ✅ Coupon Issuance...............:
-   - Success: ~180건 (200개 중 약 90% 발급)
-   - Failure: ~900건 (수량 부족 - 정상 동작)
+   - Success: ~90-100건 (100개 쿠폰 소진)
+   - Failure: ~900-1,000건 (수량 부족 - 정상 동작, 50명 탈락)
 ✅ HTTP Success Rate.............: ~70%
 
 🎯 동시성 제어 검증 (핵심):
   - 중복 쿠폰 발급: 0건 ✅ (Pessimistic Lock 작동)
   - Race Condition: 0건 ✅
   - Deadlock: 0건 ✅
-  - 100명이 200개 쟁탈 → 정확히 200개만 발급 ✅
+  - 150명이 100개 쟁탈 → 정확히 100개만 발급, 50명 탈락 ✅
 ```
 
 **개선점:**
-- **실제 경합 상황 생성**: 100명 vs 200개 → Pessimistic Lock 검증
-- 사용자 1~100 분산 → 각 사용자 1억원 (지속적인 주문 가능)
-- 쿠폰 실패율 높음(~80%) → **정상 동작** (수량 부족 = 비즈니스 에러)
+- **실제 경합 상황 생성**: 150명 vs 100개 → Pessimistic Lock 검증
+- 사용자 1~150 분산 → 각 사용자 1억원 (지속적인 주문 가능)
+- 쿠폰 실패율 높음(~90%) → **정상 동작** (수량 부족 = 비즈니스 에러)
 
 ---
 
@@ -184,15 +184,15 @@ SELECT
     c.name,
     c.quantity as remaining,
     COUNT(uc.id) as issued_count,
-    (200 - c.quantity - COUNT(uc.id)) as discrepancy  -- 초기 200개
+    (100 - c.quantity - COUNT(uc.id)) as discrepancy  -- 초기 100개
 FROM coupons c
 LEFT JOIN user_coupons uc ON c.coupon_id = uc.coupon_id
 WHERE c.id = 1
 GROUP BY c.id;
 
--- 예상 (100명 vs 200개 경합):
+-- 예상 (150명 vs 100개 경합):
 -- remaining: 0개 (모두 소진)
--- issued_count: 200개 (정확히 200명에게 발급)
+-- issued_count: 100개 (정확히 100명에게 발급, 50명 탈락)
 -- discrepancy: 0 (수량 정합성 일치 ✅) - Pessimistic Lock 성공 증거!
 
 -- 2. 중복 발급 검증 (MUST BE ZERO!)

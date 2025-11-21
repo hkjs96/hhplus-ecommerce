@@ -64,9 +64,9 @@ const TEST_DATA = {
     couponId: 1,
 };
 
-// 랜덤 사용자 ID 생성 함수 (1~100) - 동시성 테스트용
+// 랜덤 사용자 ID 생성 함수 (1~150) - 동시성 테스트용 (150명 vs 100개 쿠폰)
 function getRandomUserId() {
-    return Math.floor(Math.random() * 100) + 1;
+    return Math.floor(Math.random() * 150) + 1;
 }
 
 // 테스트 시작 시 초기 데이터 확인

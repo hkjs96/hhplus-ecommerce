@@ -9,12 +9,12 @@ K6 테스트 결과에서 쿠폰 발급 실패율이 99% (1,084/1,096)로 높게
 - ✅ **단일 사용자 고정** (이전: userId=1 고정 사용 → 중복 발급 불가)
 
 **해결 방법:**
-1. ✅ K6 스크립트 개선: 랜덤 userId (1~100) 분산
-2. ✅ DataInitializer 개선: User 100명 (각 1억원), **Coupon 200개** (경합 상황 생성)
+1. ✅ K6 스크립트 개선: 랜덤 userId (1~150) 분산
+2. ✅ DataInitializer 개선: User 153명 (기본 3명 + K6 테스트 150명, 각 1억원), **Coupon 100개** (경합 상황 생성)
 
 **동시성 테스트 핵심:**
-- **100명이 200개 쿠폰 쟁탈** → 실제 경합 발생
-- Pessimistic Lock이 제대로 작동하면 정확히 **200명에게만 발급**
+- **150명이 100개 쿠폰 쟁탈** → 실제 경합 발생, 50명 탈락
+- Pessimistic Lock이 제대로 작동하면 정확히 **100명에게만 발급**, 50명 탈락
 - **중복 발급 0건** → 동시성 제어 성공 증거
 
 동시성 제어는 **Pessimistic Lock + DB Unique Constraint**로 이중 방어되어 정상 작동 중입니다.
@@ -322,22 +322,22 @@ grep "select .* from coupons .* for update" logs/application.log | head -5
 
 **DataInitializer 자동 초기화:**
 ```java
-// User 100명 생성 (각 1억원)
-for (int i = 4; i <= 103; i++) {
+// User 150명 생성 (각 1억원)
+for (int i = 4; i <= 153; i++) {
     User user = User.create("testuser" + i + "@example.com", "테스트사용자" + i);
     user.charge(100000000L);  // 각 1억원
     userRepository.save(user);
 }
 
-// Coupon 200개 (동시성 테스트: 100명 vs 200개 경합)
-Coupon.create("WELCOME10", "신규 가입 10% 할인", 10, 200, now, now.plusMonths(3));
+// Coupon 100개 (동시성 테스트: 150명 vs 100개 경합, 50명 탈락)
+Coupon.create("WELCOME10", "신규 가입 10% 할인", 10, 100, now, now.plusMonths(3));
 ```
 
 **K6 수정:**
 ```javascript
-// 랜덤 사용자 (1~100) - 실제 경합 상황 생성
+// 랜덤 사용자 (1~150) - 실제 경합 상황 생성 (150명 vs 100개 쿠폰)
 function getRandomUserId() {
-    return Math.floor(Math.random() * 100) + 1;
+    return Math.floor(Math.random() * 150) + 1;
 }
 ```
 
@@ -352,18 +352,19 @@ K6 Test Summary (After Optimization):
 ✅ System Error Rate: 0.00% (유지)
 
 Coupon Issuance (핵심 검증 포인트):
-  - Success: ~180-200건 (200개 중 약 90% 발급)
-  - Failure: ~800-900건 (수량 부족 - 정상 동작)
+  - Success: ~90-100건 (100개 쿠폰 소진)
+  - Failure: ~900-1,000건 (수량 부족 - 정상 동작, 50명 탈락)
   - Remaining Quantity: 0개 (모두 소진)
-  - 🎯 핵심: 정확히 200명에게만 발급, 중복 발급 0건!
+  - 🎯 핵심: 정확히 100명에게만 발급, 50명 탈락, 중복 발급 0건!
 
 Order + Payment:
   - Success: ~1,500건 (이전: 1건, 잔액 부족 해소)
   - Failure: ~50건 (재고 부족 또는 비즈니스 규칙)
 
-🎉 동시성 제어 검증 (100명 vs 200개 경합):
+🎉 동시성 제어 검증 (150명 vs 100개 경합):
   - 중복 발급: 0건 ✅ (Pessimistic Lock 작동)
-  - 수량 정합성: 200개 정확히 일치 ✅
+  - 수량 정합성: 100개 정확히 일치 ✅
+  - 150명이 100개 쟁탈 → 정확히 100개만 발급, 50명 탈락 ✅
   - Race Condition: 0건 ✅
   - Deadlock: 0건 ✅
 ```
@@ -386,8 +387,8 @@ Order + Payment:
 
 ### 🚀 개선 완료
 
-1. ✅ DataInitializer 개선 (User 잔액 1억원, Coupon 수량 10,000개 - 자동 초기화)
-2. ✅ K6 스크립트 개선 (랜덤 userId 1~10 분산)
+1. ✅ DataInitializer 개선 (User 153명, 각 1억원, Coupon 수량 100개 - 자동 초기화)
+2. ✅ K6 스크립트 개선 (랜덤 userId 1~150 분산, 150명 vs 100개 경합)
 3. 🔄 K6 재실행 및 결과 비교 (다음 단계)
 4. 📈 성능 문서 업데이트 (완료 후)
 
