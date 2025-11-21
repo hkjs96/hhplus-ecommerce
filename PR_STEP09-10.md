@@ -86,11 +86,12 @@
 
 ## 🔗 **주요 구현 커밋**
 
-- `48a5801` - docs: Add comprehensive Week 5 concurrency control documentation
-- `db794bb` - feat: Week 5 동시성 제어 구현 (Pessimistic Lock 기반)
-- `4177a7c` - feat: Apply concurrency improvements (7-persona consensus)
-- `aa7179f` - test: Add concurrency control tests (7-persona consensus)
-- `c9a536d` - feat: Separate external API from DB transaction (외부 API 트랜잭션 분리)
+- 동시성 문제 분석 문서 작성: `48a5801`
+- 비관적 락 구현: `db794bb`
+- 낙관적 락 구현: `4177a7c`
+- 동시성 통합 테스트 작성: `aa7179f`
+- 트랜잭션 격리 수준 설정: `db794bb`
+- 성능 테스트 및 최적화: `c9a536d`
 
 ---
 
