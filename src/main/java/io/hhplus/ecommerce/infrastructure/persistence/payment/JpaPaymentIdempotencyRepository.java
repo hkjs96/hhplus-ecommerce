@@ -25,4 +25,13 @@ public interface JpaPaymentIdempotencyRepository
 
     @Override
     PaymentIdempotency save(PaymentIdempotency paymentIdempotency);
+
+    /**
+     * 멱등성 키 개수 조회 (테스트용)
+     * Spring Data JPA 메서드 네이밍으로 자동 구현
+     */
+    @Override
+    long countByIdempotencyKey(String idempotencyKey);
+
+    // count()는 JpaRepository에서 상속받음
 }

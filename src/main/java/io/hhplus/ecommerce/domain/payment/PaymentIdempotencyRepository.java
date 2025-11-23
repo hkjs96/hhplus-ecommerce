@@ -33,4 +33,14 @@ public interface PaymentIdempotencyRepository {
                 "멱등성 키를 찾을 수 없습니다. idempotencyKey: " + idempotencyKey
             ));
     }
+
+    /**
+     * 멱등성 키 개수 조회 (테스트용)
+     */
+    long countByIdempotencyKey(String idempotencyKey);
+
+    /**
+     * 전체 멱등성 키 개수 조회 (테스트용)
+     */
+    long count();
 }
