@@ -306,12 +306,13 @@ k6 run -e USER_ID=5 \
 - **상태**: ✅ 검증 완료 (97.66% 성공률)
 - **실행**: `k6 run docs/week5/verification/k6/scripts/balance-charge-single-user.js`
 
-### 3. `order-create.js` 🔧 **최근 개선**
+### 3. `order-create.js` ✅ **최근 검증 완료**
 - **목적**: 주문 생성 API 부하 테스트
 - **시나리오**: 다중 사용자 + 다중 상품, Pessimistic Lock
 - **개선 사항**: 재고 소진 문제 해결 (단일 상품 → 다중 상품 분산)
 - **실행**: `k6 run docs/week5/verification/k6/scripts/order-create.js`
-- **상태**: ⏳ 재테스트 필요
+- **상태**: ✅ 검증 완료 (89.91% 성공률, 428배 개선)
+- **상세 결과**: [ORDER_CREATE_RESULTS.md](./ORDER_CREATE_RESULTS.md)
 
 ### 4. `payment-process.js` 🔧 **최근 개선**
 - **목적**: 결제 멱등성 검증
@@ -339,18 +340,28 @@ k6 run -e USER_ID=5 \
 2. **랜덤화**: 랜덤 사용자(1~100) + 랜덤 상품(1~10)
 3. **재시도 로직**: 재고 소진 시 다른 상품으로 재시도 (Payment Process)
 
-**예상 개선 효과**:
-- Order Create 성공률: 0.21% → 80%+ (400배 증가)
-- Payment Process 성공률: 0.19% → 80%+ (400배 증가)
-- Lock Contention: -90% 감소
+**실제 개선 효과** ✅:
+- ✅ Order Create 성공률: 0.21% → **89.91%** (**428배** 증가)
+- ✅ Lock Timeout: 예상됨 → **0건** (완전 해소)
+- ✅ 평균 응답 시간: ~3700ms → **26.3ms** (99.3% 단축)
+- ⏳ Payment Process: 테스트 대기 중
 
-**상세 문서**: [TROUBLESHOOTING.md](./TROUBLESHOOTING.md)
+**상세 문서**:
+- [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) - 문제 해결 가이드
+- [ORDER_CREATE_RESULTS.md](./ORDER_CREATE_RESULTS.md) - 실제 테스트 결과 ⭐ NEW
 
 ---
 
 ## 📚 관련 문서
 
-- **[PERFORMANCE_REPORT.md](./PERFORMANCE_REPORT.md)** - 성능 분석 보고서 (60+ 페이지)
-- **[TEST_RESULTS_SUMMARY.md](./TEST_RESULTS_SUMMARY.md)** - 테스트 결과 요약
-- **[TROUBLESHOOTING.md](./TROUBLESHOOTING.md)** - 문제 해결 가이드 ⭐ NEW
-- **[../VERIFICATION_GUIDE.md](../VERIFICATION_GUIDE.md)** - 전체 검증 가이드
+### 성능 분석 보고서
+- **[PERFORMANCE_REPORT.md](./PERFORMANCE_REPORT.md)** - Balance Charge 성능 분석 (60+ 페이지)
+- **[TEST_RESULTS_SUMMARY.md](./TEST_RESULTS_SUMMARY.md)** - Balance Charge 결과 요약
+- **[ORDER_CREATE_RESULTS.md](./ORDER_CREATE_RESULTS.md)** - Order Create 테스트 결과 ⭐ NEW
+
+### 문제 해결 및 개선
+- **[TROUBLESHOOTING.md](./TROUBLESHOOTING.md)** - 테스트 실패 문제 해결 가이드
+- **[IMPROVEMENTS_SUMMARY.md](./IMPROVEMENTS_SUMMARY.md)** - 개선 사항 전체 요약
+
+### 전체 가이드
+- **[../VERIFICATION_GUIDE.md](../VERIFICATION_GUIDE.md)** - Week 5 전체 검증 가이드
