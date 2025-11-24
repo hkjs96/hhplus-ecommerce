@@ -200,7 +200,7 @@ function processPayment(orderId, idempotencyKey, attemptNumber) {
 
   const payload = JSON.stringify({
     userId: getRandomUserId(),
-    amount: 50000,
+    amount: 10000,  // 50000 → 10000 (잔액 부족 방지)
     idempotencyKey: idempotencyKey,
   });
 
