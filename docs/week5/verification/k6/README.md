@@ -314,12 +314,13 @@ k6 run -e USER_ID=5 \
 - **상태**: ✅ 검증 완료 (89.91% 성공률, 428배 개선)
 - **상세 결과**: [ORDER_CREATE_RESULTS.md](./ORDER_CREATE_RESULTS.md)
 
-### 4. `payment-process.js` 🔧 **최근 개선**
+### 4. `payment-process.js` ⚠️ **사전 준비 필수**
 - **목적**: 결제 멱등성 검증
 - **시나리오**: Idempotency Key 중복 결제 방지
-- **개선 사항**: 재고 소진 시 재시도 로직 추가
+- **개선 사항**: 재고 소진 시 재시도 로직 추가, 결제 금액 감소 (50k→10k)
+- **사전 준비**: [PAYMENT_PROCESS_SETUP.md](./PAYMENT_PROCESS_SETUP.md) ⭐ **필독**
 - **실행**: `k6 run docs/week5/verification/k6/scripts/payment-process.js`
-- **상태**: ⏳ 재테스트 필요
+- **상태**: ⏳ 재고/잔액 충전 후 재테스트 필요
 
 ---
 
@@ -360,8 +361,10 @@ k6 run -e USER_ID=5 \
 - **[ORDER_CREATE_RESULTS.md](./ORDER_CREATE_RESULTS.md)** - Order Create 테스트 결과 ⭐ NEW
 
 ### 문제 해결 및 개선
-- **[TROUBLESHOOTING.md](./TROUBLESHOOTING.md)** - 테스트 실패 문제 해결 가이드
+- **[TROUBLESHOOTING.md](./TROUBLESHOOTING.md)** - Order/Payment 테스트 실패 해결
 - **[IMPROVEMENTS_SUMMARY.md](./IMPROVEMENTS_SUMMARY.md)** - 개선 사항 전체 요약
+- **[PAYMENT_PROCESS_FIX.md](./PAYMENT_PROCESS_FIX.md)** - Payment 잔액 부족 문제 해결
+- **[PAYMENT_PROCESS_SETUP.md](./PAYMENT_PROCESS_SETUP.md)** - Payment 테스트 사전 준비 ⭐ NEW
 
 ### 전체 가이드
 - **[../VERIFICATION_GUIDE.md](../VERIFICATION_GUIDE.md)** - Week 5 전체 검증 가이드
