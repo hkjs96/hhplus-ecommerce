@@ -16,6 +16,17 @@
 
 ---
 
+## 📊 최신 성능 테스트 결과 (2025-11-24)
+
+**K6 부하 테스트 완료**: 다중 사용자 및 단일 사용자 시나리오
+
+- ✅ **다중 사용자 테스트**: 99.99% 성공률, 514.6 req/s TPS
+- ⚠️ **단일 사용자 테스트**: 97.66% 성공률, 98.9 req/s TPS
+- 📄 **상세 보고서**: [`k6/PERFORMANCE_REPORT.md`](./k6/PERFORMANCE_REPORT.md)
+- 📄 **테스트 가이드**: [`k6/README.md`](./k6/README.md)
+
+---
+
 ## 1. 환경 준비
 
 ### 1.1 소스 코드 확인
@@ -313,7 +324,7 @@ jmeter -v
 
 ```bash
 # 테스트 플랜 파일 확인
-ls -lh docs/week4/verification/jmeter/testplans/
+ls -lh docs/week5/verification/jmeter/testplans/
 # 출력: balance-charge.jmx
 ```
 
@@ -321,7 +332,7 @@ ls -lh docs/week4/verification/jmeter/testplans/
 
 ```bash
 # JMeter GUI 실행
-jmeter -t docs/week4/verification/jmeter/testplans/balance-charge.jmx
+jmeter -t docs/week5/verification/jmeter/testplans/balance-charge.jmx
 ```
 
 **GUI에서 확인**:
@@ -341,16 +352,16 @@ mysql -u root -p ecommerce < src/main/resources/data.sql
 
 # 3. JMeter 테스트 실행
 jmeter -n \
-  -t docs/week4/verification/jmeter/testplans/balance-charge.jmx \
-  -l docs/week4/verification/jmeter/results/after/balance-charge-results.jtl \
-  -e -o docs/week4/verification/jmeter/reports/after/balance-charge/
+  -t docs/week5/verification/jmeter/testplans/balance-charge.jmx \
+  -l docs/week5/verification/jmeter/results/after/balance-charge-results.jtl \
+  -e -o docs/week5/verification/jmeter/reports/after/balance-charge/
 ```
 
 ### 5.5 결과 확인
 
 ```bash
 # HTML 리포트 열기
-open docs/week4/verification/jmeter/reports/after/balance-charge/index.html
+open docs/week5/verification/jmeter/reports/after/balance-charge/index.html
 ```
 
 **대시보드 확인 항목**:
@@ -398,7 +409,7 @@ k6 version
 
 ```bash
 # 스크립트 파일 확인
-ls -lh docs/week4/verification/k6/scripts/
+ls -lh docs/week5/verification/k6/scripts/
 # 출력:
 # balance-charge.js
 # order-create.js
@@ -412,7 +423,7 @@ ls -lh docs/week4/verification/k6/scripts/
 curl http://localhost:8080/actuator/health
 
 # 2. K6 테스트 실행
-k6 run docs/week4/verification/k6/scripts/balance-charge.js
+k6 run docs/week5/verification/k6/scripts/balance-charge.js
 ```
 
 **예상 출력 (요약)**:
@@ -447,7 +458,7 @@ default ✓ [======================================] 0000/1000 VUs  6m0s
 ### 6.4 주문 생성 부하 테스트 (Pessimistic Lock)
 
 ```bash
-k6 run docs/week4/verification/k6/scripts/order-create.js
+k6 run docs/week5/verification/k6/scripts/order-create.js
 ```
 
 **예상 출력**:
@@ -472,7 +483,7 @@ k6 run docs/week4/verification/k6/scripts/order-create.js
 ### 6.5 결제 처리 테스트 (Idempotency Key)
 
 ```bash
-k6 run docs/week4/verification/k6/scripts/payment-process.js
+k6 run docs/week5/verification/k6/scripts/payment-process.js
 ```
 
 **예상 출력**:
@@ -497,12 +508,12 @@ k6 run docs/week4/verification/k6/scripts/payment-process.js
 
 ```bash
 # JSON 형식으로 저장
-k6 run --out json=docs/week4/verification/k6/results/after/balance-charge.json \
-  docs/week4/verification/k6/scripts/balance-charge.js
+k6 run --out json=docs/week5/verification/k6/results/after/balance-charge.json \
+  docs/week5/verification/k6/scripts/balance-charge.js
 
 # Summary 저장
-k6 run --summary-export=docs/week4/verification/k6/results/after/summary.json \
-  docs/week4/verification/k6/scripts/balance-charge.js
+k6 run --summary-export=docs/week5/verification/k6/results/after/summary.json \
+  docs/week5/verification/k6/scripts/balance-charge.js
 ```
 
 ---
@@ -522,8 +533,8 @@ git checkout be392bc~1
 ./gradlew bootRun
 
 # 4. K6 테스트 실행
-k6 run --out json=docs/week4/verification/k6/results/before/balance-charge.json \
-  docs/week4/verification/k6/scripts/balance-charge.js
+k6 run --out json=docs/week5/verification/k6/results/before/balance-charge.json \
+  docs/week5/verification/k6/scripts/balance-charge.js
 ```
 
 **예상 Before 결과**:
@@ -547,8 +558,8 @@ git checkout claude/step11-12-learning-guide-01WPmRS9bGAAUmFSkDGW1qvQ
 ./gradlew bootRun
 
 # 4. K6 테스트 실행
-k6 run --out json=docs/week4/verification/k6/results/after/balance-charge.json \
-  docs/week4/verification/k6/scripts/balance-charge.js
+k6 run --out json=docs/week5/verification/k6/results/after/balance-charge.json \
+  docs/week5/verification/k6/scripts/balance-charge.js
 ```
 
 **예상 After 결과**:
