@@ -64,20 +64,37 @@ export let options = {
 // Environment Variables
 // ============================================================
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:8080';
-const USER_ID = __ENV.USER_ID || '1';
-const PRODUCT_ID = __ENV.PRODUCT_ID || '1';
+const MIN_USER_ID = parseInt(__ENV.MIN_USER_ID || '1');
+const MAX_USER_ID = parseInt(__ENV.MAX_USER_ID || '100');
+const MIN_PRODUCT_ID = parseInt(__ENV.MIN_PRODUCT_ID || '1');
+const MAX_PRODUCT_ID = parseInt(__ENV.MAX_PRODUCT_ID || '10');
+
+// ============================================================
+// Helper Functions
+// ============================================================
+function getRandomUserId() {
+  return Math.floor(Math.random() * (MAX_USER_ID - MIN_USER_ID + 1)) + MIN_USER_ID;
+}
+
+function getRandomProductId() {
+  return Math.floor(Math.random() * (MAX_PRODUCT_ID - MIN_PRODUCT_ID + 1)) + MIN_PRODUCT_ID;
+}
 
 // ============================================================
 // Main Test Function
 // ============================================================
 export default function() {
+  // 부하 분산: 랜덤 사용자 및 상품 선택
+  const userId = getRandomUserId();
+  const productId = getRandomProductId();
+
   const url = `${BASE_URL}/api/orders`;
 
   const payload = JSON.stringify({
-    userId: parseInt(USER_ID),
+    userId: userId,
     items: [
       {
-        productId: parseInt(PRODUCT_ID),
+        productId: productId,
         quantity: 1,
       },
     ],
@@ -147,8 +164,8 @@ export default function() {
 export function setup() {
   console.log('=== K6 Load Test: Order Create ===');
   console.log(`BASE_URL: ${BASE_URL}`);
-  console.log(`USER_ID: ${USER_ID}`);
-  console.log(`PRODUCT_ID: ${PRODUCT_ID}`);
+  console.log(`USER_ID_RANGE: ${MIN_USER_ID} ~ ${MAX_USER_ID}`);
+  console.log(`PRODUCT_ID_RANGE: ${MIN_PRODUCT_ID} ~ ${MAX_PRODUCT_ID}`);
   console.log('Starting load test in 5 seconds...');
   sleep(5);
 }

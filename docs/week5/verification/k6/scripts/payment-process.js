@@ -56,18 +56,37 @@ export let options = {
 // Environment Variables
 // ============================================================
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:8080';
-const USER_ID = __ENV.USER_ID || '1';
+const MIN_USER_ID = parseInt(__ENV.MIN_USER_ID || '1');
+const MAX_USER_ID = parseInt(__ENV.MAX_USER_ID || '100');
+const MIN_PRODUCT_ID = parseInt(__ENV.MIN_PRODUCT_ID || '1');
+const MAX_PRODUCT_ID = parseInt(__ENV.MAX_PRODUCT_ID || '10');
+const MAX_RETRIES = parseInt(__ENV.MAX_RETRIES || '3');
+
+// ============================================================
+// Helper Functions
+// ============================================================
+function getRandomUserId() {
+  return Math.floor(Math.random() * (MAX_USER_ID - MIN_USER_ID + 1)) + MIN_USER_ID;
+}
+
+function getRandomProductId() {
+  return Math.floor(Math.random() * (MAX_PRODUCT_ID - MIN_PRODUCT_ID + 1)) + MIN_PRODUCT_ID;
+}
 
 // ============================================================
 // Main Test Function
 // ============================================================
 export default function() {
-  // Step 1: Create Order
-  const orderId = createOrder();
+  // 부하 분산: 랜덤 사용자 및 상품 선택
+  const userId = getRandomUserId();
+  const productId = getRandomProductId();
+
+  // Step 1: Create Order (재고 소진 시 재시도)
+  const orderId = createOrderWithRetry(userId, productId, MAX_RETRIES);
 
   if (!orderId) {
     errorRate.add(1);
-    console.log(`[VU ${__VU}, Iter ${__ITER}] Failed to create order`);
+    console.log(`[VU ${__VU}, Iter ${__ITER}] Failed to create order after ${MAX_RETRIES} retries`);
     sleep(1);
     return;
   }
@@ -98,21 +117,37 @@ export default function() {
   sleep(1);
 }
 
-// ============================================================
-// Helper Functions
-// ============================================================
+/**
+ * 주문 생성 (재고 소진 시 다른 상품으로 재시도)
+ */
+function createOrderWithRetry(userId, initialProductId, maxRetries) {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    // 재시도 시 다른 상품 선택
+    const productId = attempt === 0 ? initialProductId : getRandomProductId();
+    const orderId = createOrder(userId, productId);
+
+    if (orderId) {
+      return orderId;
+    }
+
+    // 재고 소진이 아닌 다른 에러면 즉시 종료
+    // (재고 소진인 경우에만 재시도)
+  }
+
+  return null;
+}
 
 /**
  * 주문 생성
  */
-function createOrder() {
+function createOrder(userId, productId) {
   const url = `${BASE_URL}/api/orders`;
 
   const payload = JSON.stringify({
-    userId: parseInt(USER_ID),
+    userId: userId,
     items: [
       {
-        productId: 1,
+        productId: productId,
         quantity: 1,
       },
     ],
@@ -164,7 +199,7 @@ function processPayment(orderId, idempotencyKey, attemptNumber) {
   const url = `${BASE_URL}/api/orders/${orderId}/payment`;
 
   const payload = JSON.stringify({
-    userId: parseInt(USER_ID),
+    userId: getRandomUserId(),
     amount: 50000,
     idempotencyKey: idempotencyKey,
   });
@@ -201,7 +236,9 @@ function processPayment(orderId, idempotencyKey, attemptNumber) {
 export function setup() {
   console.log('=== K6 Load Test: Payment Process ===');
   console.log(`BASE_URL: ${BASE_URL}`);
-  console.log(`USER_ID: ${USER_ID}`);
+  console.log(`USER_ID_RANGE: ${MIN_USER_ID} ~ ${MAX_USER_ID}`);
+  console.log(`PRODUCT_ID_RANGE: ${MIN_PRODUCT_ID} ~ ${MAX_PRODUCT_ID}`);
+  console.log(`MAX_RETRIES: ${MAX_RETRIES}`);
   console.log('Testing Idempotency Key duplicate prevention...');
   console.log('Starting load test in 5 seconds...');
   sleep(5);

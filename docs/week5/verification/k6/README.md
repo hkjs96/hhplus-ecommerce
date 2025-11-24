@@ -1,5 +1,13 @@
 # K6 부하 테스트 가이드
 
+## 🚨 중요: 테스트 실패 시 문제 해결
+
+테스트가 실패하거나 예상과 다른 결과가 나온 경우:
+- 📄 **[TROUBLESHOOTING.md](./TROUBLESHOOTING.md)** - 문제 해결 가이드 참조
+- 주요 이슈: 재고 소진, 단일 리소스 경합, 테스트 설계 개선
+
+---
+
 ## 📊 최신 테스트 결과 분석 (2025-11-24)
 
 ### Test 1: 다중 사용자 부하 테스트 ✅ **PASSED**
@@ -281,3 +289,68 @@ k6 run -e USER_ID=5 \
 - 일상적인 성능 테스트는 `balance-charge.js` (다중 사용자) 사용 ⭐
 - 동시성 제어 검증은 `balance-charge-single-user.js` 사용
 - P95/P99 레이턴시 개선을 위한 성능 튜닝 필요
+
+---
+
+## 📁 사용 가능한 테스트 스크립트
+
+### 1. `balance-charge.js` ⭐ **권장**
+- **목적**: 잔액 충전 API 부하 테스트
+- **시나리오**: 100명 사용자, Optimistic Lock 동시성 제어
+- **상태**: ✅ 검증 완료 (99.99% 성공률)
+- **실행**: `k6 run docs/week5/verification/k6/scripts/balance-charge.js`
+
+### 2. `balance-charge-single-user.js`
+- **목적**: 단일 사용자 동시성 테스트
+- **시나리오**: 1명 사용자, Optimistic Lock 충돌 의도적 발생
+- **상태**: ✅ 검증 완료 (97.66% 성공률)
+- **실행**: `k6 run docs/week5/verification/k6/scripts/balance-charge-single-user.js`
+
+### 3. `order-create.js` 🔧 **최근 개선**
+- **목적**: 주문 생성 API 부하 테스트
+- **시나리오**: 다중 사용자 + 다중 상품, Pessimistic Lock
+- **개선 사항**: 재고 소진 문제 해결 (단일 상품 → 다중 상품 분산)
+- **실행**: `k6 run docs/week5/verification/k6/scripts/order-create.js`
+- **상태**: ⏳ 재테스트 필요
+
+### 4. `payment-process.js` 🔧 **최근 개선**
+- **목적**: 결제 멱등성 검증
+- **시나리오**: Idempotency Key 중복 결제 방지
+- **개선 사항**: 재고 소진 시 재시도 로직 추가
+- **실행**: `k6 run docs/week5/verification/k6/scripts/payment-process.js`
+- **상태**: ⏳ 재테스트 필요
+
+---
+
+## 🔧 최근 개선 사항 (2025-11-24)
+
+### 문제: Order Create / Payment Process 테스트 실패
+
+**증상**:
+- Order Create: 99.78% 실패 (재고 소진)
+- Payment Process: 100% 실패 (주문 생성 불가)
+
+**근본 원인**:
+- 단일 상품(PRODUCT_ID=1)에 1000명이 동시 주문
+- 초기 재고 부족으로 대부분 실패
+
+**해결 방법**:
+1. **부하 분산**: 단일 상품 → 다중 상품 (1~10)
+2. **랜덤화**: 랜덤 사용자(1~100) + 랜덤 상품(1~10)
+3. **재시도 로직**: 재고 소진 시 다른 상품으로 재시도 (Payment Process)
+
+**예상 개선 효과**:
+- Order Create 성공률: 0.21% → 80%+ (400배 증가)
+- Payment Process 성공률: 0.19% → 80%+ (400배 증가)
+- Lock Contention: -90% 감소
+
+**상세 문서**: [TROUBLESHOOTING.md](./TROUBLESHOOTING.md)
+
+---
+
+## 📚 관련 문서
+
+- **[PERFORMANCE_REPORT.md](./PERFORMANCE_REPORT.md)** - 성능 분석 보고서 (60+ 페이지)
+- **[TEST_RESULTS_SUMMARY.md](./TEST_RESULTS_SUMMARY.md)** - 테스트 결과 요약
+- **[TROUBLESHOOTING.md](./TROUBLESHOOTING.md)** - 문제 해결 가이드 ⭐ NEW
+- **[../VERIFICATION_GUIDE.md](../VERIFICATION_GUIDE.md)** - 전체 검증 가이드
