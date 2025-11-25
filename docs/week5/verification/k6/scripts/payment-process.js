@@ -93,24 +93,28 @@ export default function() {
 
   // Step 2: Process Payment with Idempotency Key
   const idempotencyKey = randomString(32);
-  const paymentResults = processPaymentWithRetries(orderId, idempotencyKey);
+  const paymentResults = processPaymentWithRetries(orderId, userId, idempotencyKey);
 
-  // Step 3: Verify Idempotency (Only 1 success, others should fail)
+  // Step 3: Verify Idempotency (Only 1 new payment, others should be cached or conflict)
   const successCount = paymentResults.filter(r => r === 'SUCCESS').length;
+  const cachedCount = paymentResults.filter(r => r === 'CACHED').length;
   const conflictCount = paymentResults.filter(r => r === 'CONFLICT').length;
 
-  if (successCount === 1 && conflictCount === 2) {
+  // Idempotency 성공 조건:
+  // - 1번만 새 결제 (SUCCESS)
+  // - 2~3번은 캐시 반환 (CACHED) 또는 충돌 (CONFLICT)
+  if (successCount === 1 && (cachedCount + conflictCount) === 2) {
     // Perfect! Idempotency works correctly
     successRate.add(1);
     idempotencyVerificationSuccess.add(1);
-    duplicatePaymentsPrevented.add(conflictCount);
-    console.log(`[VU ${__VU}, Iter ${__ITER}] ✅ Idempotency verified: 1 success, 2 prevented`);
+    duplicatePaymentsPrevented.add(cachedCount + conflictCount);
+    console.log(`[VU ${__VU}, Iter ${__ITER}] ✅ Idempotency verified: 1 new, ${cachedCount} cached, ${conflictCount} conflicts`);
 
   } else {
     // Idempotency failed!
     errorRate.add(1);
     idempotencyVerificationFailure.add(1);
-    console.log(`[VU ${__VU}, Iter ${__ITER}] ❌ Idempotency failed: ${successCount} successes, ${conflictCount} conflicts`);
+    console.log(`[VU ${__VU}, Iter ${__ITER}] ❌ Idempotency failed: ${successCount} new, ${cachedCount} cached, ${conflictCount} conflicts`);
   }
 
   // Think Time
@@ -178,12 +182,28 @@ function createOrder(userId, productId) {
 /**
  * 동일한 Idempotency Key로 3번 결제 시도
  */
-function processPaymentWithRetries(orderId, idempotencyKey) {
+function processPaymentWithRetries(orderId, userId, idempotencyKey) {
   const results = [];
+  let firstResponseBody = null;
 
   for (let i = 0; i < 3; i++) {
-    const result = processPayment(orderId, idempotencyKey, i + 1);
-    results.push(result);
+    const result = processPayment(orderId, userId, idempotencyKey, i + 1);
+
+    // 첫 번째 응답 본문 저장
+    if (i === 0 && result.body) {
+      firstResponseBody = result.body;
+    }
+
+    // 두 번째, 세 번째 요청은 첫 번째와 동일한 응답인지 확인
+    if (i > 0 && result.body && firstResponseBody) {
+      if (result.body === firstResponseBody) {
+        // 캐시된 응답 (중복 방지 성공)
+        results.push('CACHED');
+        continue;
+      }
+    }
+
+    results.push(result.status);
 
     // Small delay between retries (100ms)
     sleep(0.1);
@@ -195,11 +215,11 @@ function processPaymentWithRetries(orderId, idempotencyKey) {
 /**
  * 결제 처리
  */
-function processPayment(orderId, idempotencyKey, attemptNumber) {
+function processPayment(orderId, userId, idempotencyKey, attemptNumber) {
   const url = `${BASE_URL}/api/orders/${orderId}/payment`;
 
   const payload = JSON.stringify({
-    userId: getRandomUserId(),
+    userId: userId,  // Use the same userId as the order
     amount: 10000,  // 50000 → 10000 (잔액 부족 방지)
     idempotencyKey: idempotencyKey,
   });
@@ -215,18 +235,18 @@ function processPayment(orderId, idempotencyKey, attemptNumber) {
   if (response.status === 200 || response.status === 201) {
     // Payment Success
     console.log(`[VU ${__VU}, Iter ${__ITER}, Attempt ${attemptNumber}] Payment SUCCESS`);
-    return 'SUCCESS';
+    return { status: 'SUCCESS', body: response.body };
 
   } else if (response.status === 409) {
     // Idempotency Conflict (Expected for duplicate requests)
     idempotencyConflicts.add(1);
     console.log(`[VU ${__VU}, Iter ${__ITER}, Attempt ${attemptNumber}] Payment CONFLICT (Duplicate prevented)`);
-    return 'CONFLICT';
+    return { status: 'CONFLICT', body: null };
 
   } else {
     // Other errors
     console.log(`[VU ${__VU}, Iter ${__ITER}, Attempt ${attemptNumber}] Payment ERROR: ${response.status}`);
-    return 'ERROR';
+    return { status: 'ERROR', body: null };
   }
 }
 

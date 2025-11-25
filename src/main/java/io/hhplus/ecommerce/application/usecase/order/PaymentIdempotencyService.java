@@ -28,12 +28,16 @@ public class PaymentIdempotencyService {
     private final ObjectMapper objectMapper;
 
     /**
-     * 멱등성 키 조회 또는 생성 (트랜잭션)
+     * 멱등성 키 조회 또는 생성 (트랜잭션 + Pessimistic Lock)
+     * <p>
+     * Pessimistic Lock (SELECT FOR UPDATE)로 동시성 제어
+     * - 첫 번째 요청: Lock 획득 → 데이터 없음 → 생성 → 커밋 → Lock 해제
+     * - 두 번째 요청: Lock 대기 → 첫 번째 완료 후 Lock 획득 → PROCESSING 조회 → 409 Conflict
      */
     @Transactional
     public PaymentIdempotencyResult getOrCreate(PaymentRequest request) {
         Optional<PaymentIdempotency> existing = paymentIdempotencyRepository
-            .findByIdempotencyKey(request.idempotencyKey());
+            .findByIdempotencyKeyWithLock(request.idempotencyKey());
 
         if (existing.isPresent()) {
             PaymentIdempotency idempotency = existing.get();
