@@ -11,6 +11,7 @@ import io.hhplus.ecommerce.domain.coupon.UserCoupon;
 import io.hhplus.ecommerce.domain.coupon.UserCouponRepository;
 import io.hhplus.ecommerce.domain.user.UserRepository;
 import io.hhplus.ecommerce.infrastructure.metrics.MetricsCollector;
+import io.hhplus.ecommerce.infrastructure.redis.DistributedLock;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -26,6 +27,25 @@ public class IssueCouponUseCase {
     private final UserRepository userRepository;
     private final MetricsCollector metricsCollector;
 
+    /**
+     * 쿠폰 발급 (선착순)
+     * <p>
+     * 동시성 제어: Pessimistic Lock + 분산락
+     * - 기본: Pessimistic Lock (단일 인스턴스에서 정확한 수량 보장)
+     * - 추가: 분산락 (여러 인스턴스 환경에서 동시성 제어)
+     * - 락 키: "coupon:issue:{couponId}"
+     * - 선착순 이벤트이므로 정확성이 최우선
+     * <p>
+     * 중복 발급 방지:
+     * 1차: 애플리케이션 체크 (existsByUserIdAndCouponId)
+     * 2차: DB Unique Constraint (uk_user_coupon)
+     * 3차: DataIntegrityViolationException 처리
+     */
+    @DistributedLock(
+            key = "'coupon:issue:' + #couponId",
+            waitTime = 5,
+            leaseTime = 10
+    )
     @Transactional
     public IssueCouponResponse execute(Long couponId, IssueCouponRequest request) {
         Long userId = request.userId();
@@ -36,11 +56,10 @@ public class IssueCouponUseCase {
             userRepository.findByIdOrThrow(userId);
 
             // 2. 쿠폰 조회 및 발급 가능 여부 검증
-            // 동시성 제어: Pessimistic Lock (SELECT FOR UPDATE)
-            // - 5명 관점: 김데이터(O), 박트래픽(X:Redis), 이금융(X:Queue), 최아키텍트(X:Outbox), 정스타트업(X:sync)
-            // - 최종 선택: Pessimistic Lock (정확한 수량 보장, MVP 단계)
-            // - 향후 개선: 성능 이슈 발생 시 Redis Distributed Lock 전환
-            Coupon coupon = couponRepository.findByIdWithLockOrThrow(couponId);  // Pessimistic Lock
+            // 동시성 제어: Pessimistic Lock + 분산락
+            // - 분산락: 여러 인스턴스 간 동시성 제어
+            // - Pessimistic Lock: DB 레벨 동시성 제어 (추가 안전장치)
+            Coupon coupon = couponRepository.findByIdWithLockOrThrow(couponId);
             coupon.validateIssuable();
 
             // 3. 중복 발급 방지

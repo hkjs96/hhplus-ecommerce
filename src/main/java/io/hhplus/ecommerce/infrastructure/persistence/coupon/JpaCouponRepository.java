@@ -85,6 +85,6 @@ public interface JpaCouponRepository extends JpaRepository<Coupon, Long>, Coupon
     @QueryHints({
         @QueryHint(name = "javax.persistence.lock.timeout", value = "-2")  // SKIP LOCKED
     })
-    @Query("SELECT c FROM Coupon c WHERE c.remainingCount > 0")
+    @Query("SELECT c FROM Coupon c WHERE c.totalQuantity > c.issuedQuantity")
     java.util.List<Coupon> findAvailableCouponsWithLockSkipLocked();
 }

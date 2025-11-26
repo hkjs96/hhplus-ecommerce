@@ -75,11 +75,12 @@ class UserBalanceOptimisticLockConcurrencyTest {
             executorService.submit(() -> {
                 try {
                     // 낙관적 락 재시도 로직 (최대 10번)
-                    boolean success = deductBalanceWithRetry(testUser.getId(), deductAmount, 10);
+                    int retries = deductBalanceWithRetry(testUser.getId(), deductAmount, 10);
 
-                    if (success) {
+                    if (retries >= 0) {
                         successCount.incrementAndGet();
-                        System.out.println("✅ 성공 #" + attemptNumber);
+                        retryCount.addAndGet(retries);
+                        System.out.println("✅ 성공 #" + attemptNumber + " (재시도: " + retries + "회)");
                     }
 
                 } catch (Exception e) {
@@ -132,17 +133,16 @@ class UserBalanceOptimisticLockConcurrencyTest {
 
             executorService.submit(() -> {
                 try {
-                    boolean success = deductBalanceWithRetry(testUser.getId(), deductAmount, 10);
+                    int retries = deductBalanceWithRetry(testUser.getId(), deductAmount, 10);
 
-                    if (success) {
+                    if (retries >= 0) {
                         successCount.incrementAndGet();
-                        System.out.println("✅ 성공 #" + attemptNumber);
+                        System.out.println("✅ 성공 #" + attemptNumber + " (재시도: " + retries + "회)");
+                    } else {
+                        // 잔액 부족 (-1 반환)
+                        failCount.incrementAndGet();
+                        System.out.println("❌ 잔액 부족 #" + attemptNumber);
                     }
-
-                } catch (BusinessException e) {
-                    // 잔액 부족 예외
-                    failCount.incrementAndGet();
-                    System.out.println("❌ 잔액 부족 #" + attemptNumber);
 
                 } catch (Exception e) {
                     failCount.incrementAndGet();
@@ -189,10 +189,10 @@ class UserBalanceOptimisticLockConcurrencyTest {
             // 충전 (10,000원씩)
             executorService.submit(() -> {
                 try {
-                    boolean success = chargeBalanceWithRetry(testUser.getId(), 10_000L, 10);
-                    if (success) {
+                    int retries = chargeBalanceWithRetry(testUser.getId(), 10_000L, 10);
+                    if (retries >= 0) {
                         chargeCount.incrementAndGet();
-                        System.out.println("💰 충전 성공 #" + attemptNumber);
+                        System.out.println("💰 충전 성공 #" + attemptNumber + " (재시도: " + retries + "회)");
                     }
                 } catch (Exception e) {
                     System.out.println("💰 충전 실패 #" + attemptNumber);
@@ -204,10 +204,12 @@ class UserBalanceOptimisticLockConcurrencyTest {
             // 차감 (10,000원씩)
             executorService.submit(() -> {
                 try {
-                    boolean success = deductBalanceWithRetry(testUser.getId(), 10_000L, 10);
-                    if (success) {
+                    int retries = deductBalanceWithRetry(testUser.getId(), 10_000L, 10);
+                    if (retries >= 0) {
                         deductCount.incrementAndGet();
-                        System.out.println("💸 차감 성공 #" + attemptNumber);
+                        System.out.println("💸 차감 성공 #" + attemptNumber + " (재시도: " + retries + "회)");
+                    } else {
+                        System.out.println("💸 차감 실패 (잔액 부족) #" + attemptNumber);
                     }
                 } catch (Exception e) {
                     // 잔액 부족으로 실패 가능
@@ -255,9 +257,11 @@ class UserBalanceOptimisticLockConcurrencyTest {
         for (int i = 0; i < threadCount; i++) {
             executorService.submit(() -> {
                 try {
-                    boolean success = deductBalanceWithRetry(testUser.getId(), deductAmount, 20);
-                    if (success) {
+                    int retries = deductBalanceWithRetry(testUser.getId(), deductAmount, 20);
+                    if (retries >= 0) {
                         successCount.incrementAndGet();
+                    } else {
+                        failCount.incrementAndGet();
                     }
                 } catch (Exception e) {
                     failCount.incrementAndGet();
@@ -323,8 +327,9 @@ class UserBalanceOptimisticLockConcurrencyTest {
 
     /**
      * 잔액 차감 (낙관적 락 재시도)
+     * @return 재시도 횟수 (성공 시), -1 (잔액 부족)
      */
-    private boolean deductBalanceWithRetry(Long userId, Long amount, int maxRetry) {
+    private int deductBalanceWithRetry(Long userId, Long amount, int maxRetry) {
         int retryCount = 0;
 
         while (retryCount < maxRetry) {
@@ -335,33 +340,50 @@ class UserBalanceOptimisticLockConcurrencyTest {
                     userRepository.save(user);
                 });
 
-                return true;  // 성공
+                return retryCount;  // 성공 (재시도 횟수 반환)
 
             } catch (ObjectOptimisticLockingFailureException e) {
                 retryCount++;
 
                 if (retryCount >= maxRetry) {
+                    System.out.println("⚠️ 낙관적 락 재시도 " + maxRetry + "회 초과");
                     throw new RuntimeException("최대 재시도 횟수 초과", e);
                 }
 
                 // Exponential Backoff (50ms → 100ms → 200ms ...)
                 long delayMs = 50 * (long) Math.pow(2, retryCount - 1);
+                System.out.println("🔄 낙관적 락 충돌 - " + retryCount + "번째 재시도 (대기: " + delayMs + "ms)");
+
                 try {
                     Thread.sleep(delayMs);
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
                     throw new RuntimeException("재시도 대기 중 인터럽트", ie);
                 }
+
+            } catch (BusinessException e) {
+                // 잔액 부족 - 재시도 불필요
+                System.out.println("❌ 잔액 부족: " + e.getMessage());
+                return -1;
+
+            } catch (RuntimeException e) {
+                // BusinessException을 감싼 RuntimeException 처리
+                if (e.getCause() instanceof BusinessException) {
+                    System.out.println("❌ 잔액 부족 (wrapped): " + e.getCause().getMessage());
+                    return -1;
+                }
+                throw e;
             }
         }
 
-        return false;
+        return -1;
     }
 
     /**
      * 잔액 충전 (낙관적 락 재시도)
+     * @return 재시도 횟수 (성공 시), -1 (실패 시 - 하지만 충전은 실패하지 않음)
      */
-    private boolean chargeBalanceWithRetry(Long userId, Long amount, int maxRetry) {
+    private int chargeBalanceWithRetry(Long userId, Long amount, int maxRetry) {
         int retryCount = 0;
 
         while (retryCount < maxRetry) {
@@ -372,17 +394,20 @@ class UserBalanceOptimisticLockConcurrencyTest {
                     userRepository.save(user);
                 });
 
-                return true;  // 성공
+                return retryCount;  // 성공 (재시도 횟수 반환)
 
             } catch (ObjectOptimisticLockingFailureException e) {
                 retryCount++;
 
                 if (retryCount >= maxRetry) {
+                    System.out.println("⚠️ 낙관적 락 재시도 " + maxRetry + "회 초과 (충전)");
                     throw new RuntimeException("최대 재시도 횟수 초과", e);
                 }
 
                 // Exponential Backoff
                 long delayMs = 50 * (long) Math.pow(2, retryCount - 1);
+                System.out.println("🔄 낙관적 락 충돌 (충전) - " + retryCount + "번째 재시도 (대기: " + delayMs + "ms)");
+
                 try {
                     Thread.sleep(delayMs);
                 } catch (InterruptedException ie) {
@@ -392,7 +417,7 @@ class UserBalanceOptimisticLockConcurrencyTest {
             }
         }
 
-        return false;
+        return -1;
     }
 
     /**
@@ -408,7 +433,9 @@ class UserBalanceOptimisticLockConcurrencyTest {
             task.run();
             transactionManager.commit(status);
         } catch (Exception e) {
-            transactionManager.rollback(status);
+            if (!status.isCompleted()) {
+                transactionManager.rollback(status);
+            }
             throw e;
         }
     }

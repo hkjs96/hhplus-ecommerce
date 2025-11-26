@@ -12,12 +12,14 @@ import io.hhplus.ecommerce.domain.product.Product;
 import io.hhplus.ecommerce.domain.product.ProductRepository;
 import io.hhplus.ecommerce.domain.user.User;
 import io.hhplus.ecommerce.domain.user.UserRepository;
+import io.hhplus.ecommerce.infrastructure.redis.DistributedLock;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 결제 트랜잭션 처리 서비스 (Spring AOP Proxy 적용)
@@ -40,9 +42,19 @@ public class PaymentTransactionService {
      * <p>
      * DB 트랜잭션 내에서 수행:
      * - 주문 조회 및 검증
-     * - 잔액 차감 (Pessimistic Lock)
-     * - 재고 차감 (Pessimistic Lock)
+     * - 잔액 차감 (Pessimistic Lock + 분산락)
+     * - 재고 차감 (Pessimistic Lock + 분산락)
      * - 주문 상태 PENDING 유지 (결제 대기)
+     * <p>
+     * 분산락 적용:
+     * - 락 키: "balance:user:{userId}" (충전과 동일한 키 사용!)
+     * - 여러 상품의 재고를 동시에 차감할 때 데드락 방지
+     * - 상품 ID를 오름차순 정렬하여 처리 순서 통일
+     * <p>
+     * ⚠️ 중요: 잔액 충전/차감은 동일한 락 키 사용 필수!
+     * - 충전: "balance:user:{userId}" (ChargeBalanceUseCase.chargeBalance)
+     * - 차감: "balance:user:{userId}" (이 메서드)
+     * - 서로 다른 키 사용 시 Lost Update 발생 위험
      * <p>
      * 트랜잭션 보유 시간: 약 50ms (외부 API 제외)
      *
@@ -50,6 +62,11 @@ public class PaymentTransactionService {
      * @param request 결제 요청
      * @return 주문 엔티티
      */
+    @DistributedLock(
+            key = "'balance:user:' + #request.userId()",
+            waitTime = 10,
+            leaseTime = 30
+    )
     @Transactional
     public Order reservePayment(Long orderId, PaymentRequest request) {
         log.debug("Reserving payment for order: {}", orderId);

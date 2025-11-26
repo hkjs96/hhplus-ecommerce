@@ -6,14 +6,22 @@
  * Lock Contention이 증가하는 시점을 파악할 수 있습니다."
  *
  * 테스트 시나리오:
- * - Optimistic Lock (@Version) + 자동 재시도
+ * - 분산락 (Redis) + Optimistic Lock (@Version) + 멱등성 보장
  * - 단계적 부하: 100 → 500 → 1000 VUs
+ * - 다중 사용자 분산 (USER_COUNT=100)
  * - Lock Contention 분석
+ * - 멱등성 키로 중복 충전 방지 (각 요청마다 고유 UUID)
+ *
+ * 3중 방어:
+ * 1. 분산락 (balance:user:{userId}) - 인스턴스 간 동시성 제어
+ * 2. Optimistic Lock (@Version) - DB 레벨 Lost Update 방지
+ * 3. 멱등성 키 (idempotencyKey) - 중복 요청 방지
  */
 
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { Rate, Trend, Counter } from 'k6/metrics';
+import { uuidv4 } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
 
 // ============================================================
 // Custom Metrics
@@ -63,17 +71,21 @@ export let options = {
 // Environment Variables
 // ============================================================
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:8080';
-const USER_ID = __ENV.USER_ID || '1';
+const USER_COUNT = parseInt(__ENV.USER_COUNT) || 100;  // ✅ 사용자 100명 (변경 가능)
 const CHARGE_AMOUNT = __ENV.CHARGE_AMOUNT || '10000';
 
 // ============================================================
 // Main Test Function
 // ============================================================
 export default function() {
-  const url = `${BASE_URL}/api/users/${USER_ID}/balance/charge`;
+  // ✅ VU 번호를 사용하여 사용자 분산 (1~100)
+  const userId = (__VU % USER_COUNT) + 1;
+  const url = `${BASE_URL}/api/users/${userId}/balance/charge`;
 
+  // ✅ 멱등성 키 생성 (각 요청마다 고유한 UUID)
   const payload = JSON.stringify({
     amount: parseInt(CHARGE_AMOUNT),
+    idempotencyKey: uuidv4(),  // ✅ 필수: 중복 충전 방지
   });
 
   const params = {
@@ -134,7 +146,7 @@ export default function() {
 export function setup() {
   console.log('=== K6 Load Test: Balance Charge ===');
   console.log(`BASE_URL: ${BASE_URL}`);
-  console.log(`USER_ID: ${USER_ID}`);
+  console.log(`USER_COUNT: ${USER_COUNT} users (distributed load)`);
   console.log(`CHARGE_AMOUNT: ${CHARGE_AMOUNT}`);
   console.log('Starting load test in 5 seconds...');
   sleep(5);

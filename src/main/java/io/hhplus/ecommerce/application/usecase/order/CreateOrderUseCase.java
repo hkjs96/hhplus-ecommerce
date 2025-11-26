@@ -19,13 +19,16 @@ import io.hhplus.ecommerce.domain.product.ProductRepository;
 import io.hhplus.ecommerce.domain.user.User;
 import io.hhplus.ecommerce.domain.user.UserRepository;
 import io.hhplus.ecommerce.infrastructure.metrics.MetricsCollector;
+import io.hhplus.ecommerce.infrastructure.redis.DistributedLock;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @UseCase
@@ -40,6 +43,31 @@ public class CreateOrderUseCase {
     private final UserCouponRepository userCouponRepository;
     private final MetricsCollector metricsCollector;
 
+    /**
+     * 주문 생성
+     * <p>
+     * 동시성 제어: 분산락 + Pessimistic Lock
+     * - 분산락: 사용자별 주문 생성 직렬화 (동시 주문 방지)
+     * - Pessimistic Lock: 재고 확인 시 정확성 보장
+     * <p>
+     * TOCTOU 갭 해결:
+     * - Time-of-Check: 재고 확인
+     * - Time-of-Use: 주문 생성
+     * - 분산락으로 이 갭을 보호하여 경쟁 상태 방지
+     * <p>
+     * 데드락 방지:
+     * - 여러 상품 주문 시 상품 ID 오름차순 정렬
+     * - 모든 트랜잭션이 동일한 순서로 락 획득
+     * <p>
+     * 락 키: "order:create:user:{userId}"
+     * - 같은 사용자의 주문 생성은 직렬화
+     * - 다른 사용자의 주문은 병렬 처리 가능
+     */
+    @DistributedLock(
+            key = "'order:create:user:' + #request.userId()",
+            waitTime = 10,
+            leaseTime = 30
+    )
     @Transactional
     public CreateOrderResponse execute(CreateOrderRequest request) {
         long startTime = System.currentTimeMillis();
@@ -49,12 +77,18 @@ public class CreateOrderUseCase {
             // 1. 사용자 검증
             User user = userRepository.findByIdOrThrow(request.userId());
 
-            // 2. 상품 재고 확인 및 금액 계산
+            // 2. 데드락 방지: 상품 ID 오름차순 정렬
+            List<OrderItemRequest> sortedItems = request.items().stream()
+                    .sorted(Comparator.comparing(OrderItemRequest::productId))
+                    .collect(Collectors.toList());
+
+            // 3. 상품 재고 확인 및 금액 계산 (Pessimistic Lock)
             List<OrderItemResponse> itemResponses = new ArrayList<>();
             long subtotalAmount = 0L;
 
-            for (OrderItemRequest itemReq : request.items()) {
-                Product product = productRepository.findByIdOrThrow(itemReq.productId());
+            for (OrderItemRequest itemReq : sortedItems) {
+                // Pessimistic Lock으로 재고 조회 (TOCTOU 갭 방지)
+                Product product = productRepository.findByIdWithLockOrThrow(itemReq.productId());
 
                 // 재고 확인
                 if (product.getStock() < itemReq.quantity()) {
@@ -78,7 +112,7 @@ public class CreateOrderUseCase {
                 ));
             }
 
-            // 3. 쿠폰 검증 및 할인 계산
+            // 4. 쿠폰 검증 및 할인 계산
             long discountAmount = 0L;
             if (request.couponId() != null) {
                 Coupon coupon = couponRepository.findByIdOrThrow(request.couponId());
@@ -95,14 +129,15 @@ public class CreateOrderUseCase {
                 discountAmount = (long) (subtotalAmount * coupon.getDiscountRate() / 100.0);
             }
 
-            // 4. 주문 생성
+            // 5. 주문 생성
             String orderNumber = "ORDER-" + UUID.randomUUID().toString().substring(0, 8);
             Order order = Order.create(orderNumber, user.getId(), subtotalAmount, discountAmount);
             orderRepository.save(order);
 
-            // 5. 주문 아이템 생성 (재고는 결제 시 감소)
-            for (int i = 0; i < request.items().size(); i++) {
-                OrderItemRequest itemReq = request.items().get(i);
+            // 6. 주문 아이템 생성 (재고는 결제 시 감소)
+            // Note: sortedItems를 사용하여 정렬된 순서 유지
+            for (OrderItemRequest itemReq : sortedItems) {
+                // 이미 위에서 Pessimistic Lock으로 조회했으므로 일반 조회 사용
                 Product product = productRepository.findByIdOrThrow(itemReq.productId());
 
                 // Note: 재고는 ProcessPaymentUseCase에서 차감 (결제 성공 시에만 차감)
