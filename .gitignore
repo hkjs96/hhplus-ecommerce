@@ -21,3 +21,7 @@ PR_STEP09-10.md
 ..bfg-report/
 /tmp/k6*.log
 .DS_Store
+
+# K6 Load Test Results (keep only committed baseline results)
+docs/week6/loadtest/k6/results/*-summary.json
+!docs/week6/loadtest/k6/results/.gitkeep
