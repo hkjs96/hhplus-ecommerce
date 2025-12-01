@@ -85,7 +85,7 @@ class PaymentConcurrencyWithDistributedLockTest {
 
         // 테스트 상품 생성 (재고 100개)
         testProduct = Product.create(
-                "TEST-PROD-" + (System.currentTimeMillis() % 10000),  // 20자 이하로 제한
+                "TP" + (System.currentTimeMillis() % 100000),  // "TP12345" = 7자
                 "테스트 상품",
                 "테스트 상품 설명",
                 10000L,
@@ -127,10 +127,12 @@ class PaymentConcurrencyWithDistributedLockTest {
                     User user = testUsers.get(index);
 
                     // 1. 주문 생성
+                    String orderIdempotencyKey = "ORDER_" + user.getId() + "_" + UUID.randomUUID().toString();
                     CreateOrderRequest orderRequest = new CreateOrderRequest(
                             user.getId(),
                             List.of(new OrderItemRequest(testProduct.getId(), 1)),
-                            null
+                            null,
+                            orderIdempotencyKey
                     );
                     CreateOrderResponse orderResponse = createOrderUseCase.execute(orderRequest);
 
@@ -144,6 +146,7 @@ class PaymentConcurrencyWithDistributedLockTest {
                     successCount.incrementAndGet();
 
                 } catch (Exception e) {
+                    System.err.println("Payment failed for user " + index + ": " + e.getClass().getSimpleName() + " - " + e.getMessage());
                     failCount.incrementAndGet();
                 } finally {
                     latch.countDown();
@@ -155,6 +158,7 @@ class PaymentConcurrencyWithDistributedLockTest {
         executorService.shutdown();
 
         // Then: 정확히 100개 결제 성공, 재고 0개
+        System.out.println("Test result: successCount=" + successCount.get() + ", failCount=" + failCount.get());
         assertThat(successCount.get()).isEqualTo(100);
         assertThat(failCount.get()).isEqualTo(0);
 
@@ -167,7 +171,7 @@ class PaymentConcurrencyWithDistributedLockTest {
     void 분산락_결제_동시성_테스트_재고부족() throws InterruptedException {
         // Given: 재고 50개로 설정 (새로운 Product 생성)
         Product limitedStockProduct = Product.create(
-                "TESTPROD" + (System.currentTimeMillis() % 1000000),  // 20자 이하로 제한
+                "LS" + (System.currentTimeMillis() % 100000),  // "LS12345" = 7자
                 "테스트 상품 (재고 부족)",
                 "테스트 상품 설명",
                 10000L,
@@ -191,10 +195,12 @@ class PaymentConcurrencyWithDistributedLockTest {
                     User user = testUsers.get(index);
 
                     // 1. 주문 생성
+                    String orderIdempotencyKey = "ORDER_" + user.getId() + "_" + UUID.randomUUID().toString();
                     CreateOrderRequest orderRequest = new CreateOrderRequest(
                             user.getId(),
                             List.of(new OrderItemRequest(limitedStockProduct.getId(), 1)),
-                            null
+                            null,
+                            orderIdempotencyKey
                     );
                     CreateOrderResponse orderResponse = createOrderUseCase.execute(orderRequest);
 
@@ -245,7 +251,8 @@ class PaymentConcurrencyWithDistributedLockTest {
         for (int i = 0; i < threadCount; i++) {
             executorService.submit(() -> {
                 try {
-                    ChargeBalanceRequest request = new ChargeBalanceRequest(chargeAmount);
+                    String chargeIdempotencyKey = "CHARGE_" + user.getId() + "_" + UUID.randomUUID().toString();
+                    ChargeBalanceRequest request = new ChargeBalanceRequest(chargeAmount, chargeIdempotencyKey);
                     chargeBalanceUseCase.execute(user.getId(), request);
                     successCount.incrementAndGet();
                 } catch (Exception e) {

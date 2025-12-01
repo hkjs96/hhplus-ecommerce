@@ -241,7 +241,7 @@ public void decreaseStock(Long productId, int quantity) {
 **추가 최적화**:
 - 인덱스: `products(id)` - Primary Key (자동)
 - 트랜잭션 최소화: Lock 보유 시간 줄이기
-- 타임아웃 설정: `@QueryHints(value = @QueryHint(name = "javax.persistence.lock.timeout", value = "3000"))`
+- 타임아웃 설정: `@QueryHints(value = @QueryHint(name = "jakarta.persistence.lock.timeout", value = "3000"))`
 
 ---
 

@@ -55,7 +55,7 @@
    - Before/After 비교 데이터 부족
 
 3. **락 타임아웃 미설정**: 무한 대기 가능성
-   - `javax.persistence.lock.timeout` 미설정
+   - `jakarta.persistence.lock.timeout` 미설정
 
 4. **재시도 로직 불명확**: 낙관적 락 실패 시 처리
    - 재시도 횟수, 백오프 전략, 최종 실패 처리 불명확
@@ -1146,7 +1146,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
      * 비관적 락으로 상품 조회 (타임아웃 설정)
      *
      * 타임아웃 설정:
-     * - javax.persistence.lock.timeout: 3000ms (3초)
+     * - jakarta.persistence.lock.timeout: 3000ms (3초)
      * - 3초 내에 락을 획득하지 못하면 PessimisticLockException 발생
      * - 무한 대기 방지
      *
@@ -1156,7 +1156,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @QueryHints({
-        @QueryHint(name = "javax.persistence.lock.timeout", value = "3000")
+        @QueryHint(name = "jakarta.persistence.lock.timeout", value = "3000")
     })
     @Query("SELECT p FROM Product p WHERE p.id = :id")
     Optional<Product> findByIdWithLock(@Param("id") Long id);
@@ -1171,7 +1171,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @QueryHints({
-        @QueryHint(name = "javax.persistence.lock.timeout", value = "0")  // NOWAIT
+        @QueryHint(name = "jakarta.persistence.lock.timeout", value = "0")  // NOWAIT
     })
     @Query("SELECT p FROM Product p WHERE p.id = :id")
     Optional<Product> findByIdWithLockNoWait(@Param("id") Long id);
@@ -1186,7 +1186,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @QueryHints({
-        @QueryHint(name = "javax.persistence.lock.timeout", value = "-2")  // SKIP LOCKED
+        @QueryHint(name = "jakarta.persistence.lock.timeout", value = "-2")  // SKIP LOCKED
     })
     @Query("SELECT p FROM Product p WHERE p.category = :category")
     List<Product> findByCategoryWithLockSkipLocked(@Param("category") String category);

@@ -38,10 +38,10 @@ public interface JpaProductRepository extends JpaRepository<Product, Long>, Prod
      * <p>
      * 제이 코치 피드백 반영:
      * "락 타임아웃 설정도 확인해보면 좋겠어요. 비관적 락에서 @QueryHints로
-     * javax.persistence.lock.timeout을 설정하지 않으면 무한 대기할 수 있거든요."
+     * jakarta.persistence.lock.timeout을 설정하지 않으면 무한 대기할 수 있거든요."
      * <p>
      * 설정:
-     * - javax.persistence.lock.timeout = 3000ms (3초)
+     * - jakarta.persistence.lock.timeout = 3000ms (3초)
      * - 3초 내에 락을 획득하지 못하면 PessimisticLockException 발생
      * - 무한 대기 방지
      * <p>
@@ -52,7 +52,7 @@ public interface JpaProductRepository extends JpaRepository<Product, Long>, Prod
     @Override
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @QueryHints({
-        @QueryHint(name = "javax.persistence.lock.timeout", value = "3000")
+        @QueryHint(name = "jakarta.persistence.lock.timeout", value = "3000")
     })
     @Query("SELECT p FROM Product p WHERE p.id = :id")
     Optional<Product> findByIdWithLock(@Param("id") Long id);
@@ -70,7 +70,7 @@ public interface JpaProductRepository extends JpaRepository<Product, Long>, Prod
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @QueryHints({
-        @QueryHint(name = "javax.persistence.lock.timeout", value = "0")  // NOWAIT
+        @QueryHint(name = "jakarta.persistence.lock.timeout", value = "0")  // NOWAIT
     })
     @Query("SELECT p FROM Product p WHERE p.id = :id")
     Optional<Product> findByIdWithLockNoWait(@Param("id") Long id);
@@ -88,7 +88,7 @@ public interface JpaProductRepository extends JpaRepository<Product, Long>, Prod
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @QueryHints({
-        @QueryHint(name = "javax.persistence.lock.timeout", value = "-2")  // SKIP LOCKED
+        @QueryHint(name = "jakarta.persistence.lock.timeout", value = "-2")  // SKIP LOCKED
     })
     @Query("SELECT p FROM Product p WHERE p.stock > 0")
     List<Product> findAvailableProductsWithLockSkipLocked();

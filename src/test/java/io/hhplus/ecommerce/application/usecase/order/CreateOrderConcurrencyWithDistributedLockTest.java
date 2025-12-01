@@ -21,6 +21,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -98,10 +99,12 @@ class CreateOrderConcurrencyWithDistributedLockTest {
             final int userId = i;
             executorService.submit(() -> {
                 try {
+                    String idempotencyKey = "ORDER_" + userId + "_" + UUID.randomUUID().toString();
                     CreateOrderRequest request = new CreateOrderRequest(
                             (long) userId,
                             List.of(new OrderItemRequest(testProduct.getId(), 1)),
-                            null
+                            null,
+                            idempotencyKey
                     );
 
                     CreateOrderResponse response = createOrderUseCase.execute(request);
@@ -173,10 +176,12 @@ class CreateOrderConcurrencyWithDistributedLockTest {
         for (int i = 0; i < concurrentOrders; i++) {
             executorService.submit(() -> {
                 try {
+                    String idempotencyKey = "ORDER_" + user.getId() + "_" + UUID.randomUUID().toString();
                     CreateOrderRequest request = new CreateOrderRequest(
                             user.getId(),
                             List.of(new OrderItemRequest(testProduct.getId(), 3)),
-                            null
+                            null,
+                            idempotencyKey
                     );
 
                     CreateOrderResponse response = createOrderUseCase.execute(request);
@@ -241,6 +246,7 @@ class CreateOrderConcurrencyWithDistributedLockTest {
         Thread thread1 = new Thread(() -> {
             try {
                 // 사용자1: [상품1, 상품2, 상품3] 순서로 요청
+                String idempotencyKey1 = "ORDER_" + user1.getId() + "_" + UUID.randomUUID().toString();
                 CreateOrderRequest request = new CreateOrderRequest(
                         user1.getId(),
                         List.of(
@@ -248,7 +254,8 @@ class CreateOrderConcurrencyWithDistributedLockTest {
                                 new OrderItemRequest(product2.getId(), 1),
                                 new OrderItemRequest(product3.getId(), 1)
                         ),
-                        null
+                        null,
+                        idempotencyKey1
                 );
                 createOrderUseCase.execute(request);
                 successCount.incrementAndGet();
@@ -262,6 +269,7 @@ class CreateOrderConcurrencyWithDistributedLockTest {
         Thread thread2 = new Thread(() -> {
             try {
                 // 사용자2: [상품3, 상품2, 상품1] 역순으로 요청 (데드락 테스트)
+                String idempotencyKey2 = "ORDER_" + user2.getId() + "_" + UUID.randomUUID().toString();
                 CreateOrderRequest request = new CreateOrderRequest(
                         user2.getId(),
                         List.of(
@@ -269,7 +277,8 @@ class CreateOrderConcurrencyWithDistributedLockTest {
                                 new OrderItemRequest(product2.getId(), 1),
                                 new OrderItemRequest(product1.getId(), 1)
                         ),
-                        null
+                        null,
+                        idempotencyKey2
                 );
                 createOrderUseCase.execute(request);
                 successCount.incrementAndGet();

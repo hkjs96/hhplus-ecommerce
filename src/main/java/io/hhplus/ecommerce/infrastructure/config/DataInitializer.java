@@ -166,7 +166,7 @@ public class DataInitializer implements ApplicationRunner {
                 "VIP20",
                 "VIP 회원 20% 할인",
                 20,  // 20% 할인
-                100,  // 총 100개 (동시성 테스트)
+                50,  // 총 50개 (k6 선착순 100명 vs 50개 테스트)
                 now,
                 now.plusMonths(1)  // 1개월 유효
         );
@@ -227,10 +227,7 @@ public class DataInitializer implements ApplicationRunner {
         User user2 = userRepository.findByEmail("plus@example.com").orElseThrow();
         Coupon coupon2 = couponRepository.findByCouponCode("VIP20").orElseThrow();
 
-        UserCoupon userCoupon2 = UserCoupon.create(user2.getId(), coupon2.getId(), coupon2.getExpiresAt());
-        userCouponRepository.save(userCoupon2);
-        coupon2.issue();  // 수량 차감
-        couponRepository.save(coupon2);
+        // VIP20은 k6 동시성 테스트를 위해 재고를 그대로 유지한다 (사전 발급하지 않음)
 
         // User 3 (박백엔드)에게 EARLYBIRD15 쿠폰 발급 후 사용 처리 (Edge Case: 이미 사용됨)
         User user3 = userRepository.findByEmail("backend@example.com").orElseThrow();

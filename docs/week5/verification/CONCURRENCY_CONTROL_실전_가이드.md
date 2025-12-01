@@ -882,7 +882,7 @@ for key 'uk_payment_idempotency_key'
 ```java
 @QueryHints({
     @QueryHint(
-        name = "javax.persistence.lock.timeout",
+        name = "jakarta.persistence.lock.timeout",
         value = "5000"  // 5초 대기
     )
 })

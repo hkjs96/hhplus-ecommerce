@@ -353,7 +353,7 @@ docker-compose restart mysql
 spring:
   jpa:
     properties:
-      javax.persistence.lock.timeout: 5000  # 5초로 증가
+      jakarta.persistence.lock.timeout: 5000  # 5초로 증가
 ```
 
 ---

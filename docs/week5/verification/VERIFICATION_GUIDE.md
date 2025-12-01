@@ -174,7 +174,7 @@ cat src/main/java/io/hhplus/ecommerce/infrastructure/persistence/product/JpaProd
 **예상 출력**:
 ```java
 @QueryHints({
-    @QueryHint(name = "javax.persistence.lock.timeout", value = "3000")
+    @QueryHint(name = "jakarta.persistence.lock.timeout", value = "3000")
 })
 ```
 

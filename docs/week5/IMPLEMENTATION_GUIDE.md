@@ -135,7 +135,7 @@ public class StockUseCase {
 ```java
 @Lock(LockModeType.PESSIMISTIC_WRITE)
 @QueryHints({
-    @QueryHint(name = "javax.persistence.lock.timeout", value = "3000") // 3초
+    @QueryHint(name = "jakarta.persistence.lock.timeout", value = "3000") // 3초
 })
 @Query("SELECT p FROM Product p WHERE p.id = :id")
 Optional<Product> findByIdWithLock(@Param("id") Long id);

@@ -15,6 +15,8 @@ import io.hhplus.ecommerce.domain.user.UserRepository;
 import io.hhplus.ecommerce.infrastructure.redis.DistributedLock;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import jakarta.persistence.LockTimeoutException;
+import jakarta.persistence.PessimisticLockException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -100,12 +102,19 @@ public class PaymentTransactionService {
             );
         }
 
-        // 5. 재고 차감 (결제 성공 시에만 재고 감소)
+        // 5. 재고 차감 (결제 시점, Pessimistic Lock)
         List<OrderItem> orderItems = orderItemRepository.findByOrderId(orderId);
-        for (OrderItem item : orderItems) {
-            Product product = productRepository.findByIdWithLockOrThrow(item.getProductId());
-            product.decreaseStock(item.getQuantity());
-            productRepository.save(product);
+        try {
+            for (OrderItem item : orderItems) {
+                Product product = productRepository.findByIdWithLockOrThrow(item.getProductId());
+                product.decreaseStock(item.getQuantity());
+                productRepository.save(product);
+            }
+        } catch (PessimisticLockException | LockTimeoutException e) {
+            throw new BusinessException(
+                ErrorCode.INSUFFICIENT_STOCK,
+                "재고가 부족하거나 다른 결제가 처리 중입니다. 잠시 후 다시 시도해주세요."
+            );
         }
 
         // 6. 잔액 차감
@@ -182,10 +191,10 @@ public class PaymentTransactionService {
             // 1. 주문 조회
             Order order = orderRepository.findByIdOrThrow(orderId);
 
-            // 2. 재고 복구
+            // 2. 재고 복구 (결제 시점 차감분 복구)
             List<OrderItem> orderItems = orderItemRepository.findByOrderId(orderId);
             for (OrderItem item : orderItems) {
-                Product product = productRepository.findByIdOrThrow(item.getProductId());
+                Product product = productRepository.findByIdWithLockOrThrow(item.getProductId());
                 product.increaseStock(item.getQuantity());
                 productRepository.save(product);
             }

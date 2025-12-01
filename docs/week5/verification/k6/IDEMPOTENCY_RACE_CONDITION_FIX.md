@@ -327,7 +327,7 @@ k6 run docs/week5/verification/k6/scripts/payment-process.js
 ```java
 @Lock(LockModeType.PESSIMISTIC_WRITE)
 @QueryHints({
-    @QueryHint(name = "javax.persistence.lock.timeout", value = "3000")  // 3초
+    @QueryHint(name = "jakarta.persistence.lock.timeout", value = "3000")  // 3초
 })
 Optional<PaymentIdempotency> findByIdempotencyKeyWithLock(...);
 ```

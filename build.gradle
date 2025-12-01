@@ -11,7 +11,7 @@ description = '항해플러스 백엔드 커리큘럼을 위한 이커머스 레
 
 java {
 	toolchain {
-		languageVersion = JavaLanguageVersion.of(17)
+		languageVersion = JavaLanguageVersion.of(21)
 	}
 }
 
@@ -100,4 +100,38 @@ jacocoTestCoverageVerification {
 			}
 		}
 	}
+}
+
+// --- Redis lifecycle helpers for local development (optional) ---
+def composeFile = "${projectDir}/docker-compose.yml"
+
+tasks.register("redisUp", Exec) {
+	group = "redis"
+	description = "Start Redis container (docker compose up -d redis)"
+	commandLine "docker", "compose", "-f", composeFile, "up", "-d", "redis"
+}
+
+tasks.register("redisDown", Exec) {
+	group = "redis"
+	description = "Stop Redis container (docker compose stop redis)"
+	commandLine "docker", "compose", "-f", composeFile, "stop", "redis"
+}
+
+tasks.register("redisFlush", Exec) {
+	group = "redis"
+	description = "Flush Redis DB (docker compose exec redis redis-cli FLUSHDB)"
+	dependsOn "redisUp"
+	commandLine "docker", "compose", "-f", composeFile, "exec", "-T", "redis", "redis-cli", "FLUSHDB"
+}
+
+// Run: ./gradlew bootRunRedisReset  (Redis 기동 + FLUSHDB 후 bootRun 실행)
+tasks.register("bootRunRedisReset") {
+	group = "application"
+	description = "Flush Redis and run bootRun for clean-cache load tests"
+	dependsOn "redisFlush", "bootRun"
+}
+
+// 보조 순서 보장: bootRun은 redisFlush 이후 실행되도록 설정
+tasks.named("bootRun") {
+	mustRunAfter "redisFlush"
 }

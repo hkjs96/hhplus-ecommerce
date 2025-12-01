@@ -20,6 +20,8 @@ public interface CartItemRepository {
 
     void deleteById(Long id);
 
+    void delete(CartItem cartItem);
+
     void deleteByCartId(Long cartId);
 
     boolean existsById(Long id);

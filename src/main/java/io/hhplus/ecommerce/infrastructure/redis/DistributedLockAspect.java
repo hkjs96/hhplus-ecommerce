@@ -1,5 +1,7 @@
 package io.hhplus.ecommerce.infrastructure.redis;
 
+import io.hhplus.ecommerce.common.exception.BusinessException;
+import io.hhplus.ecommerce.common.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -57,26 +59,29 @@ public class DistributedLockAspect {
         try {
             // 락 획득 시도
             boolean isLocked = lock.tryLock(
-                    distributedLock.waitTime(),
-                    distributedLock.leaseTime(),
-                    distributedLock.timeUnit()
+                distributedLock.waitTime(),
+                distributedLock.leaseTime(),
+                distributedLock.timeUnit()
             );
 
             if (!isLocked) {
-                log.error("락 획득 실패: key={}, waitTime={}{}, leaseTime={}{}",
-                        lockKey,
-                        distributedLock.waitTime(),
-                        distributedLock.timeUnit(),
-                        distributedLock.leaseTime(),
-                        distributedLock.timeUnit()
+                log.warn("락 획득 실패: key={}, waitTime={}{}, leaseTime={}{}",
+                    lockKey,
+                    distributedLock.waitTime(),
+                    distributedLock.timeUnit(),
+                    distributedLock.leaseTime(),
+                    distributedLock.timeUnit()
                 );
-                throw new IllegalStateException("락 획득 실패: " + lockKey);
+                throw new BusinessException(
+                    ErrorCode.DUPLICATE_REQUEST,
+                    "다른 동일 요청이 처리 중입니다. 잠시 후 다시 시도해주세요. (lockKey: " + lockKey + ")"
+                );
             }
 
             log.info("락 획득 성공: key={}, leaseTime={}{}",
-                    lockKey,
-                    distributedLock.leaseTime(),
-                    distributedLock.timeUnit()
+                lockKey,
+                distributedLock.leaseTime(),
+                distributedLock.timeUnit()
             );
 
             // 비즈니스 로직 실행

@@ -1,5 +1,6 @@
 package io.hhplus.ecommerce.application.cart.dto;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public record CartResponse(
@@ -12,6 +13,7 @@ public record CartResponse(
             .mapToLong(CartItemResponse::subtotal)
             .sum();
 
-        return new CartResponse(userId, items, totalAmount);
+        // ArrayList로 고정해 직렬화 시 타입 정보가 불필요하도록 한다.
+        return new CartResponse(userId, new ArrayList<>(items), totalAmount);
     }
 }
