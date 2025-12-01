@@ -87,8 +87,8 @@ public class CreateOrderUseCase {
     @Transactional
     @DistributedLock(
             key = "(#request.idempotencyKey() != null ? 'order:create:idem:' + #request.idempotencyKey() : 'order:create:user:' + #request.userId())",
-            waitTime = 3,
-            leaseTime = 30
+            waitTime = 10,
+            leaseTime = 60
     )
     public CreateOrderResponse execute(CreateOrderRequest request) {
         long startTime = System.currentTimeMillis();

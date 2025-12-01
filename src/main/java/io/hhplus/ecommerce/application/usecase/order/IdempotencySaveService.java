@@ -23,8 +23,10 @@ public class IdempotencySaveService {
     /**
      * 멱등성 키를 PROCESSING 상태로 저장 (별도 트랜잭션)
      *
-     * 주문 생성 트랜잭션이 롤백되어도 키를 미리 저장해
-     * 실패 시 FAILED 상태로 안전하게 갱신할 수 있도록 함
+     * REQUIRES_NEW 사용:
+     * - 주문 생성 실패 시에도 멱등성 키는 저장되어야 함
+     * - 분산락 leaseTime(60s)이 충분히 길어서 트랜잭션 완료까지 락 유지
+     * - 동일 idempotency 키는 분산락으로 직렬화됨
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public OrderIdempotency saveProcessing(OrderIdempotency idempotency) {

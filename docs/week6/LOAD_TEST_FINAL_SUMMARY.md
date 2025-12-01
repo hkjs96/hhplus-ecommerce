@@ -13,7 +13,7 @@
 | Coupon Issuance Concurrency | ✅ PASS | 38.46%* | 정확히 50개 발급 | 선착순 정확성 검증 완료 |
 | Cart Cache Test | ⚠️ PARTIAL | 88.04% | Cache 일관성: 71.68% | 성능 우수, 일관성 개선 필요 |
 | Payment Concurrency (Unit) | ⚠️ FLAKY | 불안정 | ProductId 길이 문제 | K6로 대체 검증 권장 |
-| Order Idempotency | ⏳ PENDING | - | - | 미실행 |
+| Order Idempotency | ❌ FAIL | 92.66% | 7.34% 실패율, 2643 에러 | 제한사항 문서화 |
 
 \* Coupon 성공률 38.46%는 정상 (재고 50개, 요청 130개 → 50개 성공 + 53개 품절)
 
@@ -244,9 +244,33 @@
 2. ⚠️ **Unit Test Flaky**: 동시성 테스트의 한계
    - 대안: **K6 Integration Test** 우선
 
+### 새로운 발견: Order Idempotency 문제
+
+**테스트 결과**:
+- 총 요청: 10,407
+- 실패율: 7.34%
+- Idempotency 에러: 2,643
+- 평균 응답 시간: 2,982ms
+- P95 응답 시간: 30,007ms
+
+**근본 원인**:
+- `REQUIRES_NEW` 트랜잭션 + 분산락의 타이밍 문제
+- 멱등성 키가 빠르게 커밋되고, 다음 요청이 락을 획득하기 전에 충돌
+- Database Unique Constraint로 인한 Lock wait timeout
+
+**시도한 해결책**:
+1. ❌ `REQUIRES_NEW` 제거 → Entry has null identifier
+2. ❌ Pessimistic Lock 추가 → 타임아웃 급증
+3. ⚠️ Lease Time 증가 (60s) → 개선 미미 (7.75% → 7.34%)
+
+**결론**:
+- ⚠️ 현재 구현으로는 **7% 실패율** 발생
+- 📄 제한사항으로 문서화: `docs/week6/ORDER_IDEMPOTENCY_ISSUE_ANALYSIS.md`
+- 🔧 근본적 해결은 아키텍처 재설계 필요 (Database Constraint 활용 또는 Saga 패턴)
+
 ### 다음 단계
 
-1. ⏳ **Order Idempotency Test 실행** (중간 우선순위)
+1. ⏸️ Order Idempotency 아키텍처 재설계 (시간이 있다면)
 2. ⏸️ Payment Concurrency Unit Test 제거 또는 K6 대체 (낮은 우선순위)
 3. ⏸️ Cache 일관성 개선 (낮은 우선순위, 현재도 허용 가능)
 
@@ -257,6 +281,7 @@
 - `docs/week6/LOAD_TEST_RESULTS.md` - 상세 테스트 결과
 - `docs/week6/K6_TEST_FIXES.md` - 테스트 수정 이력
 - `docs/week6/TEST_STABILITY_CHECK.md` - Flaky Test 분석
+- **`docs/week6/ORDER_IDEMPOTENCY_ISSUE_ANALYSIS.md`** - Order Idempotency 문제 분석
 - `docs/week5/verification/K6_LOAD_TEST_GUIDE.md` - K6 테스트 가이드
 
 ---

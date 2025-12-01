@@ -24,6 +24,11 @@ public class OrderIdempotencyRepositoryImpl implements OrderIdempotencyRepositor
     }
 
     @Override
+    public Optional<OrderIdempotency> findByIdempotencyKeyWithLock(String idempotencyKey) {
+        return jpaRepository.findByIdempotencyKeyWithLock(idempotencyKey);
+    }
+
+    @Override
     @Transactional
     public OrderIdempotency save(OrderIdempotency orderIdempotency) {
         return jpaRepository.save(orderIdempotency);
