@@ -21,21 +21,28 @@ Week 7 과제(Redis 기반 랭킹 시스템 및 선착순 쿠폰 발급)에 필�
    - 랭킹/쿠폰 시스템 설계 핵심
    - 트랜잭션 규칙 (⭐ 중요)
 
+3. **[COACH_JAY_QNA.md](./COACH_JAY_QNA.md)** ← 실무 적용 가이드
+   - 제이 코치님 멘토링 핵심 요약
+   - TransactionalEventListener 활용
+   - 분산락 최소화 전략
+   - Hot Key 문제 해결
+   - Redis 모니터링 지표
+
 ### 2단계: 학습 계획
-3. **[LEARNING_ROADMAP.md](./LEARNING_ROADMAP.md)**
+4. **[LEARNING_ROADMAP.md](./LEARNING_ROADMAP.md)**
    - 10시간 학습 로드맵 (5일 코스)
    - 3시간 압축 학습 가이드
    - 자가진단 체크리스트
 
 ### 3단계: 과제 요구사항
-4. **[REQUIREMENTS.md](./REQUIREMENTS.md)**
+5. **[REQUIREMENTS.md](./REQUIREMENTS.md)**
    - Step 13: Ranking Design 요구사항
    - Step 14: Asynchronous Design 요구사항
    - 평가 기준 및 Pass 조건
    - 제출 사항
 
 ### 4단계: 구현
-5. **구현 가이드 (`agent_docs/` 폴더)**
+6. **구현 가이드 (`agent_docs/` 폴더)**
    - [`agent_docs/redis_ranking.md`](../../agent_docs/redis_ranking.md)
      → Sorted Set 랭킹 시스템 구현 상세
    - [`agent_docs/redis_coupon_issue.md`](../../agent_docs/redis_coupon_issue.md)
@@ -44,14 +51,14 @@ Week 7 과제(Redis 기반 랭킹 시스템 및 선착순 쿠폰 발급)에 필�
      → Testcontainers 기반 테스트 시나리오
 
 ### 5단계: 체크리스트
-6. **[STEP_CHECKLIST.md](./STEP_CHECKLIST.md)**
+7. **[STEP_CHECKLIST.md](./STEP_CHECKLIST.md)**
    - Step 13-14 전체 체크리스트
    - 설계/구현/테스트/문서화 단계별 체크
    - 코드 품질 체크리스트
    - PR 제출 전 최종 점검
 
 ### 6단계: CLAUDE.md 마이그레이션 (선택)
-7. **[CLAUDE_MD_MIGRATION_GUIDE.md](./CLAUDE_MD_MIGRATION_GUIDE.md)**
+8. **[CLAUDE_MD_MIGRATION_GUIDE.md](./CLAUDE_MD_MIGRATION_GUIDE.md)**
    - Week 7용 CLAUDE.md 재구성 가이드
    - Before/After 비교
    - Progressive Disclosure 전략
@@ -64,7 +71,8 @@ Week 7 과제(Redis 기반 랭킹 시스템 및 선착순 쿠폰 발급)에 필�
 | 문서 | 용도 | 소요 시간 | 필수 여부 |
 |------|------|----------|-----------|
 | **REDIS_BASICS.md** | Redis 기초 개념 학습 | 30분 | ✅ 필수 |
-| **COACH_QNA_SUMMARY.md** | 핵심 개념 및 주의사항 | 20분 | ✅ 필수 |
+| **COACH_QNA_SUMMARY.md** | 핵심 개념 및 주의사항 (김종협 코치) | 20분 | ✅ 필수 |
+| **COACH_JAY_QNA.md** | 실무 적용 가이드 (제이 코치) | 40분 | ✅ 필수 |
 | **LEARNING_ROADMAP.md** | 학습 계획 수립 | 10분 | ✅ 필수 |
 | **REQUIREMENTS.md** | 과제 요구사항 확인 | 15분 | ✅ 필수 |
 | **STEP_CHECKLIST.md** | 진행 상황 체크 | 수시 | ✅ 필수 |
@@ -78,18 +86,20 @@ Week 7 과제(Redis 기반 랭킹 시스템 및 선착순 쿠폰 발급)에 필�
 ```
 1. REDIS_BASICS.md 읽기 (30분)
 2. COACH_QNA_SUMMARY.md 읽기 (20분)
-3. REQUIREMENTS.md 읽기 (15분)
-4. agent_docs/redis_ranking.md 보며 랭킹 구현 (2시간)
-5. agent_docs/redis_coupon_issue.md 보며 쿠폰 구현 (2시간)
-6. agent_docs/testing_redis_features.md 보며 테스트 작성 (1시간)
-7. STEP_CHECKLIST.md 체크하며 마무리 (1시간)
+3. COACH_JAY_QNA.md 읽기 (40분) ← 실무 적용 가이드
+4. REQUIREMENTS.md 읽기 (15분)
+5. agent_docs/redis_ranking.md 보며 랭킹 구현 (2시간)
+6. agent_docs/redis_coupon_issue.md 보며 쿠폰 구현 (2시간)
+7. agent_docs/testing_redis_features.md 보며 테스트 작성 (1시간)
+8. STEP_CHECKLIST.md 체크하며 마무리 (1시간)
 ```
 
 ### 시간이 부족하신가요? (3시간 코스)
 ```
 1. COACH_QNA_SUMMARY.md 읽기 (20분)
-2. LEARNING_ROADMAP.md의 3시간 코스 진행 (3시간)
-3. STEP_CHECKLIST.md 체크 (수시)
+2. COACH_JAY_QNA.md 읽기 (40분) ← 실무 적용 필수
+3. LEARNING_ROADMAP.md의 3시간 코스 진행 (2시간)
+4. STEP_CHECKLIST.md 체크 (수시)
 ```
 
 ---
