@@ -70,4 +70,15 @@ public class TestContainersConfig {
     public GenericContainer<?> redisContainer() {
         return redis;
     }
+
+    /**
+     * Static getters for use in @DynamicPropertySource
+     */
+    public static MySQLContainer<?> getMysqlContainer() {
+        return mysql;
+    }
+
+    public static GenericContainer<?> getRedisContainer() {
+        return redis;
+    }
 }
