@@ -8,6 +8,7 @@ import io.hhplus.ecommerce.domain.order.Order;
 import io.hhplus.ecommerce.domain.order.OrderItem;
 import io.hhplus.ecommerce.domain.order.OrderItemRepository;
 import io.hhplus.ecommerce.domain.order.OrderRepository;
+import io.hhplus.ecommerce.domain.order.PaymentCompletedEvent;
 import io.hhplus.ecommerce.domain.product.Product;
 import io.hhplus.ecommerce.domain.product.ProductRepository;
 import io.hhplus.ecommerce.domain.user.User;
@@ -17,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import jakarta.persistence.LockTimeoutException;
 import jakarta.persistence.PessimisticLockException;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,6 +40,7 @@ public class PaymentTransactionService {
     private final OrderItemRepository orderItemRepository;
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * Step 1: 잔액 차감 (트랜잭션)
@@ -133,6 +136,7 @@ public class PaymentTransactionService {
      * - 결제 완료 시간 기록
      * - User 잔액 조회
      * - PaymentResponse 생성
+     * - PaymentCompletedEvent 발행 (랭킹 갱신용)
      * <p>
      * 트랜잭션 보유 시간: 약 50ms
      *
@@ -157,6 +161,12 @@ public class PaymentTransactionService {
         User user = userRepository.findByIdOrThrow(userId);
 
         log.info("Payment status updated to COMPLETED. orderId: {}, txId: {}", orderId, pgTransactionId);
+
+        // 결제 완료 이벤트 발행 (랭킹 갱신용)
+        // - @TransactionalEventListener(AFTER_COMMIT)로 DB 커밋 후 실행
+        // - @Async로 비동기 처리 (Redis 장애가 주문에 영향 X)
+        eventPublisher.publishEvent(new PaymentCompletedEvent(order));
+        log.debug("PaymentCompletedEvent published for orderId: {}", orderId);
 
         // 응답 생성
         return PaymentResponse.of(
