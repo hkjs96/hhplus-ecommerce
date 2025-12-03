@@ -35,6 +35,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @SpringBootTest
 @Import({TestContainersConfig.class, io.hhplus.ecommerce.config.TestDataSourceConfig.class})
+@org.springframework.test.annotation.DirtiesContext(classMode = org.springframework.test.annotation.DirtiesContext.ClassMode.AFTER_CLASS)
 class PaymentConcurrencyWithDistributedLockTest {
 
     @Autowired
