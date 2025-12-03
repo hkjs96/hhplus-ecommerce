@@ -139,9 +139,12 @@ public class CreateOrderUseCase {
             // 4. 주문 생성 처리
             CreateOrderResponse response = createOrderInternal(request, preparationContext, startTime);
 
-            // 5. 완료 처리 (응답 캐싱)
-            idempotency.complete(response.orderId(), serializeResponse(response));
-            idempotencyRepository.save(idempotency);
+            // 5. 완료 처리 (응답 캐싱) - 별도 트랜잭션으로 저장
+            idempotencySaveService.saveCompletedIdempotency(
+                    request.idempotencyKey(),
+                    response.orderId(),
+                    serializeResponse(response)
+            );
 
             log.info("Order created successfully. orderId: {}, idempotencyKey: {}",
                 response.orderId(), request.idempotencyKey());

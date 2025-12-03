@@ -28,29 +28,43 @@ public class PaymentIdempotencyService {
     private final ObjectMapper objectMapper;
 
     /**
-     * 멱등성 키 조회 또는 생성 (트랜잭션 + Pessimistic Lock)
+     * 멱등성 키 조회 또는 생성 (트랜잭션)
      * <p>
-     * Pessimistic Lock (SELECT FOR UPDATE)로 동시성 제어
-     * - 첫 번째 요청: Lock 획득 → 데이터 없음 → 생성 → 커밋 → Lock 해제
-     * - 두 번째 요청: Lock 대기 → 첫 번째 완료 후 Lock 획득 → PROCESSING 조회 → 409 Conflict
+     * INSERT-first 전략으로 deadlock 방지:
+     * - 먼저 INSERT 시도 (unique constraint로 중복 방지)
+     * - DataIntegrityViolationException 발생 시 SELECT FOR UPDATE로 조회
+     * - SELECT → INSERT 패턴은 gap lock으로 인한 deadlock 유발
+     * - INSERT → SELECT 패턴은 deadlock 위험이 훨씬 낮음
      */
     @Transactional
     public PaymentIdempotencyResult getOrCreate(PaymentRequest request) {
-        Optional<PaymentIdempotency> existing = paymentIdempotencyRepository
-            .findByIdempotencyKeyWithLock(request.idempotencyKey());
+        // 먼저 INSERT 시도 (optimistic approach)
+        try {
+            PaymentIdempotency newKey = PaymentIdempotency.create(request.idempotencyKey(), request.userId());
+            PaymentIdempotency saved = paymentIdempotencyRepository.save(newKey);
+            log.debug("Created new payment idempotency: {}", request.idempotencyKey());
+            return PaymentIdempotencyResult.newRequest(saved);
+        } catch (DataIntegrityViolationException e) {
+            // Unique constraint 위반: 이미 존재함
+            log.debug("Idempotency key already exists, fetching: {}", request.idempotencyKey());
 
-        if (existing.isPresent()) {
-            PaymentIdempotency idempotency = existing.get();
+            // 이제 pessimistic lock으로 조회
+            PaymentIdempotency existing = paymentIdempotencyRepository
+                .findByIdempotencyKeyWithLock(request.idempotencyKey())
+                .orElseThrow(() -> new BusinessException(
+                    ErrorCode.INTERNAL_SERVER_ERROR,
+                    "멱등성 키를 찾을 수 없습니다: " + request.idempotencyKey()
+                ));
 
             // COMPLETED: 기존 결과 반환
-            if (idempotency.isCompleted()) {
+            if (existing.isCompleted()) {
                 log.info("Found completed payment for idempotencyKey: {}", request.idempotencyKey());
-                PaymentResponse cachedResponse = deserializeResponse(idempotency.getResponsePayload());
+                PaymentResponse cachedResponse = deserializeResponse(existing.getResponsePayload());
                 return PaymentIdempotencyResult.completed(cachedResponse);
             }
 
             // PROCESSING: 동시 요청 (409 Conflict)
-            if (idempotency.isProcessing()) {
+            if (existing.isProcessing()) {
                 log.warn("Concurrent payment request detected for idempotencyKey: {}", request.idempotencyKey());
                 throw new BusinessException(
                     ErrorCode.DUPLICATE_REQUEST,
@@ -60,20 +74,7 @@ public class PaymentIdempotencyService {
 
             // FAILED: 재시도 가능하므로 진행
             log.info("Retrying failed payment for idempotencyKey: {}", request.idempotencyKey());
-            return PaymentIdempotencyResult.retry(idempotency);
-        }
-
-        // 새로 생성 (PROCESSING 상태)
-        try {
-            PaymentIdempotency newKey = PaymentIdempotency.create(request.idempotencyKey(), request.userId());
-            PaymentIdempotency saved = paymentIdempotencyRepository.save(newKey);
-            return PaymentIdempotencyResult.newRequest(saved);
-        } catch (DataIntegrityViolationException e) {
-            log.warn("Duplicate idempotency key creation attempted: {}", request.idempotencyKey());
-            throw new BusinessException(
-                ErrorCode.DUPLICATE_REQUEST,
-                "동일한 결제 요청이 처리 중입니다. 잠시 후 다시 시도해주세요."
-            );
+            return PaymentIdempotencyResult.retry(existing);
         }
     }
 

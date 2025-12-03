@@ -34,7 +34,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * 분산락이 정확히 재고를 제어하는지 검증합니다.
  */
 @SpringBootTest
-@Import(TestContainersConfig.class)
+@Import({TestContainersConfig.class, io.hhplus.ecommerce.config.TestDataSourceConfig.class})
 class PaymentConcurrencyWithDistributedLockTest {
 
     @Autowired
