@@ -31,7 +31,9 @@ public class MetricsCollector {
     private final Counter stockErrorCounter;
 
     // 쿠폰 관련 메트릭
-    private final Counter couponIssueSuccessCounter;
+    private final Counter couponReservationSuccessCounter;  // 선착순 예약
+    private final Counter couponReservationFailureCounter;
+    private final Counter couponIssueSuccessCounter;        // 실제 발급
     private final Counter couponIssueFailureCounter;
 
     // 결제 관련 메트릭
@@ -64,6 +66,16 @@ public class MetricsCollector {
                 .register(meterRegistry);
 
         // 쿠폰 메트릭 초기화
+        this.couponReservationSuccessCounter = Counter.builder("coupon_reservation_total")
+                .tag("status", "success")
+                .description("Total number of successful coupon reservations")
+                .register(meterRegistry);
+
+        this.couponReservationFailureCounter = Counter.builder("coupon_reservation_total")
+                .tag("status", "failure")
+                .description("Total number of failed coupon reservations")
+                .register(meterRegistry);
+
         this.couponIssueSuccessCounter = Counter.builder("coupon_issue_total")
                 .tag("status", "success")
                 .description("Total number of successful coupon issues")
@@ -129,6 +141,14 @@ public class MetricsCollector {
     // ============================================================
     // 쿠폰 관련 메트릭
     // ============================================================
+
+    public void recordCouponReservationSuccess() {
+        couponReservationSuccessCounter.increment();
+    }
+
+    public void recordCouponReservationFailure() {
+        couponReservationFailureCounter.increment();
+    }
 
     public void recordCouponIssueSuccess() {
         couponIssueSuccessCounter.increment();
