@@ -214,14 +214,9 @@ public class DataInitializer implements ApplicationRunner {
     private void initUserCoupons() {
         log.info("🎫 Creating pre-issued coupons for users...");
 
-        // User 1 (김항해)에게 WELCOME10 쿠폰 발급
-        User user1 = userRepository.findByEmail("hanghae@example.com").orElseThrow();
-        Coupon coupon1 = couponRepository.findByCouponCode("WELCOME10").orElseThrow();
-
-        UserCoupon userCoupon1 = UserCoupon.create(user1.getId(), coupon1.getId(), coupon1.getExpiresAt());
-        userCouponRepository.save(userCoupon1);
-        coupon1.issue();  // 수량 차감
-        couponRepository.save(coupon1);
+        // ⚠️ WELCOME10 (Coupon 1): K6 동시성 테스트를 위해 사전 발급하지 않음
+        // - 총 100개가 온전히 K6 테스트에 사용됨
+        // - 150명이 100개 쟁탈, 정확히 100명만 성공해야 함
 
         // User 2 (이플러스)에게 VIP20 쿠폰 발급
         User user2 = userRepository.findByEmail("plus@example.com").orElseThrow();
@@ -239,7 +234,8 @@ public class DataInitializer implements ApplicationRunner {
         coupon3.issue();  // 수량 차감
         couponRepository.save(coupon3);
 
-        log.info("   ✓ Pre-issued 3 coupons (User 1: WELCOME10, User 2: VIP20, User 3: EARLYBIRD15-사용됨)");
+        log.info("   ✓ Pre-issued 1 coupon (User 3: EARLYBIRD15-사용됨)");
+        log.info("   ℹ️ WELCOME10 (Coupon 1) kept at 100 quantity for K6 concurrency test");
     }
 
     private void initCarts() {

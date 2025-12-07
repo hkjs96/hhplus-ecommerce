@@ -56,6 +56,34 @@ public class User {
         return user;
     }
 
+    /**
+     * 테스트용 사용자 생성 (ID 직접 지정 가능)
+     * <p>
+     * 부하 테스트를 위해 특정 ID 범위의 사용자를 생성할 때 사용합니다.
+     * 프로덕션 코드에서는 사용하지 마세요.
+     *
+     * @param id       사용자 ID (직접 지정)
+     * @param email    이메일
+     * @param username 사용자명
+     * @param balance  초기 잔액
+     * @return 생성된 사용자
+     */
+    public static User createForTest(Long id, String email, String username, Long balance) {
+        validateEmail(email);
+        validateUsername(username);
+
+        User user = new User();
+        user.id = id;  // 테스트용: ID 직접 설정
+        user.email = email;
+        user.username = username;
+        user.balance = balance;
+        user.version = 0L;  // @Version 필드 초기화 (Optimistic Lock)
+        user.createdAt = LocalDateTime.now();
+        user.updatedAt = LocalDateTime.now();
+
+        return user;
+    }
+
     @PrePersist
     protected void onCreate() {
         if (this.createdAt == null) {
