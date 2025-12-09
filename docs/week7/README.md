@@ -1,5 +1,22 @@
 # Week 7 문서 인덱스
 
+> **📝 2025-12-09 업데이트:** Step 13-14 피드백 반영 완료
+>
+> **새로운 문서:**
+> - ✅ [FEEDBACK_IMPROVEMENTS.md](./FEEDBACK_IMPROVEMENTS.md) - 코치님 피드백 반영 상세 문서
+>
+> **업데이트된 문서:**
+> - ✅ [COUPON_RESERVATION_DESIGN.md](./COUPON_RESERVATION_DESIGN.md) - CouponReservation 제거 반영
+> - ✅ [K6_LOAD_TEST_PLAN.md](./K6_LOAD_TEST_PLAN.md) - Ramp-up 시나리오 추가
+>
+> **주요 변경사항:**
+> 1. Redis 장애 시 DB Fallback 추가 (ProductRankingBackup 테이블)
+> 2. CouponReservation 테이블 제거 (Redis Only 구조)
+> 3. LoadTestDataInitializer Profile 분리 (운영 환경 안전성)
+> 4. Connection Pool 크기 재검토 (200 → 100)
+> 5. K6 Ramp-up 시나리오 추가 (현실적 트래픽 패턴)
+> 6. 성능 개선 수치 문서화 (정상 상태 비교 필요성)
+
 ## 📚 문서 구조
 
 Week 7 과제(Redis 기반 랭킹 시스템 및 선착순 쿠폰 발급)에 필요한 모든 문서를 제공합니다.
@@ -7,6 +24,21 @@ Week 7 과제(Redis 기반 랭킹 시스템 및 선착순 쿠폰 발급)에 필�
 ---
 
 ## 🎯 학습 순서 (권장)
+
+### 0단계: 피드백 반영 확인 (선택)
+> **💡 Step 13-14 과제를 이미 제출했다면 먼저 확인하세요!**
+
+1. **[ARCHITECTURE_CHANGES.md](./ARCHITECTURE_CHANGES.md)** ← 변경사항 한눈에 보기
+   - 피드백 반영 요약 (6가지)
+   - Before/After 코드 비교
+   - 신규/삭제/수정 파일 목록
+   - 다음 단계 가이드
+
+2. **[FEEDBACK_IMPROVEMENTS.md](./FEEDBACK_IMPROVEMENTS.md)** ← 상세 분석
+   - 각 항목별 사고 과정 (500줄)
+   - Option 비교 및 트레이드오프
+   - 학습 및 인사이트
+   - 회고 및 다음 단계
 
 ### 1단계: 기초 학습
 1. **[REDIS_BASICS.md](./REDIS_BASICS.md)** ← 시작은 여기서
@@ -76,6 +108,9 @@ Week 7 과제(Redis 기반 랭킹 시스템 및 선착순 쿠폰 발급)에 필�
 | **LEARNING_ROADMAP.md** | 학습 계획 수립 | 10분 | ✅ 필수 |
 | **REQUIREMENTS.md** | 과제 요구사항 확인 | 15분 | ✅ 필수 |
 | **STEP_CHECKLIST.md** | 진행 상황 체크 | 수시 | ✅ 필수 |
+| **COUPON_RESERVATION_DESIGN.md** | 쿠폰 예약 설계 문서 (피드백 반영) | 20분 | ✅ 필수 |
+| **K6_LOAD_TEST_PLAN.md** | 부하 테스트 가이드 (Ramp-up 추가) | 30분 | ✅ 필수 |
+| **FEEDBACK_IMPROVEMENTS.md** | 피드백 반영 상세 문서 | 60분 | ⭐ 권장 |
 | **CLAUDE_MD_MIGRATION_GUIDE.md** | CLAUDE.md 재구성 | 30분 | ⭐ 선택 |
 
 ---
@@ -128,10 +163,15 @@ Week 7 과제(Redis 기반 랭킹 시스템 및 선착순 쿠폰 발급)에 필�
 ```
 docs/week7/
 ├── README.md                          ← 현재 문서 (인덱스)
+├── ARCHITECTURE_CHANGES.md            ← 피드백 반영 요약 🆕
+├── FEEDBACK_IMPROVEMENTS.md           ← 피드백 상세 분석 🆕
 ├── REDIS_BASICS.md                    ← Redis 기초 개념
 ├── COACH_QNA_SUMMARY.md               ← QnA 핵심 요약
+├── COACH_JAY_QNA.md                   ← 제이 코치 실무 가이드
 ├── LEARNING_ROADMAP.md                ← 학습 로드맵
 ├── REQUIREMENTS.md                    ← 과제 요구사항
+├── COUPON_RESERVATION_DESIGN.md       ← 쿠폰 예약 설계 (업데이트)
+├── K6_LOAD_TEST_PLAN.md               ← K6 테스트 가이드 (업데이트)
 ├── STEP_CHECKLIST.md                  ← 진행 체크리스트
 └── CLAUDE_MD_MIGRATION_GUIDE.md       ← CLAUDE.md 재구성
 

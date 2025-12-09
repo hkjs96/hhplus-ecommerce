@@ -53,19 +53,19 @@ export const options = {
       startTime: '40s',  // 극한 테스트 후 시작
     },
 
-    // 시나리오 3: 제거 (looping으로 인한 과도한 요청 방지)
-    // rampUpTest: {
-    //   executor: 'ramping-vus',
-    //   startVUs: 0,
-    //   stages: [
-    //     { duration: '10s', target: 20 },
-    //     { duration: '20s', target: 50 },
-    //     { duration: '10s', target: 0 },
-    //   ],
-    //   exec: 'issueCouponRampUp',
-    //   tags: { test: 'rampup' },
-    //   startTime: '1m30s',
-    // },
+    // 시나리오 3: 램프업 - 점진적으로 부하 증가
+    rampUpTest: {
+      executor: 'ramping-vus',
+      startVUs: 0,
+      stages: [
+        { duration: '10s', target: 20 },
+        { duration: '20s', target: 50 },
+        { duration: '10s', target: 0 },
+      ],
+      exec: 'issueCouponRampUp',
+      tags: { test: 'rampup' },
+      startTime: '1m30s',
+    },
   },
 
   thresholds: {

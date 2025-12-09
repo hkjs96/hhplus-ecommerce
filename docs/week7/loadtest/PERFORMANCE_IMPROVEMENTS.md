@@ -186,6 +186,9 @@ k6 run \
 ```
 ✗ http_req_failed: 49.74%
 ✗ ranking_query p(95): 30,065ms (600배 초과!)
+  - **주의**: 이 수치는 Connection Pool이 고갈된 비정상 상태의 수치입니다.
+    정확한 개선율을 파악하려면 정상 상태의 Before 수치를 측정해서 비교해야 합니다.
+    (e.g., 1,857배 개선(30,065ms → 16ms) 주장은 이 비정상 수치에 기반한 것이므로 컨텍스트 이해 필요)
 ✗ ranking_update p(95): 60,000ms (120배 초과!)
 ✗ ranking_accuracy: 3.57%
 ✗ dropped_iterations: 3,201

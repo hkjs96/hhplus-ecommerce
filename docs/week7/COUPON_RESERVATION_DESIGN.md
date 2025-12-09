@@ -1,10 +1,20 @@
 # 선착순 쿠폰 예약 테이블 설계 결정 문서
 
+> **📝 2025-12-09 업데이트:** Step 13-14 피드백 반영 - CouponReservation 테이블 제거
+>
+> **변경 내역:**
+> - ❌ CouponReservation 테이블 제거 (Redis Only 구조로 변경)
+> - ✅ Redis가 선착순 판정의 Single Source of Truth
+> - ✅ DB는 최종 발급 내역(UserCoupon)만 저장
+> - ✅ DB write 66% 감소 (3회 → 1회)
+>
+> **상세 문서:** [FEEDBACK_IMPROVEMENTS.md](./FEEDBACK_IMPROVEMENTS.md#2-couponreservation-테이블-제거)
+
 ## 📋 목차
 1. [설계 배경](#설계-배경)
 2. [핵심 질문: sequenceNumber의 역할](#핵심-질문-sequencenumber의-역할)
 3. [NULL 문제와 해결 방법](#null-문제와-해결-방법)
-4. [최종 설계 결정](#최종-설계-결정)
+4. [최종 설계 결정 (2025-12-09 변경)](#최종-설계-결정)
 5. [구현 상세](#구현-상세)
 
 ---
@@ -331,7 +341,41 @@ id | user_id | coupon_id | status
 
 ## 최종 설계 결정
 
-### ✅ 채택: 예약 테이블 방식 (방법 5)
+### ⚠️ 2025-12-09 변경: Redis Only 구조로 전환
+
+**기존 설계 (2025-12-04):**
+- ✅ 채택: 예약 테이블 방식 (방법 5)
+- CouponReservation 테이블로 선착순 자격 기록
+- user_coupons에 sequence_number 없음 (NULL 문제 해결)
+
+**변경 후 설계 (2025-12-09):**
+- ✅ **Redis Only 구조** (CouponReservation 제거)
+- Redis가 선착순 판정의 Single Source of Truth
+- DB는 최종 발급 내역(UserCoupon)만 저장
+
+**변경 이유 (코치님 피드백):**
+1. **DB write 감소** - 3회 → 1회 (66% 감소)
+2. **Redis-DB 일관성 문제 제거** - Redis 단일 진실 원천
+3. **복잡도 감소** - 예약 테이블 관리 불필요
+4. **sequenceNumber의 실제 필요성** - 비즈니스 필수 아님 (응답/로깅용)
+
+**트레이드오프:**
+- ✅ 성능 향상 (DB write 감소)
+- ✅ 일관성 보장 (Redis Only)
+- ❌ sequenceNumber 영구 저장 불가 (Redis TTL 만료 후)
+- ❌ 감사/추적 제한 (로그에만 기록)
+
+**허용 가능한 이유:**
+- sequenceNumber는 실시간 응답에만 필요
+- "N번째 예약" 정보는 나중에 조회 불필요
+- 로그에 sequence 기록으로 충분
+
+---
+
+### ~~기존 설계: 예약 테이블 방식 (방법 5)~~ (Deprecated)
+
+<details>
+<summary>기존 설계 상세 (참고용)</summary>
 
 **이유:**
 1. **NULL 완전 제거** - user_coupons에 sequence_number 컬럼 자체가 없음
@@ -340,11 +384,16 @@ id | user_id | coupon_id | status
 4. **정규화 원칙 준수** - 타입별 다른 속성을 별도 테이블로
 5. **실패 추적** - RESERVED → ISSUED / FAILED 상태 관리
 
+</details>
+
 ---
 
 ### 테이블 구조
 
-#### coupon_reservations (선착순 자격 기록)
+#### ~~coupon_reservations (선착순 자격 기록)~~ (Deprecated - 제거됨)
+
+<details>
+<summary>기존 테이블 구조 (참고용)</summary>
 
 ```sql
 CREATE TABLE coupon_reservations (
@@ -368,6 +417,24 @@ CREATE TABLE coupon_reservations (
 - "100번째 안에 들었다"는 사실을 **영구 기록**
 - 뒤집히지 않는 사실 (Immutable Fact)
 - 실패 추적 및 복구 근거
+
+**⚠️ 2025-12-09 제거 이유:**
+- DB write 추가 발생 (성능 저하)
+- Redis-DB 일관성 문제 유발
+- sequenceNumber 영구 저장 불필요 (비즈니스 필수 아님)
+
+</details>
+
+**💡 현재 구조 (Redis Only):**
+```
+Redis:
+- coupon:{couponId}:sequence (String) - 순번 INCR
+- coupon:{couponId}:reservations (Set) - 예약자 userId 집합
+- TTL: 24시간 (자동 정리)
+
+DB:
+- user_coupons - 최종 발급 내역만 저장
+```
 
 ---
 
