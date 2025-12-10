@@ -1,9 +1,7 @@
 package io.hhplus.ecommerce.config;
 
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
@@ -48,37 +46,6 @@ import java.util.Map;
 public class CacheConfig {
 
     /**
-     * Jackson ObjectMapper 설정
-     * - JavaTimeModule: LocalDateTime 등 Java 8 Time API 지원
-     * - WRITE_DATES_AS_TIMESTAMPS=false: ISO-8601 형식 사용
-     */
-    private ObjectMapper objectMapper() {
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.registerModule(new JavaTimeModule());
-        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        // Explicitly write type information so Redis can deserialize cache entries back to their concrete types
-        BasicPolymorphicTypeValidator ptv = BasicPolymorphicTypeValidator.builder()
-            .allowIfSubType("io.hhplus.ecommerce")
-            // Common JDK collections (mutable/immutable)
-            .allowIfSubType("java.util.List")
-            .allowIfSubType("java.util.ArrayList")
-            .allowIfSubType("java.util.LinkedList")
-            .allowIfSubType("java.util.Map")
-            .allowIfSubType("java.util.HashMap")
-            .allowIfSubType("java.util.ImmutableCollections") // JDK immutable collections (ListN 등)
-            // Primitive wrappers and String
-            .allowIfSubType("java.lang.Long")
-            .allowIfSubType("java.lang.Integer")
-            .allowIfSubType("java.lang.String")
-            .allowIfSubType("java.lang.Boolean")
-            .build();
-        // CartResponse 등 record 클래스는 final이므로 NON_FINAL로는 타입 정보가 기록되지 않는다.
-        // EVERYTHING으로 설정해 모든 객체에 타입 정보를 남기도록 한다.
-        mapper.activateDefaultTyping(ptv, ObjectMapper.DefaultTyping.EVERYTHING, JsonTypeInfo.As.PROPERTY);
-        return mapper;
-    }
-
-    /**
      * 기본 Redis 캐시 설정
      */
     private RedisCacheConfiguration defaultCacheConfig() {
@@ -91,7 +58,7 @@ public class CacheConfig {
                 )
                 .serializeValuesWith(
                         RedisSerializationContext.SerializationPair.fromSerializer(
-                                new GenericJackson2JsonRedisSerializer(objectMapper())
+                                new GenericJackson2JsonRedisSerializer()
                         )
                 )
                 .disableCachingNullValues();  // null 값 캐싱 방지

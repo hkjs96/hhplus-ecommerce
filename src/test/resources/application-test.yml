@@ -32,6 +32,12 @@ spring:
   # Testcontainers MySQL 설정 (테스트 코드에서 동적으로 주입됨)
   # @DynamicPropertySource로 설정되므로 Repository 테스트에서는 이 설정을 덮어씁니다
 
+# Test-specific scheduling
+ranking:
+  backup:
+    schedule:
+      rate: 60000 # 1 minute for testing
+
 logging:
   level:
     io.hhplus.ecommerce: DEBUG

@@ -25,6 +25,7 @@ public interface JpaProductRepository extends JpaRepository<Product, Long>, Prod
     Optional<Product> findById(Long id);
 
     @Override
+    @SuppressWarnings("unchecked")
     Product save(Product product);
 
     @Override
@@ -131,3 +132,4 @@ public interface JpaProductRepository extends JpaRepository<Product, Long>, Prod
         """, nativeQuery = true)
     List<TopProductProjection> findTopProductsByPeriod();
 }
+

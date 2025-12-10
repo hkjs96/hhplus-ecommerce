@@ -43,6 +43,7 @@ public interface JpaPaymentIdempotencyRepository
     Optional<PaymentIdempotency> findByIdempotencyKeyWithLock(@Param("idempotencyKey") String idempotencyKey);
 
     @Override
+    @SuppressWarnings("unchecked")
     PaymentIdempotency save(PaymentIdempotency paymentIdempotency);
 
     /**
@@ -55,3 +56,4 @@ public interface JpaPaymentIdempotencyRepository
 
     // count()는 JpaRepository에서 상속받음
 }
+

@@ -17,6 +17,7 @@ import java.util.List;
 public interface JpaUserCouponRepository extends JpaRepository<UserCoupon, Long>, UserCouponRepository {
 
     @Override
+    @SuppressWarnings("unchecked")
     UserCoupon save(UserCoupon userCoupon);
 
     @Override
@@ -69,3 +70,4 @@ public interface JpaUserCouponRepository extends JpaRepository<UserCoupon, Long>
             .toList();
     }
 }
+

@@ -22,6 +22,7 @@ public interface JpaCartItemRepository extends JpaRepository<CartItem, Long>, Ca
     Optional<CartItem> findById(Long id);
 
     @Override
+    @SuppressWarnings("unchecked")
     CartItem save(CartItem cartItem);
 
     @Override
@@ -72,3 +73,4 @@ public interface JpaCartItemRepository extends JpaRepository<CartItem, Long>, Ca
     @Query("DELETE FROM CartItem ci WHERE ci.cart.id = :cartId")
     void deleteByCartId(@Param("cartId") Long cartId);
 }
+

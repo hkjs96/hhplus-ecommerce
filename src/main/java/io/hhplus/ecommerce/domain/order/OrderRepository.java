@@ -19,7 +19,7 @@ public interface OrderRepository {
 
     List<Order> findByUserId(Long userId);
 
-    Order save(Order order);  // Declared for InMemoryOrderRepository compatibility
+    Order save(Order order);
 
     default Order findByIdOrThrow(Long id) {
         return findById(id)

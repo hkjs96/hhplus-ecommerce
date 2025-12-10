@@ -23,6 +23,7 @@ public interface JpaCouponRepository extends JpaRepository<Coupon, Long>, Coupon
     Optional<Coupon> findById(Long id);
 
     @Override
+    @SuppressWarnings("unchecked")
     Coupon save(Coupon coupon);
 
     @Override
@@ -88,3 +89,4 @@ public interface JpaCouponRepository extends JpaRepository<Coupon, Long>, Coupon
     @Query("SELECT c FROM Coupon c WHERE c.totalQuantity > c.issuedQuantity")
     java.util.List<Coupon> findAvailableCouponsWithLockSkipLocked();
 }
+

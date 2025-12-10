@@ -25,5 +25,7 @@ public interface JpaCartRepository extends JpaRepository<Cart, Long>, CartReposi
     Optional<Cart> findByUserIdForUpdate(@Param("userId") Long userId);
 
     @Override
+    @SuppressWarnings("unchecked")
     Cart save(Cart cart);
 }
+

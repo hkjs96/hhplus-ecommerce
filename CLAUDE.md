@@ -11,7 +11,7 @@
 ## 2. 기술 스택 & 구조 (WHAT)
 
 ### Stack
-- Java 17, Spring Boot 3.5.7, Gradle
+- Java 21, Spring Boot 3.5.7, Gradle
 - Database: MySQL 8 (JPA, Spring Data JPA)
 - Cache/Ranking/Lock: **Redis**
 - Test: JUnit 5, Testcontainers (MySQL, Redis)

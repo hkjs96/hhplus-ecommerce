@@ -12,6 +12,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -39,7 +40,7 @@ class ProductRankingRepositoryTest {
     @BeforeEach
     void setUp() {
         // Redis 전체 데이터 삭제
-        redisTemplate.getConnectionFactory().getConnection().flushAll();
+        Objects.requireNonNull(redisTemplate.getConnectionFactory()).getConnection().serverCommands().flushAll();
     }
 
     @Test

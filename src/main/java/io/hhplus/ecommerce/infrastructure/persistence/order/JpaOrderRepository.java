@@ -20,6 +20,7 @@ public interface JpaOrderRepository extends JpaRepository<Order, Long>, OrderRep
     Optional<Order> findById(Long id);
 
     @Override
+    @SuppressWarnings("unchecked")
     Order save(Order order);
 
     @Override
@@ -54,3 +55,4 @@ public interface JpaOrderRepository extends JpaRepository<Order, Long>, OrderRep
     // - existsById(Long id) : boolean
     // - count() : long
 }
+
