@@ -4,14 +4,12 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.hhplus.ecommerce.application.user.dto.ChargeBalanceResponse;
+import io.hhplus.ecommerce.application.usecase.user.ChargeBalanceIdempotencySaveService;
 import io.hhplus.ecommerce.domain.user.BalanceChargedEvent;
-import io.hhplus.ecommerce.domain.user.ChargeBalanceIdempotency;
-import io.hhplus.ecommerce.domain.user.ChargeBalanceIdempotencyRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.transaction.event.TransactionPhase;
 
@@ -25,8 +23,8 @@ import org.springframework.transaction.event.TransactionPhase;
  * 주의사항:
  * - @Transactional 어노테이션 사용 금지
  *   (RestrictedTransactionalEventListenerFactory 예외 발생)
- * - Repository.save()가 내부적으로 트랜잭션 처리
- *   (Spring Data JPA가 자동으로 트랜잭션 적용)
+ * - ChargeBalanceIdempotencySaveService.saveCompletedIdempotency()가 내부적으로 트랜잭션 처리
+ *   (Propagation.REQUIRES_NEW)
  *
  * Phase 2 개선 효과:
  * - 멱등성 완료 처리를 비동기로 분리하여 응답 속도 개선
@@ -38,7 +36,7 @@ import org.springframework.transaction.event.TransactionPhase;
 @RequiredArgsConstructor
 public class BalanceChargedEventHandler {
 
-    private final ChargeBalanceIdempotencyRepository idempotencyRepository;
+    private final ChargeBalanceIdempotencySaveService idempotencySaveService;
 
     /**
      * 잔액 충전 완료 시 멱등성 완료 처리
@@ -48,7 +46,8 @@ public class BalanceChargedEventHandler {
      *
      * 트랜잭션 처리:
      * - @Transactional 어노테이션 없음 (사용 시 예외 발생)
-     * - Repository.save()가 내부적으로 트랜잭션 처리
+     * - ChargeBalanceIdempotencySaveService.saveCompletedIdempotency()가
+     *   REQUIRES_NEW 트랜잭션으로 처리
      */
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
@@ -58,13 +57,10 @@ public class BalanceChargedEventHandler {
                 event.getChargeResponse().userId());
 
         try {
-            ChargeBalanceIdempotency idempotency = idempotencyRepository
-                .findByIdempotencyKey(event.getIdempotencyKey())
-                .orElseThrow(() -> new IllegalStateException(
-                        "Idempotency key not found: " + event.getIdempotencyKey()));
-
-            idempotency.complete(serializeResponse(event.getChargeResponse()));
-            idempotencyRepository.save(idempotency);
+            idempotencySaveService.saveCompletedIdempotency(
+                event.getIdempotencyKey(),
+                serializeResponse(event.getChargeResponse())
+            );
 
             log.info("멱등성 완료 처리 성공: idempotencyKey={}", event.getIdempotencyKey());
 

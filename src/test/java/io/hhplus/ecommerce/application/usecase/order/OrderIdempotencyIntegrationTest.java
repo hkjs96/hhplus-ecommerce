@@ -23,6 +23,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
@@ -33,6 +34,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.awaitility.Awaitility.await;
 
 /**
  * CreateOrderUseCase 멱등성 통합 테스트
@@ -106,12 +108,16 @@ class OrderIdempotencyIntegrationTest {
         assertThat(firstResponse).isNotNull();
         assertThat(firstResponse.orderId()).isNotNull();
 
-        // 멱등성 키 상태 확인
-        OrderIdempotency idempotency = idempotencyRepository
-                .findByIdempotencyKey(idempotencyKey)
-                .orElseThrow();
-        assertThat(idempotency.getStatus()).isEqualTo(IdempotencyStatus.COMPLETED);
-        assertThat(idempotency.getCreatedOrderId()).isEqualTo(firstResponse.orderId());
+        // 멱등성 키 상태 확인 (비동기 처리 대기)
+        await().atMost(Duration.ofSeconds(3))
+                .pollInterval(Duration.ofMillis(100))
+                .untilAsserted(() -> {
+                    OrderIdempotency idempotency = idempotencyRepository
+                            .findByIdempotencyKey(idempotencyKey)
+                            .orElseThrow();
+                    assertThat(idempotency.getStatus()).isEqualTo(IdempotencyStatus.COMPLETED);
+                    assertThat(idempotency.getCreatedOrderId()).isEqualTo(firstResponse.orderId());
+                });
 
         // DB 상태 확인
         List<Order> ordersBeforeSecond = orderRepository.findAll();
@@ -202,11 +208,15 @@ class OrderIdempotencyIntegrationTest {
         assertThat(orders).hasSize(1);
         assertThat(orders.get(0).getId()).isEqualTo(orderId.get());
 
-        // 멱등성 키 최종 상태 확인
-        OrderIdempotency idempotency = idempotencyRepository
-                .findByIdempotencyKey(idempotencyKey)
-                .orElseThrow();
-        assertThat(idempotency.getStatus()).isEqualTo(IdempotencyStatus.COMPLETED);
+        // 멱등성 키 최종 상태 확인 (비동기 처리 대기)
+        await().atMost(Duration.ofSeconds(3))
+                .pollInterval(Duration.ofMillis(100))
+                .untilAsserted(() -> {
+                    OrderIdempotency idempotency = idempotencyRepository
+                            .findByIdempotencyKey(idempotencyKey)
+                            .orElseThrow();
+                    assertThat(idempotency.getStatus()).isEqualTo(IdempotencyStatus.COMPLETED);
+                });
     }
 
     @Test
@@ -294,16 +304,20 @@ class OrderIdempotencyIntegrationTest {
         List<Order> orders = orderRepository.findAll();
         assertThat(orders).hasSize(2);
 
-        // 멱등성 키 각각 COMPLETED
-        OrderIdempotency idempotency1 = idempotencyRepository
-                .findByIdempotencyKey(key1)
-                .orElseThrow();
-        assertThat(idempotency1.getStatus()).isEqualTo(IdempotencyStatus.COMPLETED);
+        // 멱등성 키 각각 COMPLETED (비동기 처리 대기)
+        await().atMost(Duration.ofSeconds(3))
+                .pollInterval(Duration.ofMillis(100))
+                .untilAsserted(() -> {
+                    OrderIdempotency idempotency1 = idempotencyRepository
+                            .findByIdempotencyKey(key1)
+                            .orElseThrow();
+                    assertThat(idempotency1.getStatus()).isEqualTo(IdempotencyStatus.COMPLETED);
 
-        OrderIdempotency idempotency2 = idempotencyRepository
-                .findByIdempotencyKey(key2)
-                .orElseThrow();
-        assertThat(idempotency2.getStatus()).isEqualTo(IdempotencyStatus.COMPLETED);
+                    OrderIdempotency idempotency2 = idempotencyRepository
+                            .findByIdempotencyKey(key2)
+                            .orElseThrow();
+                    assertThat(idempotency2.getStatus()).isEqualTo(IdempotencyStatus.COMPLETED);
+                });
     }
 
     @Test
@@ -322,6 +336,16 @@ class OrderIdempotencyIntegrationTest {
 
         // When: 첫 번째 요청
         createOrderUseCase.execute(request);
+
+        // 멱등성 완료 대기
+        await().atMost(Duration.ofSeconds(3))
+                .pollInterval(Duration.ofMillis(100))
+                .untilAsserted(() -> {
+                    OrderIdempotency idempotency = idempotencyRepository
+                            .findByIdempotencyKey(idempotencyKey)
+                            .orElseThrow();
+                    assertThat(idempotency.getStatus()).isEqualTo(IdempotencyStatus.COMPLETED);
+                });
 
         // 주문 생성 시에는 재고 차감 안 함 (결제 시 차감)
         Product afterFirst = productRepository.findByIdOrThrow(testProduct.getId());

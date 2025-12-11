@@ -13,9 +13,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.time.Duration;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 /**
  * 잔액 충전 멱등성 테스트
@@ -27,7 +29,6 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @SpringBootTest
 @ActiveProfiles("test")
-@org.springframework.test.annotation.DirtiesContext(classMode = org.springframework.test.annotation.DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
 class ChargeBalanceIdempotencyTest {
 
     @Autowired
@@ -62,6 +63,16 @@ class ChargeBalanceIdempotencyTest {
         // Then: 충전 성공
         assertThat(response1.balance()).isEqualTo(110_000L);
         assertThat(response1.chargedAmount()).isEqualTo(10_000L);
+
+        // 멱등성 완료 대기
+        await().atMost(Duration.ofSeconds(5))
+                .pollInterval(Duration.ofMillis(100))
+                .untilAsserted(() -> {
+                    ChargeBalanceIdempotency idempotency = idempotencyRepository
+                            .findByIdempotencyKey(idempotencyKey)
+                            .orElseThrow();
+                    assertThat(idempotency.isCompleted()).isTrue();
+                });
 
         // When: 두 번째 요청 (같은 idempotencyKey)
         ChargeBalanceResponse response2 = chargeBalanceUseCase.execute(testUser.getId(), request);
@@ -114,6 +125,16 @@ class ChargeBalanceIdempotencyTest {
 
         // When: 첫 번째 요청
         chargeBalanceUseCase.execute(testUser.getId(), request);
+
+        // 멱등성 완료 대기
+        await().atMost(Duration.ofSeconds(5))
+                .pollInterval(Duration.ofMillis(100))
+                .untilAsserted(() -> {
+                    ChargeBalanceIdempotency idempotency = idempotencyRepository
+                            .findByIdempotencyKey(idempotencyKey)
+                            .orElseThrow();
+                    assertThat(idempotency.isCompleted()).isTrue();
+                });
 
         // 잔액 확인
         Long balanceAfterFirstRequest = userRepository.findById(testUser.getId()).orElseThrow().getBalance();
