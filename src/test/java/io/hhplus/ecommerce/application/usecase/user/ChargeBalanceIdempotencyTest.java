@@ -29,7 +29,6 @@ import static org.awaitility.Awaitility.await;
  */
 @SpringBootTest
 @ActiveProfiles("test")
-@org.springframework.test.annotation.DirtiesContext(classMode = org.springframework.test.annotation.DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class ChargeBalanceIdempotencyTest {
 
     @Autowired
@@ -41,12 +40,21 @@ class ChargeBalanceIdempotencyTest {
     @Autowired
     private ChargeBalanceIdempotencyRepository idempotencyRepository;
 
+    @Autowired(required = false)
+    private io.hhplus.ecommerce.application.user.listener.BalanceChargedEventHandler balanceChargedEventHandler;
+
     private User testUser;
+    private static int userCounter = 0;
 
     @BeforeEach
     void setUp() {
-        // 테스트 사용자 생성 (잔액 100,000원)
-        testUser = User.create("test@example.com", "테스트유저");
+        // 핸들러가 등록되어 있는지 확인
+        if (balanceChargedEventHandler == null) {
+            throw new IllegalStateException("BalanceChargedEventHandler가 Spring 컨텍스트에 등록되지 않았습니다!");
+        }
+
+        // 테스트 사용자 생성 (잔액 100,000원) - 매번 다른 이메일 사용
+        testUser = User.create("test" + (++userCounter) + "@example.com", "테스트유저");
         testUser.charge(100_000L);
         userRepository.save(testUser);
     }

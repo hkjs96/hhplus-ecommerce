@@ -71,6 +71,7 @@ public class ChargeBalanceUseCase {
      * - DB Unique Constraint로 동시 요청 차단
      * - 상태 관리: PROCESSING → COMPLETED
      */
+    @Transactional
     @DistributedLock(
             key = "'balance:user:' + #userId",
             waitTime = 10,
