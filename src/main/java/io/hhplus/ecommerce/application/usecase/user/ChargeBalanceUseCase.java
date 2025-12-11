@@ -50,6 +50,7 @@ public class ChargeBalanceUseCase {
     private final UserRepository userRepository;
     private final OptimisticLockRetryService retryService;
     private final ChargeBalanceIdempotencyRepository idempotencyRepository;
+    private final org.springframework.context.ApplicationEventPublisher eventPublisher;
 
     /**
      * 잔액 충전 (멱등성 보장)
@@ -114,9 +115,13 @@ public class ChargeBalanceUseCase {
             ChargeBalanceResponse response =
                     retryService.executeWithRetry(() -> chargeBalanceInternal(userId, request), 10);
 
-            // 4. 완료 처리 (응답 캐싱)
-            idempotency.complete(serializeResponse(response));
-            idempotencyRepository.save(idempotency);
+            // 4. 이벤트 발행 (Phase 2: 멱등성 완료 처리를 이벤트로 분리)
+            eventPublisher.publishEvent(
+                new io.hhplus.ecommerce.domain.user.BalanceChargedEvent(
+                    request.idempotencyKey(),
+                    response
+                )
+            );
 
             log.info("Charge completed successfully. idempotencyKey: {}", request.idempotencyKey());
             return response;

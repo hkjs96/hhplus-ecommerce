@@ -76,6 +76,7 @@ public class CreateOrderUseCase {
     private final OrderIdempotencyRepository idempotencyRepository;
     private final MetricsCollector metricsCollector;
     private final IdempotencySaveService idempotencySaveService;
+    private final org.springframework.context.ApplicationEventPublisher eventPublisher;
 
     /**
      * 주문 생성 (멱등성 보장)
@@ -139,11 +140,12 @@ public class CreateOrderUseCase {
             // 4. 주문 생성 처리
             CreateOrderResponse response = createOrderInternal(request, preparationContext, startTime);
 
-            // 5. 완료 처리 (응답 캐싱) - 별도 트랜잭션으로 저장
-            idempotencySaveService.saveCompletedIdempotency(
+            // 5. 이벤트 발행 (Phase 2: 멱등성 완료 처리를 이벤트로 분리)
+            eventPublisher.publishEvent(
+                new io.hhplus.ecommerce.domain.order.OrderCreatedEvent(
                     request.idempotencyKey(),
-                    response.orderId(),
-                    serializeResponse(response)
+                    response
+                )
             );
 
             log.info("Order created successfully. orderId: {}, idempotencyKey: {}",
