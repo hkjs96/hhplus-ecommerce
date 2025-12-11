@@ -29,6 +29,7 @@ import static org.awaitility.Awaitility.await;
  */
 @SpringBootTest
 @ActiveProfiles("test")
+@org.springframework.test.annotation.DirtiesContext(classMode = org.springframework.test.annotation.DirtiesContext.ClassMode.AFTER_CLASS)
 class ChargeBalanceIdempotencyTest {
 
     @Autowired
@@ -61,6 +62,7 @@ class ChargeBalanceIdempotencyTest {
 
     @Test
     @DisplayName("같은 idempotencyKey로 두 번 요청 → 중복 충전 방지")
+    @org.springframework.transaction.annotation.Transactional(propagation = org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED)
     void 멱등성_키로_중복_충전_방지() {
         // Given
         String idempotencyKey = UUID.randomUUID().toString();
@@ -97,6 +99,7 @@ class ChargeBalanceIdempotencyTest {
 
     @Test
     @DisplayName("다른 idempotencyKey로 두 번 요청 → 각각 성공")
+    @org.springframework.transaction.annotation.Transactional(propagation = org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED)
     void 다른_멱등성_키로_충전_각각_성공() {
         // Given
         String idempotencyKey1 = UUID.randomUUID().toString();
@@ -123,6 +126,7 @@ class ChargeBalanceIdempotencyTest {
 
     @Test
     @DisplayName("캐시된 응답 반환 시 DB 업데이트 없음")
+    @org.springframework.transaction.annotation.Transactional(propagation = org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED)
     void 캐시된_응답_반환시_DB_업데이트_없음() {
         // Given
         String idempotencyKey = UUID.randomUUID().toString();
