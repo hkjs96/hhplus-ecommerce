@@ -36,6 +36,15 @@ import static org.awaitility.Awaitility.await;
 @Import(TestContainersConfig.class)
 class ChargeBalanceIdempotencyTest {
 
+    @org.springframework.test.context.DynamicPropertySource
+    static void configureProperties(org.springframework.test.context.DynamicPropertyRegistry registry) {
+        registry.add("spring.datasource.url", TestContainersConfig.getMysqlContainer()::getJdbcUrl);
+        registry.add("spring.datasource.username", TestContainersConfig.getMysqlContainer()::getUsername);
+        registry.add("spring.datasource.password", TestContainersConfig.getMysqlContainer()::getPassword);
+        registry.add("spring.data.redis.host", TestContainersConfig.getRedisContainer()::getHost);
+        registry.add("spring.data.redis.port", TestContainersConfig.getRedisContainer()::getFirstMappedPort);
+    }
+
     @Autowired
     private ChargeBalanceUseCase chargeBalanceUseCase;
 

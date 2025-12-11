@@ -1,9 +1,8 @@
 spring:
+  # Testcontainers MySQL 설정 (테스트 코드에서 동적으로 주입됨)
+  # @Import(TestContainersConfig.class) 또는 @DynamicPropertySource로 설정
   datasource:
-    url: jdbc:h2:mem:testdb;MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
-    username: sa
-    password:
-    driver-class-name: org.h2.Driver
+    driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       maximum-pool-size: 150
       minimum-idle: 50
@@ -18,19 +17,12 @@ spring:
       hibernate:
         format_sql: true
         use_sql_comments: true
-        dialect: org.hibernate.dialect.H2Dialect
+        dialect: org.hibernate.dialect.MySQLDialect
     show-sql: true
-
-  h2:
-    console:
-      enabled: false
 
   # 캐시 비활성화 (테스트 환경)
   cache:
     type: none
-
-  # Testcontainers MySQL 설정 (테스트 코드에서 동적으로 주입됨)
-  # @DynamicPropertySource로 설정되므로 Repository 테스트에서는 이 설정을 덮어씁니다
 
 # Test-specific scheduling
 ranking:
