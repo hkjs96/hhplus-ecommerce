@@ -1,0 +1,17 @@
+> Task :compileJava UP-TO-DATE
+> Task :processResources UP-TO-DATE
+> Task :classes UP-TO-DATE
+> Task :compileTestJava UP-TO-DATE
+> Task :processTestResources UP-TO-DATE
+> Task :testClasses UP-TO-DATE
+
+> Task :test
+
+ChargeBalanceIdempotencyTest > 같은 idempotencyKey로 두 번 요청 → 중복 충전 방지 FAILED
+    org.opentest4j.AssertionFailedError at ChargeBalanceIdempotencyTest.java:75
+
+ChargeBalanceIdempotencyTest > 캐시된 응답 반환 시 DB 업데이트 없음 FAILED
+    org.opentest4j.AssertionFailedError at ChargeBalanceIdempotencyTest.java:137
+
+> Task :test FAILED
+5 actionable tasks: 1 executed, 4 up-to-date

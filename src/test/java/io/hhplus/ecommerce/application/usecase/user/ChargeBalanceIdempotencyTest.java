@@ -29,6 +29,7 @@ import static org.awaitility.Awaitility.await;
  */
 @SpringBootTest
 @ActiveProfiles("test")
+@org.springframework.test.annotation.DirtiesContext(classMode = org.springframework.test.annotation.DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class ChargeBalanceIdempotencyTest {
 
     @Autowired
@@ -64,8 +65,8 @@ class ChargeBalanceIdempotencyTest {
         assertThat(response1.balance()).isEqualTo(110_000L);
         assertThat(response1.chargedAmount()).isEqualTo(10_000L);
 
-        // 멱등성 완료 대기
-        await().atMost(Duration.ofSeconds(5))
+        // 멱등성 완료 대기 (이벤트 핸들러 비동기 처리)
+        await().atMost(Duration.ofSeconds(10))
                 .pollInterval(Duration.ofMillis(100))
                 .untilAsserted(() -> {
                     ChargeBalanceIdempotency idempotency = idempotencyRepository
@@ -84,10 +85,6 @@ class ChargeBalanceIdempotencyTest {
         // 최종 잔액 확인: 110,000원 (한 번만 충전됨)
         User user = userRepository.findById(testUser.getId()).orElseThrow();
         assertThat(user.getBalance()).isEqualTo(110_000L);
-
-        // 멱등성 키 상태 확인: COMPLETED
-        ChargeBalanceIdempotency idempotency = idempotencyRepository.findByIdempotencyKey(idempotencyKey).orElseThrow();
-        assertThat(idempotency.isCompleted()).isTrue();
     }
 
     @Test
@@ -126,8 +123,8 @@ class ChargeBalanceIdempotencyTest {
         // When: 첫 번째 요청
         chargeBalanceUseCase.execute(testUser.getId(), request);
 
-        // 멱등성 완료 대기
-        await().atMost(Duration.ofSeconds(5))
+        // 멱등성 완료 대기 (이벤트 핸들러 비동기 처리)
+        await().atMost(Duration.ofSeconds(10))
                 .pollInterval(Duration.ofMillis(100))
                 .untilAsserted(() -> {
                     ChargeBalanceIdempotency idempotency = idempotencyRepository

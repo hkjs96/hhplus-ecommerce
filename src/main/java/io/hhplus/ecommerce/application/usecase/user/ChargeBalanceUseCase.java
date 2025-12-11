@@ -113,21 +113,13 @@ public class ChargeBalanceUseCase {
         try {
             // 3. 충전 처리 (재시도 로직 포함)
             ChargeBalanceResponse response =
-                    retryService.executeWithRetry(() -> chargeBalanceInternal(userId, request), 10);
-
-            // 4. 이벤트 발행 (Phase 2: 멱등성 완료 처리를 이벤트로 분리)
-            eventPublisher.publishEvent(
-                new io.hhplus.ecommerce.domain.user.BalanceChargedEvent(
-                    request.idempotencyKey(),
-                    response
-                )
-            );
+                    retryService.executeWithRetry(() -> chargeBalanceInternal(userId, request.idempotencyKey(), request), 10);
 
             log.info("Charge completed successfully. idempotencyKey: {}", request.idempotencyKey());
             return response;
 
         } catch (Exception e) {
-            // 5. 실패 처리
+            // 4. 실패 처리
             idempotency.fail(e.getMessage());
             idempotencyRepository.save(idempotency);
             throw e;
@@ -142,9 +134,12 @@ public class ChargeBalanceUseCase {
      * - 자동 재시도: 충돌 시 재시도로 해결 (최대 10회)
      * <p>
      * 차감과 대조: 차감(결제)은 Pessimistic Lock (ProcessPaymentUseCase 참고)
+     * <p>
+     * Phase 2: 이벤트 발행을 트랜잭션 내부로 이동
+     * - @TransactionalEventListener(AFTER_COMMIT)가 작동하려면 이벤트가 트랜잭션 내에서 발행되어야 함
      */
     @Transactional
-    protected ChargeBalanceResponse chargeBalanceInternal(Long userId, ChargeBalanceRequest request) {
+    protected ChargeBalanceResponse chargeBalanceInternal(Long userId, String idempotencyKey, ChargeBalanceRequest request) {
         // 1. 사용자 조회 (Optimistic Lock)
         User user = userRepository.findByIdOrThrow(userId);
 
@@ -154,13 +149,26 @@ public class ChargeBalanceUseCase {
 
         log.debug("Balance charged successfully. userId: {}, new balance: {}", userId, user.getBalance());
 
-        // 3. 충전 결과 반환
-        return ChargeBalanceResponse.of(
+        // 3. 충전 결과 생성
+        ChargeBalanceResponse response = ChargeBalanceResponse.of(
             user.getId(),
             user.getBalance(),
             request.amount(),
             LocalDateTime.now()
         );
+
+        // 4. 이벤트 발행 (Phase 2: 멱등성 완료 처리를 이벤트로 분리)
+        // 트랜잭션 내부에서 발행해야 @TransactionalEventListener(AFTER_COMMIT)이 작동함
+        log.info("이벤트 발행 중: idempotencyKey={}", idempotencyKey);
+        eventPublisher.publishEvent(
+            new io.hhplus.ecommerce.domain.user.BalanceChargedEvent(
+                idempotencyKey,
+                response
+            )
+        );
+        log.info("이벤트 발행 완료: idempotencyKey={}", idempotencyKey);
+
+        return response;
     }
 
     /**

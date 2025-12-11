@@ -1,0 +1,31 @@
+> Task :compileJava UP-TO-DATE
+> Task :processResources UP-TO-DATE
+> Task :classes UP-TO-DATE
+> Task :compileTestJava
+> Task :processTestResources UP-TO-DATE
+> Task :testClasses
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+
+> Task :test
+
+ChargeBalanceIdempotencyTest > 같은 idempotencyKey로 두 번 요청 → 중복 충전 방지 FAILED
+    org.opentest4j.AssertionFailedError at ChargeBalanceIdempotencyTest.java:75
+
+ChargeBalanceIdempotencyTest > 캐시된 응답 반환 시 DB 업데이트 없음 FAILED
+    org.opentest4j.AssertionFailedError at ChargeBalanceIdempotencyTest.java:137
+
+3 tests completed, 2 failed
+
+> Task :test FAILED
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':test'.
+> There were failing tests. See the report at: file:///Users/jsb/hanghe-plus/ecommerce/build/reports/tests/test/index.html
+
+* Try:
+> Run with --scan to get full insights.
+
+BUILD FAILED in 31s
+5 actionable tasks: 2 executed, 3 up-to-date
