@@ -223,4 +223,15 @@ public class PaymentTransactionService {
             throw e;  // 보상 실패 시 예외 발생 (수동 처리 필요)
         }
     }
+
+    /**
+     * 주문 조회 (Phase 3용)
+     *
+     * @param orderId 주문 ID
+     * @return Order 엔티티
+     */
+    @Transactional(readOnly = true)
+    public Order getOrder(Long orderId) {
+        return orderRepository.findByIdOrThrow(orderId);
+    }
 }

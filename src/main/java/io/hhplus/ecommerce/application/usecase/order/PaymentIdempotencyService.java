@@ -96,6 +96,16 @@ public class PaymentIdempotencyService {
         paymentIdempotencyRepository.save(idempotency);
     }
 
+    /**
+     * 멱등성 키로 조회 (Phase 3용)
+     */
+    @Transactional(readOnly = true)
+    public PaymentIdempotency findByKey(String idempotencyKey) {
+        return paymentIdempotencyRepository
+            .findByIdempotencyKey(idempotencyKey)
+            .orElse(null);
+    }
+
     private String serializeResponse(PaymentResponse response) {
         try {
             return objectMapper.writeValueAsString(response);
