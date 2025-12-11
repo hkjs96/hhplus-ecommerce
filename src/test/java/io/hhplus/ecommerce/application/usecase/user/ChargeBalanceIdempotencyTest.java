@@ -2,6 +2,7 @@ package io.hhplus.ecommerce.application.usecase.user;
 
 import io.hhplus.ecommerce.application.user.dto.ChargeBalanceRequest;
 import io.hhplus.ecommerce.application.user.dto.ChargeBalanceResponse;
+import io.hhplus.ecommerce.config.TestContainersConfig;
 import io.hhplus.ecommerce.domain.user.ChargeBalanceIdempotency;
 import io.hhplus.ecommerce.domain.user.ChargeBalanceIdempotencyRepository;
 import io.hhplus.ecommerce.domain.user.User;
@@ -11,6 +12,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.time.Duration;
@@ -26,10 +28,12 @@ import static org.awaitility.Awaitility.await;
  * 1. 같은 idempotencyKey로 두 번 요청 → 두 번째는 캐시된 응답 반환
  * 2. 다른 idempotencyKey로 두 번 요청 → 각각 성공
  * 3. 네트워크 타임아웃 후 재시도 → 캐시된 응답 반환
+ * <p>
+ * Testcontainers 사용 (MySQL + Redis)
  */
 @SpringBootTest
 @ActiveProfiles("test")
-@org.springframework.test.annotation.DirtiesContext(classMode = org.springframework.test.annotation.DirtiesContext.ClassMode.AFTER_CLASS)
+@Import(TestContainersConfig.class)
 class ChargeBalanceIdempotencyTest {
 
     @Autowired
