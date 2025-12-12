@@ -14,6 +14,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -25,7 +26,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
 @ActiveProfiles("test")
-@org.springframework.test.annotation.DirtiesContext(classMode = org.springframework.test.annotation.DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
 class CartItemConcurrencyTest {
 
     @Autowired
@@ -44,10 +44,12 @@ class CartItemConcurrencyTest {
     @DisplayName("CartItem 수량 변경 동시성 테스트 - Optimistic Lock으로 Lost Update 방지")
     void testCartItemQuantityConcurrency_OptimisticLock() throws InterruptedException {
         // Given: 사용자, 상품, 장바구니, 장바구니 아이템 생성
-        User user = User.create("test@example.com", "테스트");
+        String uniqueEmail = "test-" + UUID.randomUUID().toString().substring(0, 8) + "@example.com";
+        User user = User.create(uniqueEmail, "테스트");
         userRepository.save(user);
 
-        Product product = Product.create("P001", "테스트상품", "설명", 10000L, "카테고리", 100);
+        String uniqueProductCode = "P-" + UUID.randomUUID().toString().substring(0, 8);
+        Product product = Product.create(uniqueProductCode, "테스트상품", "설명", 10000L, "카테고리", 100);
         productRepository.save(product);
 
         Cart cart = Cart.create(user.getId());
@@ -102,11 +104,14 @@ class CartItemConcurrencyTest {
     @DisplayName("동일 사용자 다른 스레드에서 장바구니 수정 - 충돌 빈도 확인")
     void testCartItemConcurrency_LowCollisionRate() throws InterruptedException {
         // Given
-        User user = User.create("test2@example.com", "테스트2");
+        String uniqueEmail = "test-" + UUID.randomUUID().toString().substring(0, 8) + "@example.com";
+        User user = User.create(uniqueEmail, "테스트2");
         userRepository.save(user);
 
-        Product product1 = Product.create("P002", "상품1", "설명", 10000L, "카테고리", 100);
-        Product product2 = Product.create("P003", "상품2", "설명", 20000L, "카테고리", 100);
+        String productCode1 = "P-" + UUID.randomUUID().toString().substring(0, 8);
+        String productCode2 = "P-" + UUID.randomUUID().toString().substring(0, 8);
+        Product product1 = Product.create(productCode1, "상품1", "설명", 10000L, "카테고리", 100);
+        Product product2 = Product.create(productCode2, "상품2", "설명", 20000L, "카테고리", 100);
         productRepository.save(product1);
         productRepository.save(product2);
 

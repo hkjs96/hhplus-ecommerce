@@ -12,31 +12,47 @@ import org.testcontainers.utility.DockerImageName;
  * TestContainers 설정
  *
  * 통합 테스트에서 사용할 MySQL과 Redis 컨테이너를 설정합니다.
- * DynamicPropertySource를 사용하여 연결 정보를 동적으로 구성합니다.
+ * Singleton 패턴으로 전체 테스트 세션 동안 컨테이너를 재사용합니다.
  */
 @TestConfiguration
 public class TestContainersConfig {
 
-    private static MySQLContainer<?> mysql;
-    private static GenericContainer<?> redis;
+    private static final MySQLContainer<?> mysql;
+    private static final GenericContainer<?> redis;
 
     static {
-        // MySQL Container
-        mysql = new MySQLContainer<>("mysql:8.0")
-                .withDatabaseName("test_ecommerce")
-                .withUsername("test")
-                .withPassword("test")
-                .withCommand(
-                        "--character-set-server=utf8mb4",
-                        "--collation-server=utf8mb4_unicode_ci"
-                );
-        mysql.start();
+        try {
+            // MySQL Container
+            mysql = new MySQLContainer<>("mysql:8.0")
+                    .withDatabaseName("test_ecommerce")
+                    .withUsername("test")
+                    .withPassword("test")
+                    .withCommand(
+                            "--character-set-server=utf8mb4",
+                            "--collation-server=utf8mb4_unicode_ci",
+                            "--max_connections=1000"  // 테스트용 커넥션 풀 증가
+                    )
+                    .withReuse(true);  // 컨테이너 재사용 활성화
 
-        // Redis Container
-        redis = new GenericContainer<>(DockerImageName.parse("redis:7-alpine"))
-                .withExposedPorts(6379)
-                .withCommand("redis-server", "--maxmemory", "256mb");
-        redis.start();
+            // Redis Container
+            redis = new GenericContainer<>(DockerImageName.parse("redis:7-alpine"))
+                    .withExposedPorts(6379)
+                    .withCommand("redis-server", "--maxmemory", "256mb")
+                    .withReuse(true);  // 컨테이너 재사용 활성화
+
+            // 컨테이너 시작
+            mysql.start();
+            redis.start();
+
+            // JVM 종료 시 컨테이너 정리
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                mysql.stop();
+                redis.stop();
+            }));
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to start Testcontainers. Please check Docker is running.", e);
+        }
     }
 
     /**

@@ -20,8 +20,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -29,11 +31,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @Import(TestContainersConfig.class)
-
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-@org.springframework.test.annotation.DirtiesContext(classMode = org.springframework.test.annotation.DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
+@Transactional  // 테스트마다 자동 롤백으로 데이터 격리
 class CouponControllerIntegrationTest {
 
     @Autowired
@@ -60,8 +61,9 @@ class CouponControllerIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        // Setup test user
-        User user = User.create("test@example.com", "김항해");
+        // Setup test user - UUID 기반 고유 이메일
+        String uniqueEmail = "test-" + UUID.randomUUID().toString().substring(0, 8) + "@example.com";
+        User user = User.create(uniqueEmail, "김항해");
         User savedUser = userRepository.save(user);
         userId1 = savedUser.getId();
 
@@ -170,8 +172,9 @@ class CouponControllerIntegrationTest {
         Coupon savedLimitedCoupon = couponRepository.save(limitedCoupon);
         Long limitedCouponId = savedLimitedCoupon.getId();
 
-        // Create another user
-        User user2 = User.create("user2@example.com", "다른사용자");
+        // Create another user - UUID 기반 고유 이메일
+        String uniqueEmail2 = "test-" + UUID.randomUUID().toString().substring(0, 8) + "@example.com";
+        User user2 = User.create(uniqueEmail2, "다른사용자");
         User savedUser2 = userRepository.save(user2);
         userId2 = savedUser2.getId();
 

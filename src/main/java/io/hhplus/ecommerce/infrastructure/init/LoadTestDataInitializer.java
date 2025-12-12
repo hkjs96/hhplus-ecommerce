@@ -25,7 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Slf4j
 @Component
-@Profile({"local", "test"})
+@Profile("local")  // test 프로필 제거 - 통합 테스트와 충돌 방지
 @RequiredArgsConstructor
 public class LoadTestDataInitializer implements CommandLineRunner {
 

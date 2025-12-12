@@ -2,6 +2,7 @@ package io.hhplus.ecommerce.presentation.api.user;
 
 import io.hhplus.ecommerce.config.TestContainersConfig;
 import org.springframework.context.annotation.Import;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.hhplus.ecommerce.application.user.dto.ChargeBalanceRequest;
@@ -26,11 +27,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @Import(TestContainersConfig.class)
-
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-@org.springframework.test.annotation.DirtiesContext(classMode = org.springframework.test.annotation.DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
+@Transactional  // 테스트마다 자동 롤백으로 데이터 격리
 class UserControllerIntegrationTest {
 
     @Autowired
@@ -46,7 +46,7 @@ class UserControllerIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        User user = User.create("test@example.com", "김항해");
+        User user = User.create("test-" + UUID.randomUUID().toString().substring(0, 8) + "@example.com", "김항해");
         user.charge(100000L);
         User savedUser = userRepository.save(user);
         testUserId = savedUser.getId();

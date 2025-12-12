@@ -4,11 +4,12 @@ spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
-      maximum-pool-size: 150
-      minimum-idle: 50
+      maximum-pool-size: 10      # 테스트 환경: 적은 커넥션으로 충분
+      minimum-idle: 2
       connection-timeout: 30000
       idle-timeout: 600000
       max-lifetime: 1800000
+      leak-detection-threshold: 60000  # 커넥션 누수 감지 (60초)
 
   jpa:
     hibernate:

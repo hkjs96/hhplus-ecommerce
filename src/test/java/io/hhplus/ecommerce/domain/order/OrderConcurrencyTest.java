@@ -13,6 +13,7 @@ import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -24,7 +25,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
 @ActiveProfiles("test")
-@org.springframework.test.annotation.DirtiesContext(classMode = org.springframework.test.annotation.DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
 class OrderConcurrencyTest {
 
     @Autowired
@@ -37,7 +37,8 @@ class OrderConcurrencyTest {
     @DisplayName("Order 상태 변경 동시성 테스트 - Optimistic Lock으로 Lost Update 방지")
     void testOrderStatusConcurrency_OptimisticLock() throws InterruptedException {
         // Given: 사용자 및 주문 생성
-        User user = User.create("test@example.com", "테스트");
+        String uniqueEmail = "test-" + UUID.randomUUID().toString().substring(0, 8) + "@example.com";
+        User user = User.create(uniqueEmail, "테스트");
         userRepository.save(user);
 
         Order order = Order.create("ORDER-TEST-001", user.getId(), 10000L, 0L);
@@ -91,7 +92,8 @@ class OrderConcurrencyTest {
     @Transactional
     void testOrderCompleteAndCancel_OptimisticLock() throws InterruptedException {
         // Given
-        User user = User.create("test2@example.com", "테스트2");
+        String uniqueEmail = "test-" + UUID.randomUUID().toString().substring(0, 8) + "@example.com";
+        User user = User.create(uniqueEmail, "테스트2");
         userRepository.save(user);
 
         Order order = Order.create("ORDER-TEST-002", user.getId(), 10000L, 0L);

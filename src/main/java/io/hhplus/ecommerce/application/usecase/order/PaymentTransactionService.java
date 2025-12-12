@@ -162,6 +162,11 @@ public class PaymentTransactionService {
 
         log.info("Payment status updated to COMPLETED. orderId: {}, txId: {}", orderId, pgTransactionId);
 
+        // orderItems 즉시 로딩 (LazyInitializationException 방지)
+        // 이벤트 리스너가 비동기로 실행될 때 Hibernate session이 닫혀 있으므로
+        // 트랜잭션 내부에서 미리 로딩해야 함
+        order.getOrderItems().size(); // lazy collection 초기화
+
         // 결제 완료 이벤트 발행 (랭킹 갱신용)
         // - @TransactionalEventListener(AFTER_COMMIT)로 DB 커밋 후 실행
         // - @Async로 비동기 처리 (Redis 장애가 주문에 영향 X)

@@ -2,7 +2,6 @@ package io.hhplus.ecommerce.application.usecase.coupon;
 
 import io.hhplus.ecommerce.config.TestContainersConfig;
 import org.springframework.context.annotation.Import;
-
 import io.hhplus.ecommerce.application.coupon.dto.IssueCouponRequest;
 import io.hhplus.ecommerce.common.exception.BusinessException;
 import io.hhplus.ecommerce.domain.coupon.Coupon;
@@ -27,7 +26,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
 @ActiveProfiles("test")
-@org.springframework.test.annotation.DirtiesContext(classMode = org.springframework.test.annotation.DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
 class IssueCouponConcurrencyTest {
 
     @Autowired

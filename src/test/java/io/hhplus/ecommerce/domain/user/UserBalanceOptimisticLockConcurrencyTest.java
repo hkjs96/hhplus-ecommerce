@@ -16,6 +16,7 @@ import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
 
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -40,7 +41,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
 @ActiveProfiles("test")
-@org.springframework.test.annotation.DirtiesContext(classMode = org.springframework.test.annotation.DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
 class UserBalanceOptimisticLockConcurrencyTest {
 
     @Autowired
@@ -53,8 +53,9 @@ class UserBalanceOptimisticLockConcurrencyTest {
 
     @BeforeEach
     void setUp() {
-        // 테스트 사용자 생성 (잔액 100,000원)
-        testUser = User.create("test@example.com", "테스트유저");
+        // 테스트 사용자 생성 (잔액 100,000원) - UUID 기반 고유 이메일
+        String uniqueEmail = "test-" + UUID.randomUUID().toString().substring(0, 8) + "@example.com";
+        testUser = User.create(uniqueEmail, "테스트유저");
         testUser.charge(100_000L);
         userRepository.save(testUser);
     }
