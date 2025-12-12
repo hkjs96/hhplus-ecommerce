@@ -1,5 +1,8 @@
 package io.hhplus.ecommerce.domain.user;
 
+import io.hhplus.ecommerce.config.TestContainersConfig;
+import org.springframework.context.annotation.Import;
+
 import io.hhplus.ecommerce.common.exception.BusinessException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -33,6 +36,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  * 3. 충전과 차감 동시 발생 시 Lost Update 방지
  * 4. 100명이 동시에 차감 시 정확한 잔액 처리
  */
+@Import(TestContainersConfig.class)
+
 @SpringBootTest
 @ActiveProfiles("test")
 @org.springframework.test.annotation.DirtiesContext(classMode = org.springframework.test.annotation.DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)

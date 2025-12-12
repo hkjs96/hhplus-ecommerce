@@ -1,5 +1,8 @@
 package io.hhplus.ecommerce.presentation.api.product;
 
+import io.hhplus.ecommerce.config.TestContainersConfig;
+import org.springframework.context.annotation.Import;
+
 import io.hhplus.ecommerce.domain.order.Order;
 import io.hhplus.ecommerce.domain.order.OrderItem;
 import io.hhplus.ecommerce.domain.order.OrderItemRepository;
@@ -22,6 +25,8 @@ import java.time.LocalDate;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+@Import(TestContainersConfig.class)
 
 @SpringBootTest
 @AutoConfigureMockMvc

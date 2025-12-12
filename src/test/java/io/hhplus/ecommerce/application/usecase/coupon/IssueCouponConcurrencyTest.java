@@ -1,5 +1,8 @@
 package io.hhplus.ecommerce.application.usecase.coupon;
 
+import io.hhplus.ecommerce.config.TestContainersConfig;
+import org.springframework.context.annotation.Import;
+
 import io.hhplus.ecommerce.application.coupon.dto.IssueCouponRequest;
 import io.hhplus.ecommerce.common.exception.BusinessException;
 import io.hhplus.ecommerce.domain.coupon.Coupon;
@@ -19,6 +22,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
+
+@Import(TestContainersConfig.class)
 
 @SpringBootTest
 @ActiveProfiles("test")

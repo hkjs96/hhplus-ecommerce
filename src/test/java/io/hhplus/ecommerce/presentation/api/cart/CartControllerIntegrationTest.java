@@ -1,5 +1,8 @@
 package io.hhplus.ecommerce.presentation.api.cart;
 
+import io.hhplus.ecommerce.config.TestContainersConfig;
+import org.springframework.context.annotation.Import;
+
 import io.hhplus.ecommerce.application.cart.dto.AddCartItemRequest;
 import io.hhplus.ecommerce.application.cart.dto.DeleteCartItemRequest;
 import io.hhplus.ecommerce.application.cart.dto.UpdateCartItemRequest;
@@ -26,6 +29,8 @@ import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+@Import(TestContainersConfig.class)
 
 @SpringBootTest
 @AutoConfigureMockMvc

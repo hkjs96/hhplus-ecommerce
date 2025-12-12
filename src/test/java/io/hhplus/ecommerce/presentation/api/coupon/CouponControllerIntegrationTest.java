@@ -1,5 +1,8 @@
 package io.hhplus.ecommerce.presentation.api.coupon;
 
+import io.hhplus.ecommerce.config.TestContainersConfig;
+import org.springframework.context.annotation.Import;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.hhplus.ecommerce.application.coupon.dto.IssueCouponRequest;
 import io.hhplus.ecommerce.domain.coupon.Coupon;
@@ -24,6 +27,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+@Import(TestContainersConfig.class)
 
 @SpringBootTest
 @AutoConfigureMockMvc

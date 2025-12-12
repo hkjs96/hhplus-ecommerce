@@ -1,5 +1,8 @@
 package io.hhplus.ecommerce.domain.order;
 
+import io.hhplus.ecommerce.config.TestContainersConfig;
+import org.springframework.context.annotation.Import;
+
 import io.hhplus.ecommerce.domain.user.User;
 import io.hhplus.ecommerce.domain.user.UserRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -16,6 +19,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
+
+@Import(TestContainersConfig.class)
 
 @SpringBootTest
 @ActiveProfiles("test")

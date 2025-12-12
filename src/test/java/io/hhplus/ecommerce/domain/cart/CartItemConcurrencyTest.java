@@ -1,5 +1,8 @@
 package io.hhplus.ecommerce.domain.cart;
 
+import io.hhplus.ecommerce.config.TestContainersConfig;
+import org.springframework.context.annotation.Import;
+
 import io.hhplus.ecommerce.domain.product.Product;
 import io.hhplus.ecommerce.domain.product.ProductRepository;
 import io.hhplus.ecommerce.domain.user.User;
@@ -17,6 +20,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
+
+@Import(TestContainersConfig.class)
 
 @SpringBootTest
 @ActiveProfiles("test")
