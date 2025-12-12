@@ -1,0 +1,494 @@
+> Task :clean
+
+> Task :compileJava
+Note: Some input files use unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+
+> Task :processResources
+> Task :classes
+> Task :resolveMainClassName
+> Task :bootJar
+> Task :jar
+> Task :assemble
+> Task :compileTestJava
+> Task :processTestResources
+> Task :testClasses
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+> Task :test
+
+CreateOrderConcurrencyWithDistributedLockTest > 동일 사용자 동시 주문 - 분산락으로 직렬화 FAILED
+    java.lang.IllegalStateException at DefaultCacheAwareContextLoaderDelegate.java:180
+        Caused by: org.springframework.beans.factory.BeanCreationException at AbstractAutowireCapableBeanFactory.java:1826
+            Caused by: jakarta.persistence.PersistenceException at AbstractEntityManagerFactoryBean.java:431
+                Caused by: org.hibernate.exception.JDBCConnectionException at SQLExceptionTypeDelegate.java:51
+                    Caused by: java.sql.SQLNonTransientConnectionException at SQLError.java:102
+
+CreateOrderConcurrencyWithDistributedLockTest > 동시 주문 생성 - 분산락으로 TOCTOU 갭 방지 FAILED
+    java.lang.IllegalStateException at DefaultCacheAwareContextLoaderDelegate.java:145
+
+CreateOrderConcurrencyWithDistributedLockTest > 여러 상품 주문 - 데드락 방지 (상품 ID 정렬) FAILED
+    java.lang.IllegalStateException at DefaultCacheAwareContextLoaderDelegate.java:145
+
+OrderIdempotencyIntegrationTest > 동시 요청 시 첫 요청만 처리, 나머지는 PROCESSING 에러 FAILED
+    java.lang.IllegalStateException at DefaultCacheAwareContextLoaderDelegate.java:145
+
+OrderIdempotencyIntegrationTest > 서로 다른 idempotencyKey는 독립적으로 처리 FAILED
+    java.lang.IllegalStateException at DefaultCacheAwareContextLoaderDelegate.java:145
+
+OrderIdempotencyIntegrationTest > 중복 재고 차감 방지 - 동일 키로 재요청 시 재고 변경 없음 FAILED
+    java.lang.IllegalStateException at DefaultCacheAwareContextLoaderDelegate.java:145
+
+OrderIdempotencyIntegrationTest > 실패 후 재시도 가능 - FAILED 상태에서 재처리 FAILED
+    java.lang.IllegalStateException at DefaultCacheAwareContextLoaderDelegate.java:145
+
+OrderIdempotencyIntegrationTest > 동일 idempotencyKey로 중복 요청 시 캐시된 응답 반환 FAILED
+    java.lang.IllegalStateException at DefaultCacheAwareContextLoaderDelegate.java:145
+
+UserBalanceOptimisticLockConcurrencyTest > [제이코치 피드백] 충전과 차감 동시 발생 시 Lost Update 방지 FAILED
+    org.springframework.dao.InvalidDataAccessResourceUsageException at UserBalanceOptimisticLockConcurrencyTest.java:54
+        Caused by: org.hibernate.exception.SQLGrammarException at UserBalanceOptimisticLockConcurrencyTest.java:54
+            Caused by: java.sql.SQLSyntaxErrorException at UserBalanceOptimisticLockConcurrencyTest.java:54
+
+UserBalanceOptimisticLockConcurrencyTest > 100명이 동시에 1,000원씩 차감 시 정확한 잔액 처리 FAILED
+    org.springframework.dao.InvalidDataAccessResourceUsageException at UserBalanceOptimisticLockConcurrencyTest.java:54
+        Caused by: org.hibernate.exception.SQLGrammarException at UserBalanceOptimisticLockConcurrencyTest.java:54
+            Caused by: java.sql.SQLSyntaxErrorException at UserBalanceOptimisticLockConcurrencyTest.java:54
+
+UserBalanceOptimisticLockConcurrencyTest > [제이코치 피드백] 10명이 동시에 10,000원씩 차감 시 최종 잔액 0원 (Optimistic Lock) FAILED
+    org.springframework.dao.InvalidDataAccessResourceUsageException at UserBalanceOptimisticLockConcurrencyTest.java:54
+        Caused by: org.hibernate.exception.SQLGrammarException at UserBalanceOptimisticLockConcurrencyTest.java:54
+            Caused by: java.sql.SQLSyntaxErrorException at UserBalanceOptimisticLockConcurrencyTest.java:54
+
+UserBalanceOptimisticLockConcurrencyTest > @Version 증가 확인 - 업데이트마다 version이 증가함 FAILED
+    java.lang.IllegalStateException at DefaultCacheAwareContextLoaderDelegate.java:180
+        Caused by: org.springframework.dao.InvalidDataAccessResourceUsageException at HibernateJpaDialect.java:281
+            Caused by: org.hibernate.exception.SQLGrammarException at SQLExceptionTypeDelegate.java:66
+                Caused by: java.sql.SQLSyntaxErrorException at SQLError.java:112
+
+UserBalanceOptimisticLockConcurrencyTest > [제이코치 피드백] 잔액 50,000원일 때 10명이 10,000원씩 차감 시 5명만 성공 FAILED
+    java.lang.IllegalStateException at DefaultCacheAwareContextLoaderDelegate.java:145
+
+ProductSalesAggregateSchedulerTest > 배치 집계 메서드 실행 테스트 (동시성 문제 없음) FAILED
+    java.lang.IllegalStateException at DefaultCacheAwareContextLoaderDelegate.java:145
+
+ProductSalesAggregateSchedulerTest > 배치 스케줄러 30초 설정 확인 (수동 테스트) FAILED
+    java.lang.IllegalStateException at DefaultCacheAwareContextLoaderDelegate.java:145
+
+ProductSalesAggregateSchedulerTest > ProductSalesAggregateScheduler 빈 등록 확인 FAILED
+    java.lang.IllegalStateException at DefaultCacheAwareContextLoaderDelegate.java:145
+
+JpaOrderRepository 통합 테스트 (MySQL Testcontainers) > 주문 상태 변경 후 저장 성공 FAILED
+    org.springframework.dao.DataIntegrityViolationException at JpaOrderRepositoryTest.java:152
+        Caused by: org.hibernate.exception.ConstraintViolationException at JpaOrderRepositoryTest.java:152
+            Caused by: java.sql.SQLIntegrityConstraintViolationException at JpaOrderRepositoryTest.java:152
+
+JpaOrderRepository 통합 테스트 (MySQL Testcontainers) > 주문 번호로 조회 성공 FAILED
+    org.springframework.dao.DataIntegrityViolationException at JpaOrderRepositoryTest.java:87
+        Caused by: org.hibernate.exception.ConstraintViolationException at JpaOrderRepositoryTest.java:87
+            Caused by: java.sql.SQLIntegrityConstraintViolationException at JpaOrderRepositoryTest.java:87
+
+JpaOrderRepository 통합 테스트 (MySQL Testcontainers) > 사용자 ID로 주문 목록 조회 성공 (최신순 정렬) FAILED
+    org.springframework.dao.DataIntegrityViolationException at JpaOrderRepositoryTest.java:108
+        Caused by: org.hibernate.exception.ConstraintViolationException at JpaOrderRepositoryTest.java:108
+            Caused by: java.sql.SQLIntegrityConstraintViolationException at JpaOrderRepositoryTest.java:108
+
+JpaOrderRepository 통합 테스트 (MySQL Testcontainers) > 다른 사용자의 주문은 조회되지 않음 FAILED
+    org.springframework.dao.DataIntegrityViolationException at JpaOrderRepositoryTest.java:131
+        Caused by: org.hibernate.exception.ConstraintViolationException at JpaOrderRepositoryTest.java:131
+            Caused by: java.sql.SQLIntegrityConstraintViolationException at JpaOrderRepositoryTest.java:131
+
+JpaOrderRepository 통합 테스트 (MySQL Testcontainers) > 주문 저장 및 조회 성공 FAILED
+    org.springframework.dao.DataIntegrityViolationException at JpaOrderRepositoryTest.java:57
+        Caused by: org.hibernate.exception.ConstraintViolationException at JpaOrderRepositoryTest.java:57
+            Caused by: java.sql.SQLIntegrityConstraintViolationException at JpaOrderRepositoryTest.java:57
+
+N1ProblemVerificationTest > N+1 문제 검증: Order 조회 시 OrderItem이 Batch로 로딩되는지 확인 FAILED
+    java.lang.IllegalStateException at DefaultCacheAwareContextLoaderDelegate.java:145
+
+N1ProblemVerificationTest > N+1 해결 전후 비교: OrderItem 조회 시 쿼리 개수 확인 FAILED
+    java.lang.IllegalStateException at DefaultCacheAwareContextLoaderDelegate.java:145
+
+N1ProblemVerificationTest > 실전 시나리오: 사용자의 주문 목록 조회 FAILED
+    java.lang.IllegalStateException at DefaultCacheAwareContextLoaderDelegate.java:145
+
+2025-12-12 08:52:27 [lettuce-eventExecutorLoop-34-2] INFO  i.l.core.protocol.ConnectionWatchdog - Reconnecting, last destination was localhost/127.0.0.1:61754
+2025-12-12 08:52:27 [lettuce-nioEventLoop-41-2] WARN  i.l.core.protocol.ConnectionWatchdog - Cannot reconnect to [localhost/<unresolved>:61754]: Connection refused: localhost/127.0.0.1:61754
+2025-12-12 08:52:27 [SpringApplicationShutdownHook] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Closing JPA EntityManagerFactory for persistence unit 'default'
+2025-12-12 08:52:27 [SpringApplicationShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-2 - Shutdown initiated...
+2025-12-12 08:52:27 [SpringApplicationShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-2 - Shutdown completed.
+2025-12-12 08:52:27 [HikariPool-6:housekeeper] WARN  com.zaxxer.hikari.pool.PoolBase - HikariPool-6 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@4e338ce7 (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-12-12 08:52:28 [SpringApplicationShutdownHook] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Closing JPA EntityManagerFactory for persistence unit 'default'
+2025-12-12 08:52:28 [SpringApplicationShutdownHook] DEBUG org.hibernate.SQL - 
+    [34malter[0m [34mtable[0m cart_items 
+       [34mdrop[0m 
+       [34mforeign[0m [34mkey[0m fk_cart_item_cart
+[35m[Hibernate][0m 
+    [34malter[0m [34mtable[0m cart_items 
+       [34mdrop[0m 
+       [34mforeign[0m [34mkey[0m fk_cart_item_cart
+2025-12-12 08:52:28 [SpringApplicationShutdownHook] WARN  com.zaxxer.hikari.pool.PoolBase - HikariPool-6 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@2392c261 (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-12-12 08:52:28 [SpringApplicationShutdownHook] WARN  com.zaxxer.hikari.pool.PoolBase - HikariPool-6 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@78a4b044 (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-12-12 08:52:28 [SpringApplicationShutdownHook] WARN  com.zaxxer.hikari.pool.PoolBase - HikariPool-6 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@220a23df (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-12-12 08:52:28 [SpringApplicationShutdownHook] WARN  com.zaxxer.hikari.pool.PoolBase - HikariPool-6 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@77488f48 (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-12-12 08:52:28 [SpringApplicationShutdownHook] WARN  com.zaxxer.hikari.pool.PoolBase - HikariPool-6 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@11a6aecf (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-12-12 08:52:28 [SpringApplicationShutdownHook] WARN  com.zaxxer.hikari.pool.PoolBase - HikariPool-6 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@248d19c3 (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-12-12 08:52:28 [SpringApplicationShutdownHook] WARN  com.zaxxer.hikari.pool.PoolBase - HikariPool-6 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@6ce99d67 (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-12-12 08:52:28 [SpringApplicationShutdownHook] WARN  com.zaxxer.hikari.pool.PoolBase - HikariPool-6 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@50afa6d7 (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-12-12 08:52:28 [SpringApplicationShutdownHook] WARN  com.zaxxer.hikari.pool.PoolBase - HikariPool-6 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@54276187 (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-12-12 08:52:28 [SpringApplicationShutdownHook] WARN  com.zaxxer.hikari.pool.PoolBase - HikariPool-6 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@62149650 (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-12-12 08:52:28 [SpringApplicationShutdownHook] WARN  com.zaxxer.hikari.pool.PoolBase - HikariPool-6 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@57494c68 (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-12-12 08:52:28 [SpringApplicationShutdownHook] WARN  com.zaxxer.hikari.pool.PoolBase - HikariPool-6 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@5e8566c6 (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-12-12 08:52:28 [SpringApplicationShutdownHook] WARN  com.zaxxer.hikari.pool.PoolBase - HikariPool-6 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@12a38b36 (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-12-12 08:52:28 [SpringApplicationShutdownHook] WARN  com.zaxxer.hikari.pool.PoolBase - HikariPool-6 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@511a9450 (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-12-12 08:52:28 [SpringApplicationShutdownHook] WARN  com.zaxxer.hikari.pool.PoolBase - HikariPool-6 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@75b51d1a (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-12-12 08:52:28 [SpringApplicationShutdownHook] WARN  com.zaxxer.hikari.pool.PoolBase - HikariPool-6 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@37b9f2ce (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-12-12 08:52:28 [SpringApplicationShutdownHook] WARN  com.zaxxer.hikari.pool.PoolBase - HikariPool-6 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@1f161de8 (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-12-12 08:52:28 [SpringApplicationShutdownHook] WARN  com.zaxxer.hikari.pool.PoolBase - HikariPool-6 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@7793f8ec (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-12-12 08:52:28 [SpringApplicationShutdownHook] WARN  com.zaxxer.hikari.pool.PoolBase - HikariPool-6 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@2e8e9280 (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-12-12 08:52:28 [SpringApplicationShutdownHook] WARN  com.zaxxer.hikari.pool.PoolBase - HikariPool-6 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@6b79a911 (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-12-12 08:52:28 [SpringApplicationShutdownHook] WARN  com.zaxxer.hikari.pool.PoolBase - HikariPool-6 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@719197ce (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-12-12 08:52:28 [SpringApplicationShutdownHook] WARN  com.zaxxer.hikari.pool.PoolBase - HikariPool-6 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@7fc362e6 (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-12-12 08:52:28 [SpringApplicationShutdownHook] WARN  com.zaxxer.hikari.pool.PoolBase - HikariPool-6 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@213610a7 (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-12-12 08:52:28 [SpringApplicationShutdownHook] WARN  com.zaxxer.hikari.pool.PoolBase - HikariPool-6 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@3fe70baa (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-12-12 08:52:28 [SpringApplicationShutdownHook] WARN  com.zaxxer.hikari.pool.PoolBase - HikariPool-6 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@54c32024 (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-12-12 08:52:28 [SpringApplicationShutdownHook] WARN  com.zaxxer.hikari.pool.PoolBase - HikariPool-6 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@34fd9ff7 (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-12-12 08:52:28 [SpringApplicationShutdownHook] WARN  com.zaxxer.hikari.pool.PoolBase - HikariPool-6 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@31c326c9 (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-12-12 08:52:28 [SpringApplicationShutdownHook] WARN  com.zaxxer.hikari.pool.PoolBase - HikariPool-6 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@59aa8ee9 (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-12-12 08:52:28 [SpringApplicationShutdownHook] WARN  com.zaxxer.hikari.pool.PoolBase - HikariPool-6 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@6afb4a10 (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-12-12 08:52:28 [SpringApplicationShutdownHook] WARN  com.zaxxer.hikari.pool.PoolBase - HikariPool-6 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@63077a2e (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-12-12 08:52:28 [SpringApplicationShutdownHook] WARN  com.zaxxer.hikari.pool.PoolBase - HikariPool-6 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@27013dc5 (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-12-12 08:52:28 [SpringApplicationShutdownHook] WARN  com.zaxxer.hikari.pool.PoolBase - HikariPool-6 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@2aebfe22 (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-12-12 08:52:28 [SpringApplicationShutdownHook] WARN  com.zaxxer.hikari.pool.PoolBase - HikariPool-6 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@4102cf85 (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-12-12 08:52:28 [SpringApplicationShutdownHook] WARN  com.zaxxer.hikari.pool.PoolBase - HikariPool-6 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@6f314b14 (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-12-12 08:52:28 [SpringApplicationShutdownHook] WARN  com.zaxxer.hikari.pool.PoolBase - HikariPool-6 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@4e688ac5 (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-12-12 08:52:28 [SpringApplicationShutdownHook] WARN  com.zaxxer.hikari.pool.PoolBase - HikariPool-6 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@44310b77 (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-12-12 08:52:28 [SpringApplicationShutdownHook] WARN  com.zaxxer.hikari.pool.PoolBase - HikariPool-6 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@5f51b85d (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-12-12 08:52:28 [SpringApplicationShutdownHook] WARN  com.zaxxer.hikari.pool.PoolBase - HikariPool-6 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@5e6add70 (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-12-12 08:52:28 [SpringApplicationShutdownHook] WARN  com.zaxxer.hikari.pool.PoolBase - HikariPool-6 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@70c61ee8 (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-12-12 08:52:28 [SpringApplicationShutdownHook] WARN  com.zaxxer.hikari.pool.PoolBase - HikariPool-6 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@a465917 (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-12-12 08:52:28 [SpringApplicationShutdownHook] WARN  com.zaxxer.hikari.pool.PoolBase - HikariPool-6 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@56e10e6f (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-12-12 08:52:28 [SpringApplicationShutdownHook] WARN  com.zaxxer.hikari.pool.PoolBase - HikariPool-6 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@10cd1734 (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-12-12 08:52:28 [SpringApplicationShutdownHook] WARN  com.zaxxer.hikari.pool.PoolBase - HikariPool-6 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@5b9cd2ae (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-12-12 08:52:28 [SpringApplicationShutdownHook] WARN  com.zaxxer.hikari.pool.PoolBase - HikariPool-6 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@50760f09 (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-12-12 08:52:28 [SpringApplicationShutdownHook] WARN  com.zaxxer.hikari.pool.PoolBase - HikariPool-6 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@69a68aca (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-12-12 08:52:28 [SpringApplicationShutdownHook] WARN  com.zaxxer.hikari.pool.PoolBase - HikariPool-6 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@77008b29 (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-12-12 08:52:28 [SpringApplicationShutdownHook] WARN  com.zaxxer.hikari.pool.PoolBase - HikariPool-6 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@6fa0fa47 (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-12-12 08:52:28 [SpringApplicationShutdownHook] WARN  com.zaxxer.hikari.pool.PoolBase - HikariPool-6 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@7d819696 (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-12-12 08:52:28 [SpringApplicationShutdownHook] WARN  com.zaxxer.hikari.pool.PoolBase - HikariPool-6 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@49fa76ef (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
+2025-12-12 08:52:30 [scheduling-1] INFO  i.h.e.i.b.ProductSalesAggregateScheduler - === Product Sales Aggregation Batch START (target date: 2025-12-11) ===
+2025-12-12 08:52:30 [scheduling-1] INFO  i.h.e.i.b.ProductSalesAggregateScheduler - Product sales aggregation completed successfully for date: 2025-12-11
+2025-12-12 08:52:30 [scheduling-1] INFO  i.h.e.i.b.ProductSalesAggregateScheduler - === Product Sales Aggregation Batch END (SUCCESS) ===
+2025-12-12 08:52:30 [scheduling-1] INFO  i.h.e.i.b.ProductSalesAggregateScheduler - === Product Sales Aggregation Batch START (target date: 2025-12-11) ===
+2025-12-12 08:52:30 [scheduling-1] INFO  i.h.e.i.b.ProductSalesAggregateScheduler - Product sales aggregation completed successfully for date: 2025-12-11
+2025-12-12 08:52:30 [scheduling-1] INFO  i.h.e.i.b.ProductSalesAggregateScheduler - === Product Sales Aggregation Batch END (SUCCESS) ===
+2025-12-12 08:52:41 [HikariPool-16:connection-adder] WARN  com.zaxxer.hikari.pool.PoolBase - HikariPool-16 - Pool is empty, failed to create/setup connection (54bc8e0b-e00f-4fd8-a268-54a919693785)
+com.mysql.cj.jdbc.exceptions.CommunicationsException: Communications link failure
+
+The last packet sent successfully to the server was 0 milliseconds ago. The driver has not received any packets from the server.
+	at com.mysql.cj.jdbc.exceptions.SQLError.createCommunicationsException(SQLError.java:165) ~[mysql-connector-j-9.4.0.jar:9.4.0]
+	at com.mysql.cj.jdbc.exceptions.SQLExceptionsMapping.translateException(SQLExceptionsMapping.java:55) ~[mysql-connector-j-9.4.0.jar:9.4.0]
+	at com.mysql.cj.jdbc.ConnectionImpl.createNewIO(ConnectionImpl.java:839) ~[mysql-connector-j-9.4.0.jar:9.4.0]
+	at com.mysql.cj.jdbc.ConnectionImpl.<init>(ConnectionImpl.java:415) ~[mysql-connector-j-9.4.0.jar:9.4.0]
+	at com.mysql.cj.jdbc.ConnectionImpl.getInstance(ConnectionImpl.java:237) ~[mysql-connector-j-9.4.0.jar:9.4.0]
+	at com.mysql.cj.jdbc.NonRegisteringDriver.connect(NonRegisteringDriver.java:180) ~[mysql-connector-j-9.4.0.jar:9.4.0]
+	at com.zaxxer.hikari.util.DriverDataSource.getConnection(DriverDataSource.java:144) ~[HikariCP-6.3.3.jar:na]
+	at com.zaxxer.hikari.pool.PoolBase.newConnection(PoolBase.java:370) ~[HikariCP-6.3.3.jar:na]
+	at com.zaxxer.hikari.pool.PoolBase.newPoolEntry(PoolBase.java:207) ~[HikariCP-6.3.3.jar:na]
+	at com.zaxxer.hikari.pool.HikariPool.createPoolEntry(HikariPool.java:488) ~[HikariCP-6.3.3.jar:na]
+	at com.zaxxer.hikari.pool.HikariPool$PoolEntryCreator.call(HikariPool.java:752) ~[HikariCP-6.3.3.jar:na]
+	at com.zaxxer.hikari.pool.HikariPool$PoolEntryCreator.call(HikariPool.java:731) ~[HikariCP-6.3.3.jar:na]
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317) ~[na:na]
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144) ~[na:na]
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642) ~[na:na]
+	at java.base/java.lang.Thread.run(Thread.java:1583) ~[na:na]
+Caused by: com.mysql.cj.exceptions.CJCommunicationsException: Communications link failure
+
+The last packet sent successfully to the server was 0 milliseconds ago. The driver has not received any packets from the server.
+	at java.base/jdk.internal.reflect.DirectConstructorHandleAccessor.newInstance(DirectConstructorHandleAccessor.java:62) ~[na:na]
+	at java.base/java.lang.reflect.Constructor.newInstanceWithCaller(Constructor.java:502) ~[na:na]
+	at java.base/java.lang.reflect.Constructor.newInstance(Constructor.java:486) ~[na:na]
+	at com.mysql.cj.exceptions.ExceptionFactory.createException(ExceptionFactory.java:52) ~[mysql-connector-j-9.4.0.jar:9.4.0]
+	at com.mysql.cj.exceptions.ExceptionFactory.createException(ExceptionFactory.java:95) ~[mysql-connector-j-9.4.0.jar:9.4.0]
+	at com.mysql.cj.exceptions.ExceptionFactory.createException(ExceptionFactory.java:140) ~[mysql-connector-j-9.4.0.jar:9.4.0]
+	at com.mysql.cj.exceptions.ExceptionFactory.createCommunicationsException(ExceptionFactory.java:156) ~[mysql-connector-j-9.4.0.jar:9.4.0]
+	at com.mysql.cj.protocol.a.NativeSocketConnection.connect(NativeSocketConnection.java:79) ~[mysql-connector-j-9.4.0.jar:9.4.0]
+	at com.mysql.cj.NativeSession.connect(NativeSession.java:142) ~[mysql-connector-j-9.4.0.jar:9.4.0]
+	at com.mysql.cj.jdbc.ConnectionImpl.connectOneTryOnly(ConnectionImpl.java:963) ~[mysql-connector-j-9.4.0.jar:9.4.0]
+	at com.mysql.cj.jdbc.ConnectionImpl.createNewIO(ConnectionImpl.java:827) ~[mysql-connector-j-9.4.0.jar:9.4.0]
+	... 13 common frames omitted
+Caused by: java.net.ConnectException: Connection refused
+	at java.base/sun.nio.ch.Net.pollConnect(Native Method) ~[na:na]
+	at java.base/sun.nio.ch.Net.pollConnectNow(Net.java:682) ~[na:na]
+	at java.base/sun.nio.ch.NioSocketImpl.timedFinishConnect(NioSocketImpl.java:542) ~[na:na]
+	at java.base/sun.nio.ch.NioSocketImpl.connect(NioSocketImpl.java:592) ~[na:na]
+	at java.base/java.net.SocksSocketImpl.connect(SocksSocketImpl.java:327) ~[na:na]
+	at java.base/java.net.Socket.connect(Socket.java:751) ~[na:na]
+	at com.mysql.cj.protocol.StandardSocketFactory.connect(StandardSocketFactory.java:144) ~[mysql-connector-j-9.4.0.jar:9.4.0]
+	at com.mysql.cj.protocol.a.NativeSocketConnection.connect(NativeSocketConnection.java:53) ~[mysql-connector-j-9.4.0.jar:9.4.0]
+	... 16 common frames omitted
+2025-12-12 08:52:58 [SpringApplicationShutdownHook] WARN  o.h.e.jdbc.spi.SqlExceptionHelper - SQL Error: 0, SQLState: 08S01
+2025-12-12 08:52:58 [SpringApplicationShutdownHook] ERROR o.h.e.jdbc.spi.SqlExceptionHelper - HikariPool-6 - Connection is not available, request timed out after 30010ms (total=0, active=0, idle=0, waiting=0)
+2025-12-12 08:52:58 [SpringApplicationShutdownHook] ERROR o.h.e.jdbc.spi.SqlExceptionHelper - Communications link failure
+
+The last packet sent successfully to the server was 0 milliseconds ago. The driver has not received any packets from the server.
+2025-12-12 08:52:58 [SpringApplicationShutdownHook] WARN  o.s.b.f.s.DisposableBeanAdapter - Invocation of destroy method failed on bean with name 'entityManagerFactory': org.hibernate.exception.JDBCConnectionException: Unable to open JDBC Connection for DDL execution [HikariPool-6 - Connection is not available, request timed out after 30010ms (total=0, active=0, idle=0, waiting=0)] [n/a]
+2025-12-12 08:52:58 [SpringApplicationShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-6 - Shutdown initiated...
+2025-12-12 08:52:58 [SpringApplicationShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-6 - Shutdown completed.
+2025-12-12 08:52:58 [SpringApplicationShutdownHook] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Closing JPA EntityManagerFactory for persistence unit 'default'
+2025-12-12 08:52:58 [SpringApplicationShutdownHook] DEBUG org.hibernate.SQL - 
+    [34malter[0m [34mtable[0m cart_items 
+       [34mdrop[0m 
+       [34mforeign[0m [34mkey[0m fk_cart_item_cart
+[35m[Hibernate][0m 
+    [34malter[0m [34mtable[0m cart_items 
+       [34mdrop[0m 
+       [34mforeign[0m [34mkey[0m fk_cart_item_cart
+2025-12-12 08:52:58 [HikariPool-15:connection-adder] WARN  com.zaxxer.hikari.pool.PoolBase - HikariPool-15 - Pool is empty, failed to create/setup connection (26b801bb-909b-4269-9dbb-b0ce3fa197f8)
+com.mysql.cj.jdbc.exceptions.CommunicationsException: Communications link failure
+
+The last packet sent successfully to the server was 0 milliseconds ago. The driver has not received any packets from the server.
+	at com.mysql.cj.jdbc.exceptions.SQLError.createCommunicationsException(SQLError.java:165) ~[mysql-connector-j-9.4.0.jar:9.4.0]
+	at com.mysql.cj.jdbc.exceptions.SQLExceptionsMapping.translateException(SQLExceptionsMapping.java:55) ~[mysql-connector-j-9.4.0.jar:9.4.0]
+	at com.mysql.cj.jdbc.ConnectionImpl.createNewIO(ConnectionImpl.java:839) ~[mysql-connector-j-9.4.0.jar:9.4.0]
+	at com.mysql.cj.jdbc.ConnectionImpl.<init>(ConnectionImpl.java:415) ~[mysql-connector-j-9.4.0.jar:9.4.0]
+	at com.mysql.cj.jdbc.ConnectionImpl.getInstance(ConnectionImpl.java:237) ~[mysql-connector-j-9.4.0.jar:9.4.0]
+	at com.mysql.cj.jdbc.NonRegisteringDriver.connect(NonRegisteringDriver.java:180) ~[mysql-connector-j-9.4.0.jar:9.4.0]
+	at com.zaxxer.hikari.util.DriverDataSource.getConnection(DriverDataSource.java:144) ~[HikariCP-6.3.3.jar:na]
+	at com.zaxxer.hikari.pool.PoolBase.newConnection(PoolBase.java:370) ~[HikariCP-6.3.3.jar:na]
+	at com.zaxxer.hikari.pool.PoolBase.newPoolEntry(PoolBase.java:207) ~[HikariCP-6.3.3.jar:na]
+	at com.zaxxer.hikari.pool.HikariPool.createPoolEntry(HikariPool.java:488) ~[HikariCP-6.3.3.jar:na]
+	at com.zaxxer.hikari.pool.HikariPool$PoolEntryCreator.call(HikariPool.java:752) ~[HikariCP-6.3.3.jar:na]
+	at com.zaxxer.hikari.pool.HikariPool$PoolEntryCreator.call(HikariPool.java:731) ~[HikariCP-6.3.3.jar:na]
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317) ~[na:na]
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144) ~[na:na]
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642) ~[na:na]
+	at java.base/java.lang.Thread.run(Thread.java:1583) ~[na:na]
+Caused by: com.mysql.cj.exceptions.CJCommunicationsException: Communications link failure
+
+The last packet sent successfully to the server was 0 milliseconds ago. The driver has not received any packets from the server.
+	at java.base/jdk.internal.reflect.DirectConstructorHandleAccessor.newInstance(DirectConstructorHandleAccessor.java:62) ~[na:na]
+	at java.base/java.lang.reflect.Constructor.newInstanceWithCaller(Constructor.java:502) ~[na:na]
+	at java.base/java.lang.reflect.Constructor.newInstance(Constructor.java:486) ~[na:na]
+	at com.mysql.cj.exceptions.ExceptionFactory.createException(ExceptionFactory.java:52) ~[mysql-connector-j-9.4.0.jar:9.4.0]
+	at com.mysql.cj.exceptions.ExceptionFactory.createException(ExceptionFactory.java:95) ~[mysql-connector-j-9.4.0.jar:9.4.0]
+	at com.mysql.cj.exceptions.ExceptionFactory.createException(ExceptionFactory.java:140) ~[mysql-connector-j-9.4.0.jar:9.4.0]
+	at com.mysql.cj.exceptions.ExceptionFactory.createCommunicationsException(ExceptionFactory.java:156) ~[mysql-connector-j-9.4.0.jar:9.4.0]
+	at com.mysql.cj.protocol.a.NativeSocketConnection.connect(NativeSocketConnection.java:79) ~[mysql-connector-j-9.4.0.jar:9.4.0]
+	at com.mysql.cj.NativeSession.connect(NativeSession.java:142) ~[mysql-connector-j-9.4.0.jar:9.4.0]
+	at com.mysql.cj.jdbc.ConnectionImpl.connectOneTryOnly(ConnectionImpl.java:963) ~[mysql-connector-j-9.4.0.jar:9.4.0]
+	at com.mysql.cj.jdbc.ConnectionImpl.createNewIO(ConnectionImpl.java:827) ~[mysql-connector-j-9.4.0.jar:9.4.0]
+	... 13 common frames omitted
+Caused by: java.net.ConnectException: Connection refused
+	at java.base/sun.nio.ch.Net.pollConnect(Native Method) ~[na:na]
+	at java.base/sun.nio.ch.Net.pollConnectNow(Net.java:682) ~[na:na]
+	at java.base/sun.nio.ch.NioSocketImpl.timedFinishConnect(NioSocketImpl.java:549) ~[na:na]
+	at java.base/sun.nio.ch.NioSocketImpl.connect(NioSocketImpl.java:592) ~[na:na]
+	at java.base/java.net.SocksSocketImpl.connect(SocksSocketImpl.java:327) ~[na:na]
+	at java.base/java.net.Socket.connect(Socket.java:751) ~[na:na]
+	at com.mysql.cj.protocol.StandardSocketFactory.connect(StandardSocketFactory.java:144) ~[mysql-connector-j-9.4.0.jar:9.4.0]
+	at com.mysql.cj.protocol.a.NativeSocketConnection.connect(NativeSocketConnection.java:53) ~[mysql-connector-j-9.4.0.jar:9.4.0]
+	... 16 common frames omitted
+2025-12-12 08:53:00 [scheduling-1] INFO  i.h.e.i.b.ProductSalesAggregateScheduler - === Product Sales Aggregation Batch START (target date: 2025-12-11) ===
+2025-12-12 08:53:00 [scheduling-1] INFO  i.h.e.i.b.ProductSalesAggregateScheduler - Product sales aggregation completed successfully for date: 2025-12-11
+2025-12-12 08:53:00 [scheduling-1] INFO  i.h.e.i.b.ProductSalesAggregateScheduler - === Product Sales Aggregation Batch END (SUCCESS) ===
+2025-12-12 08:53:00 [scheduling-1] INFO  i.h.e.i.b.ProductSalesAggregateScheduler - === Product Sales Aggregation Batch START (target date: 2025-12-11) ===
+2025-12-12 08:53:00 [scheduling-1] INFO  i.h.e.i.b.ProductSalesAggregateScheduler - Product sales aggregation completed successfully for date: 2025-12-11
+2025-12-12 08:53:00 [scheduling-1] INFO  i.h.e.i.b.ProductSalesAggregateScheduler - === Product Sales Aggregation Batch END (SUCCESS) ===
+2025-12-12 08:53:06 [scheduling-1] INFO  i.h.e.i.batch.RankingBackupScheduler - Starting ranking backup for date: 2025-12-12
+2025-12-12 08:53:06 [scheduling-1] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ [34mselect[0m
+        p1_0.id,
+        p1_0.category,
+        p1_0.created_at,
+        p1_0.description,
+        p1_0.name,
+        p1_0.price,
+        p1_0.product_code,
+        p1_0.stock,
+        p1_0.updated_at,
+        p1_0.version 
+    [34mfrom[0m
+        products p1_0
+[35m[Hibernate][0m 
+    /* <criteria> */ [34mselect[0m
+        p1_0.id,
+        p1_0.category,
+        p1_0.created_at,
+        p1_0.description,
+        p1_0.name,
+        p1_0.price,
+        p1_0.product_code,
+        p1_0.stock,
+        p1_0.updated_at,
+        p1_0.version 
+    [34mfrom[0m
+        products p1_0
+2025-12-12 08:53:06 [scheduling-1] DEBUG org.hibernate.SQL - 
+    /* <criteria> */ [34mselect[0m
+        prb1_0.id,
+        prb1_0.aggregated_date,
+        prb1_0.product_id,
+        prb1_0.product_name,
+        prb1_0.ranking,
+        prb1_0.sales_count 
+    [34mfrom[0m
+        product_ranking_backup prb1_0 
+    [34mwhere[0m
+        prb1_0.aggregated_date=?
+[35m[Hibernate][0m 
+    /* <criteria> */ [34mselect[0m
+        prb1_0.id,
+        prb1_0.aggregated_date,
+        prb1_0.product_id,
+        prb1_0.product_name,
+        prb1_0.ranking,
+        prb1_0.sales_count 
+    [34mfrom[0m
+        product_ranking_backup prb1_0 
+    [34mwhere[0m
+        prb1_0.aggregated_date=?
+2025-12-12 08:53:06 [scheduling-1] DEBUG org.hibernate.SQL - 
+    /* [34minsert[0m [34mfor[0m
+        io.hhplus.ecommerce.domain.product.ProductRankingBackup */[34minsert[0m 
+    [34minto[0m
+        product_ranking_backup (aggregated_date, product_id, product_name, ranking, sales_count) 
+    [34mvalues[0m
+        (?, ?, ?, ?, ?)
+[35m[Hibernate][0m 
+    /* [34minsert[0m [34mfor[0m
+        io.hhplus.ecommerce.domain.product.ProductRankingBackup */[34minsert[0m 
+    [34minto[0m
+        product_ranking_backup (aggregated_date, product_id, product_name, ranking, sales_count) 
+    [34mvalues[0m
+        (?, ?, ?, ?, ?)
+2025-12-12 08:53:06 [scheduling-1] INFO  i.h.e.i.batch.RankingBackupScheduler - Successfully backed up 1 ranking entries for date: 2025-12-12
+2025-12-12 08:53:06 [scheduling-1] DEBUG org.hibernate.SQL - 
+    /* [34mdelete[0m [34mfor[0m io.hhplus.ecommerce.domain.product.ProductRankingBackup */[34mdelete[0m 
+    [34mfrom[0m
+        product_ranking_backup 
+    [34mwhere[0m
+        id=?
+[35m[Hibernate][0m 
+    /* [34mdelete[0m [34mfor[0m io.hhplus.ecommerce.domain.product.ProductRankingBackup */[34mdelete[0m 
+    [34mfrom[0m
+        product_ranking_backup 
+    [34mwhere[0m
+        id=?
+2025-12-12 08:53:08 [SpringApplicationShutdownHook] WARN  o.h.e.jdbc.spi.SqlExceptionHelper - SQL Error: 0, SQLState: 08S01
+2025-12-12 08:53:08 [SpringApplicationShutdownHook] ERROR o.h.e.jdbc.spi.SqlExceptionHelper - HikariPool-15 - Connection is not available, request timed out after 10011ms (total=0, active=0, idle=0, waiting=0)
+2025-12-12 08:53:08 [SpringApplicationShutdownHook] ERROR o.h.e.jdbc.spi.SqlExceptionHelper - Communications link failure
+
+The last packet sent successfully to the server was 0 milliseconds ago. The driver has not received any packets from the server.
+2025-12-12 08:53:08 [SpringApplicationShutdownHook] WARN  o.s.b.f.s.DisposableBeanAdapter - Invocation of destroy method failed on bean with name 'entityManagerFactory': org.hibernate.exception.JDBCConnectionException: Unable to open JDBC Connection for DDL execution [HikariPool-15 - Connection is not available, request timed out after 10011ms (total=0, active=0, idle=0, waiting=0)] [n/a]
+2025-12-12 08:53:08 [SpringApplicationShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-15 - Shutdown initiated...
+2025-12-12 08:53:08 [SpringApplicationShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-15 - Shutdown completed.
+2025-12-12 08:53:09 [SpringApplicationShutdownHook] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Closing JPA EntityManagerFactory for persistence unit 'default'
+2025-12-12 08:53:09 [SpringApplicationShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-16 - Shutdown initiated...
+2025-12-12 08:53:11 [SpringApplicationShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-16 - Shutdown completed.
+2025-12-12 08:53:12 [SpringApplicationShutdownHook] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Closing JPA EntityManagerFactory for persistence unit 'default'
+2025-12-12 08:53:12 [SpringApplicationShutdownHook] DEBUG org.hibernate.SQL - 
+    [34malter[0m [34mtable[0m cart_items 
+       [34mdrop[0m 
+       [34mforeign[0m [34mkey[0m fk_cart_item_cart
+[35m[Hibernate][0m 
+    [34malter[0m [34mtable[0m cart_items 
+       [34mdrop[0m 
+       [34mforeign[0m [34mkey[0m fk_cart_item_cart
+2025-12-12 08:53:12 [SpringApplicationShutdownHook] DEBUG org.hibernate.SQL - 
+    [34malter[0m [34mtable[0m cart_items 
+       [34mdrop[0m 
+       [34mforeign[0m [34mkey[0m fk_cart_item_product
+[35m[Hibernate][0m 
+    [34malter[0m [34mtable[0m cart_items 
+       [34mdrop[0m 
+       [34mforeign[0m [34mkey[0m fk_cart_item_product
+2025-12-12 08:53:12 [SpringApplicationShutdownHook] DEBUG org.hibernate.SQL - 
+    [34malter[0m [34mtable[0m order_items 
+       [34mdrop[0m 
+       [34mforeign[0m [34mkey[0m fk_order_item_order
+[35m[Hibernate][0m 
+    [34malter[0m [34mtable[0m order_items 
+       [34mdrop[0m 
+       [34mforeign[0m [34mkey[0m fk_order_item_order
+2025-12-12 08:53:12 [SpringApplicationShutdownHook] DEBUG org.hibernate.SQL - 
+    [34malter[0m [34mtable[0m order_items 
+       [34mdrop[0m 
+       [34mforeign[0m [34mkey[0m fk_order_item_product
+[35m[Hibernate][0m 
+    [34malter[0m [34mtable[0m order_items 
+       [34mdrop[0m 
+       [34mforeign[0m [34mkey[0m fk_order_item_product
+2025-12-12 08:53:12 [SpringApplicationShutdownHook] DEBUG org.hibernate.SQL - 
+    [34mdrop[0m [34mtable[0m [34mif[0m [34mexists[0m cart_items
+[35m[Hibernate][0m 
+    [34mdrop[0m [34mtable[0m [34mif[0m [34mexists[0m cart_items
+2025-12-12 08:53:12 [SpringApplicationShutdownHook] DEBUG org.hibernate.SQL - 
+    [34mdrop[0m [34mtable[0m [34mif[0m [34mexists[0m carts
+[35m[Hibernate][0m 
+    [34mdrop[0m [34mtable[0m [34mif[0m [34mexists[0m carts
+2025-12-12 08:53:12 [SpringApplicationShutdownHook] DEBUG org.hibernate.SQL - 
+    [34mdrop[0m [34mtable[0m [34mif[0m [34mexists[0m charge_balance_idempotency
+[35m[Hibernate][0m 
+    [34mdrop[0m [34mtable[0m [34mif[0m [34mexists[0m charge_balance_idempotency
+2025-12-12 08:53:12 [SpringApplicationShutdownHook] DEBUG org.hibernate.SQL - 
+    [34mdrop[0m [34mtable[0m [34mif[0m [34mexists[0m coupons
+[35m[Hibernate][0m 
+    [34mdrop[0m [34mtable[0m [34mif[0m [34mexists[0m coupons
+2025-12-12 08:53:12 [SpringApplicationShutdownHook] DEBUG org.hibernate.SQL - 
+    [34mdrop[0m [34mtable[0m [34mif[0m [34mexists[0m order_idempotency
+[35m[Hibernate][0m 
+    [34mdrop[0m [34mtable[0m [34mif[0m [34mexists[0m order_idempotency
+2025-12-12 08:53:12 [SpringApplicationShutdownHook] DEBUG org.hibernate.SQL - 
+    [34mdrop[0m [34mtable[0m [34mif[0m [34mexists[0m order_items
+[35m[Hibernate][0m 
+    [34mdrop[0m [34mtable[0m [34mif[0m [34mexists[0m order_items
+2025-12-12 08:53:12 [SpringApplicationShutdownHook] DEBUG org.hibernate.SQL - 
+    [34mdrop[0m [34mtable[0m [34mif[0m [34mexists[0m orders
+[35m[Hibernate][0m 
+    [34mdrop[0m [34mtable[0m [34mif[0m [34mexists[0m orders
+2025-12-12 08:53:12 [SpringApplicationShutdownHook] DEBUG org.hibernate.SQL - 
+    [34mdrop[0m [34mtable[0m [34mif[0m [34mexists[0m payment_idempotency
+[35m[Hibernate][0m 
+    [34mdrop[0m [34mtable[0m [34mif[0m [34mexists[0m payment_idempotency
+2025-12-12 08:53:12 [SpringApplicationShutdownHook] DEBUG org.hibernate.SQL - 
+    [34mdrop[0m [34mtable[0m [34mif[0m [34mexists[0m product_ranking_backup
+[35m[Hibernate][0m 
+    [34mdrop[0m [34mtable[0m [34mif[0m [34mexists[0m product_ranking_backup
+2025-12-12 08:53:12 [SpringApplicationShutdownHook] DEBUG org.hibernate.SQL - 
+    [34mdrop[0m [34mtable[0m [34mif[0m [34mexists[0m product_sales_aggregates
+[35m[Hibernate][0m 
+    [34mdrop[0m [34mtable[0m [34mif[0m [34mexists[0m product_sales_aggregates
+2025-12-12 08:53:12 [SpringApplicationShutdownHook] DEBUG org.hibernate.SQL - 
+    [34mdrop[0m [34mtable[0m [34mif[0m [34mexists[0m products
+[35m[Hibernate][0m 
+    [34mdrop[0m [34mtable[0m [34mif[0m [34mexists[0m products
+2025-12-12 08:53:12 [SpringApplicationShutdownHook] DEBUG org.hibernate.SQL - 
+    [34mdrop[0m [34mtable[0m [34mif[0m [34mexists[0m user_coupons
+[35m[Hibernate][0m 
+    [34mdrop[0m [34mtable[0m [34mif[0m [34mexists[0m user_coupons
+2025-12-12 08:53:12 [SpringApplicationShutdownHook] DEBUG org.hibernate.SQL - 
+    [34mdrop[0m [34mtable[0m [34mif[0m [34mexists[0m users
+[35m[Hibernate][0m 
+    [34mdrop[0m [34mtable[0m [34mif[0m [34mexists[0m users
+2025-12-12 08:53:12 [SpringApplicationShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-59 - Shutdown initiated...
+2025-12-12 08:53:12 [SpringApplicationShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-59 - Shutdown completed.
+
+> Task :test
+
+204 tests completed, 24 failed, 3 skipped
+
+> Task :test FAILED
+
+[Incubating] Problems report is available at: file:///Users/jsb/hanghe-plus/ecommerce/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':test'.
+> There were failing tests. See the report at: file:///Users/jsb/hanghe-plus/ecommerce/build/reports/tests/test/index.html
+
+* Try:
+> Run with --scan to get full insights.
+
+BUILD FAILED in 21m 19s
+9 actionable tasks: 9 executed

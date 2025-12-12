@@ -1,0 +1,59 @@
+> Task :clean
+
+> Task :compileJava
+Note: Some input files use unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+
+> Task :processResources
+> Task :classes
+> Task :resolveMainClassName
+> Task :bootJar
+> Task :jar
+> Task :assemble
+> Task :compileTestJava
+> Task :processTestResources
+> Task :testClasses
+> Task :test
+
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+
+> Task :test
+
+CreateOrderConcurrencyWithDistributedLockTest > 동일 사용자 동시 주문 - 분산락으로 직렬화 FAILED
+    org.opentest4j.AssertionFailedError at CreateOrderConcurrencyWithDistributedLockTest.java:219
+
+CreateOrderConcurrencyWithDistributedLockTest > 여러 상품 주문 - 데드락 방지 (상품 ID 정렬) FAILED
+    org.opentest4j.AssertionFailedError at CreateOrderConcurrencyWithDistributedLockTest.java:305
+
+OrderIdempotencyIntegrationTest > 동시 요청 시 첫 요청만 처리, 나머지는 PROCESSING 에러 FAILED
+    java.lang.AssertionError at OrderIdempotencyIntegrationTest.java:200
+
+OrderIdempotencyIntegrationTest > 서로 다른 idempotencyKey는 독립적으로 처리 FAILED
+    org.springframework.transaction.CannotCreateTransactionException at OrderIdempotencyIntegrationTest.java:297
+        Caused by: org.hibernate.exception.JDBCConnectionException at OrderIdempotencyIntegrationTest.java:297
+            Caused by: java.sql.SQLTransientConnectionException at OrderIdempotencyIntegrationTest.java:297
+                Caused by: java.sql.SQLNonTransientConnectionException at SQLError.java:102
+
+OrderIdempotencyIntegrationTest > 중복 재고 차감 방지 - 동일 키로 재요청 시 재고 변경 없음 FAILED
+    org.springframework.transaction.CannotCreateTransactionException at OrderIdempotencyIntegrationTest.java:338
+        Caused by: org.hibernate.exception.JDBCConnectionException at OrderIdempotencyIntegrationTest.java:338
+            Caused by: java.sql.SQLTransientConnectionException at OrderIdempotencyIntegrationTest.java:338
+                Caused by: java.sql.SQLNonTransientConnectionException at SQLError.java:102
+
+OrderIdempotencyIntegrationTest > 동일 idempotencyKey로 중복 요청 시 캐시된 응답 반환 FAILED
+    org.springframework.transaction.CannotCreateTransactionException at OrderIdempotencyIntegrationTest.java:105
+        Caused by: org.hibernate.exception.JDBCConnectionException at OrderIdempotencyIntegrationTest.java:105
+            Caused by: java.sql.SQLTransientConnectionException at OrderIdempotencyIntegrationTest.java:105
+                Caused by: java.sql.SQLNonTransientConnectionException at SQLError.java:102
+
+ChargeBalanceIdempotencyTest > 다른 idempotencyKey로 두 번 요청 → 각각 성공 FAILED
+    java.lang.IllegalStateException at DefaultCacheAwareContextLoaderDelegate.java:180
+        Caused by: org.springframework.beans.factory.BeanDefinitionStoreException at ConfigurationClassParser.java:627
+            Caused by: java.lang.IllegalStateException at SpringBootCondition.java:60
+                Caused by: java.lang.IllegalStateException at Preconditions.java:512
+
+ChargeBalanceIdempotencyTest > 같은 idempotencyKey로 두 번 요청 → 중복 충전 방지 FAILED
+    java.lang.IllegalStateException at DefaultCacheAwareContextLoaderDelegate.java:145
+
+ChargeBalanceIdempotencyTest > 캐시된 응답 반환 시 DB 업데이트 없음 FAILED
+    java.lang.IllegalStateException at DefaultCacheAwareContextLoaderDelegate.java:145
