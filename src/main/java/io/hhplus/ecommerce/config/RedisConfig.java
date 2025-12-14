@@ -8,13 +8,19 @@ import org.redisson.api.RedissonClient;
 import org.redisson.codec.JsonJacksonCodec;
 import org.redisson.config.Config;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.transaction.TransactionManagerCustomizers;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.transaction.PlatformTransactionManager;
+
+import javax.sql.DataSource;
 
 /**
  * Redis 및 Redisson 설정
@@ -102,5 +108,17 @@ public class RedisConfig {
                 .setPingConnectionInterval(30000);  // Ping 간격 (30초)
 
         return Redisson.create(config);
+    }
+
+    /**
+     * Primary TransactionManager 지정
+     *
+     * Redisson Starter가 JtaTransactionManager를 자동 생성하므로,
+     * DataSource 기반 TransactionManager를 Primary로 지정합니다.
+     */
+    @Bean
+    @Primary
+    public PlatformTransactionManager transactionManager(DataSource dataSource) {
+        return new DataSourceTransactionManager(dataSource);
     }
 }

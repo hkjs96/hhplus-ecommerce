@@ -7,6 +7,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.ActiveProfiles;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -16,6 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * 목적: Redis INCR가 제대로 작동하는지 검증
  */
 @SpringBootTest
+@ActiveProfiles("test")
 @Import(TestContainersConfig.class)
 class RedisConnectionTest {
 

@@ -65,13 +65,6 @@ public class TestContainersConfig {
         registry.add("spring.datasource.username", mysql::getUsername);
         registry.add("spring.datasource.password", mysql::getPassword);
 
-        // Hikari Connection Pool 설정 (동시성 테스트용)
-        registry.add("spring.datasource.hikari.maximum-pool-size", () -> 150);
-        registry.add("spring.datasource.hikari.minimum-idle", () -> 50);
-        registry.add("spring.datasource.hikari.connection-timeout", () -> 30000);  // 30초
-        registry.add("spring.datasource.hikari.idle-timeout", () -> 600000);       // 10분
-        registry.add("spring.datasource.hikari.max-lifetime", () -> 1800000);      // 30분
-
         // Redis 설정
         registry.add("spring.data.redis.host", redis::getHost);
         registry.add("spring.data.redis.port", redis::getFirstMappedPort);

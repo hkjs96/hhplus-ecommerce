@@ -38,9 +38,9 @@ import static org.assertj.core.api.Assertions.assertThat;
  * 4. 100명이 동시에 차감 시 정확한 잔액 처리
  */
 @Import(TestContainersConfig.class)
-
 @SpringBootTest
 @ActiveProfiles("test")
+@org.springframework.test.annotation.DirtiesContext(classMode = org.springframework.test.annotation.DirtiesContext.ClassMode.AFTER_CLASS)
 class UserBalanceOptimisticLockConcurrencyTest {
 
     @Autowired

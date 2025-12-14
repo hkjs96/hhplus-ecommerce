@@ -23,9 +23,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Import(TestContainersConfig.class)
-
 @SpringBootTest
 @ActiveProfiles("test")
+@org.springframework.test.annotation.DirtiesContext(classMode = org.springframework.test.annotation.DirtiesContext.ClassMode.AFTER_CLASS)
 class IssueCouponConcurrencyTest {
 
     @Autowired

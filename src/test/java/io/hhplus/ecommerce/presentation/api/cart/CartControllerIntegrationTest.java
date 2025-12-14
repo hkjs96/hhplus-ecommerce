@@ -55,6 +55,7 @@ class CartControllerIntegrationTest {
     private Long testUserId;
     private Long testProduct1Id;
     private Long testProduct2Id;
+    private User testUser; // Added
 
     @BeforeEach
     void setUp() {
@@ -62,8 +63,8 @@ class CartControllerIntegrationTest {
         String uniqueEmail = "test-" + java.util.UUID.randomUUID().toString().substring(0, 8) + "@example.com";
         User user = User.create(uniqueEmail, "테스트유저");
         user.charge(500000L);
-        User savedUser = userRepository.save(user);
-        testUserId = savedUser.getId();
+        testUser = userRepository.save(user); // Assign to testUser
+        testUserId = testUser.getId();
 
         // 테스트용 상품 데이터 생성 (UUID로 고유한 product code 생성)
         String uniqueCode1 = "TEST_P001_" + java.util.UUID.randomUUID().toString().substring(0, 8);
@@ -114,7 +115,7 @@ class CartControllerIntegrationTest {
     @DisplayName("통합 테스트: 장바구니에 중복 상품 추가 - 수량 증가")
     void addItem_성공_중복상품_수량증가() throws Exception {
         // Given: 장바구니에 이미 상품 존재
-        Cart cart = Cart.create(testUserId);
+        Cart cart = Cart.create(testUser);
         Cart savedCart = cartRepository.save(cart);
         CartItem existingItem = CartItem.create(savedCart, productRepository.findById(testProduct1Id).orElseThrow(), 3);
         cartItemRepository.save(existingItem);
@@ -211,8 +212,8 @@ class CartControllerIntegrationTest {
     @Test
     @DisplayName("통합 테스트: 장바구니 조회 - 성공 (항목 있음)")
     void getCart_성공_항목있음() throws Exception {
-        // Given
-        Cart cart = Cart.create(testUserId);
+        // Given: 장바구니에 상품 2개 추가
+        Cart cart = Cart.create(testUser);
         Cart savedCart = cartRepository.save(cart);
 
         CartItem item1 = CartItem.create(savedCart, productRepository.findById(testProduct1Id).orElseThrow(), 2);
@@ -253,7 +254,7 @@ class CartControllerIntegrationTest {
         Product lowStockProduct = Product.create("LOW_STOCK_P001", "재고부족상품", "설명", 100000L, "테스트", 2);
         Product savedLowStockProduct = productRepository.save(lowStockProduct);
 
-        Cart cart = Cart.create(testUserId);
+        Cart cart = Cart.create(testUser);
         Cart savedCart = cartRepository.save(cart);
 
         // 장바구니 수량(5개)이 재고(2개)보다 많음
@@ -289,7 +290,7 @@ class CartControllerIntegrationTest {
     @DisplayName("통합 테스트: 장바구니 상품 수량 변경 - 성공")
     void updateItem_성공() throws Exception {
         // Given
-        Cart cart = Cart.create(testUserId);
+        Cart cart = Cart.create(testUser);
         Cart savedCart = cartRepository.save(cart);
         CartItem item = CartItem.create(savedCart, productRepository.findById(testProduct1Id).orElseThrow(), 2);
         cartItemRepository.save(item);
@@ -318,7 +319,7 @@ class CartControllerIntegrationTest {
     @DisplayName("통합 테스트: 장바구니 상품 수량 변경 - 수량 0 시 삭제")
     void updateItem_성공_수량0_삭제() throws Exception {
         // Given
-        Cart cart = Cart.create(testUserId);
+        Cart cart = Cart.create(testUser);
         Cart savedCart = cartRepository.save(cart);
         CartItem item = CartItem.create(savedCart, productRepository.findById(testProduct1Id).orElseThrow(), 2);
         cartItemRepository.save(item);
@@ -368,7 +369,7 @@ class CartControllerIntegrationTest {
     @DisplayName("통합 테스트: 장바구니 상품 수량 변경 - 실패 (재고 부족)")
     void updateItem_실패_재고부족() throws Exception {
         // Given
-        Cart cart = Cart.create(testUserId);
+        Cart cart = Cart.create(testUser);
         Cart savedCart = cartRepository.save(cart);
         CartItem item = CartItem.create(savedCart, productRepository.findById(testProduct1Id).orElseThrow(), 2);
         cartItemRepository.save(item);
@@ -399,7 +400,7 @@ class CartControllerIntegrationTest {
     @DisplayName("통합 테스트: 장바구니 상품 삭제 - 성공")
     void deleteItem_성공() throws Exception {
         // Given
-        Cart cart = Cart.create(testUserId);
+        Cart cart = Cart.create(testUser);
         Cart savedCart = cartRepository.save(cart);
         CartItem item = CartItem.create(savedCart, productRepository.findById(testProduct1Id).orElseThrow(), 2);
         cartItemRepository.save(item);

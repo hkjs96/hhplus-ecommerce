@@ -224,7 +224,7 @@ public class CreateOrderUseCase {
 
             // 5. 주문 생성
             String orderNumber = "ORDER-" + UUID.randomUUID().toString().substring(0, 8);
-            Order order = Order.create(orderNumber, user.getId(), subtotalAmount, discountAmount);
+            Order order = Order.create(orderNumber, user, subtotalAmount, discountAmount);
             orderRepository.save(order);
 
             // 6. 주문 아이템 생성 (재고는 결제 시 감소)

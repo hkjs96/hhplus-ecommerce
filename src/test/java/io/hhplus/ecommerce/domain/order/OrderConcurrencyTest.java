@@ -1,6 +1,7 @@
 package io.hhplus.ecommerce.domain.order;
 
 import io.hhplus.ecommerce.config.TestContainersConfig;
+import jakarta.persistence.EntityManager;
 import org.springframework.context.annotation.Import;
 
 import io.hhplus.ecommerce.domain.user.User;
@@ -22,9 +23,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Import(TestContainersConfig.class)
-
 @SpringBootTest
 @ActiveProfiles("test")
+@org.springframework.test.annotation.DirtiesContext(classMode = org.springframework.test.annotation.DirtiesContext.ClassMode.AFTER_CLASS)
 class OrderConcurrencyTest {
 
     @Autowired
@@ -33,16 +34,22 @@ class OrderConcurrencyTest {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private EntityManager entityManager;
+
     @Test
     @DisplayName("Order 상태 변경 동시성 테스트 - Optimistic Lock으로 Lost Update 방지")
+    @Transactional
     void testOrderStatusConcurrency_OptimisticLock() throws InterruptedException {
         // Given: 사용자 및 주문 생성
         String uniqueEmail = "test-" + UUID.randomUUID().toString().substring(0, 8) + "@example.com";
         User user = User.create(uniqueEmail, "테스트");
         userRepository.save(user);
+        entityManager.flush();
 
-        Order order = Order.create("ORDER-TEST-001", user.getId(), 10000L, 0L);
+        Order order = Order.create("ORDER-TEST-001", user, 10000L, 0L);
         orderRepository.save(order);
+        entityManager.flush();
 
         int threadCount = 10;
         ExecutorService executor = Executors.newFixedThreadPool(threadCount);
@@ -95,9 +102,11 @@ class OrderConcurrencyTest {
         String uniqueEmail = "test-" + UUID.randomUUID().toString().substring(0, 8) + "@example.com";
         User user = User.create(uniqueEmail, "테스트2");
         userRepository.save(user);
+        entityManager.flush();
 
-        Order order = Order.create("ORDER-TEST-002", user.getId(), 10000L, 0L);
+        Order order = Order.create("ORDER-TEST-002", user, 10000L, 0L);
         orderRepository.save(order);
+        entityManager.flush();
 
         CountDownLatch latch = new CountDownLatch(2);
         AtomicInteger successCount = new AtomicInteger(0);

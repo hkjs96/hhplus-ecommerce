@@ -52,7 +52,7 @@ public class AddToCartUseCase {
 
             // 2. 장바구니를 비관적 락으로 확보 (동일 사용자 경합 시 순서 보장)
             Cart cart = cartRepository.findByUserIdForUpdate(request.userId())
-                .orElseGet(() -> createCartIfAbsent(request.userId()));
+                .orElseGet(() -> createCartIfAbsent(userRepository.findByIdOrThrow(request.userId())));
 
             // 3. 상품 조회
             Product product = productRepository.findByIdOrThrow(request.productId());
@@ -127,12 +127,12 @@ public class AddToCartUseCase {
     /**
      * 동시 생성 충돌 시에도 단일 Cart를 보장하기 위한 재시도 헬퍼
      */
-    private Cart createCartIfAbsent(Long userId) {
+    private Cart createCartIfAbsent(io.hhplus.ecommerce.domain.user.User user) {
         try {
-            return cartRepository.save(Cart.create(userId));
+            return cartRepository.save(Cart.create(user));
         } catch (DataIntegrityViolationException e) {
             // UNIQUE (user_id) 충돌 → 이미 생성된 Cart를 비관적 락으로 재조회
-            return cartRepository.findByUserIdForUpdate(userId)
+            return cartRepository.findByUserIdForUpdate(user.getId())
                 .orElseThrow(() -> e);
         }
     }

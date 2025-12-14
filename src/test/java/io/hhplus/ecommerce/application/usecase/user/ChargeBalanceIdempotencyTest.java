@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.util.UUID;
@@ -34,6 +35,7 @@ import static org.awaitility.Awaitility.await;
 @SpringBootTest
 @ActiveProfiles("test")
 @Import(TestContainersConfig.class)
+@org.springframework.test.annotation.DirtiesContext(classMode = org.springframework.test.annotation.DirtiesContext.ClassMode.AFTER_CLASS)
 class ChargeBalanceIdempotencyTest {
     // TestContainersConfig에서 자동으로 설정됨
 
@@ -46,6 +48,9 @@ class ChargeBalanceIdempotencyTest {
     @Autowired
     private ChargeBalanceIdempotencyRepository idempotencyRepository;
 
+    @Autowired
+    private jakarta.persistence.EntityManager entityManager;
+
     @Autowired(required = false)
     private io.hhplus.ecommerce.application.user.listener.BalanceChargedEventHandler balanceChargedEventHandler;
 
@@ -53,6 +58,7 @@ class ChargeBalanceIdempotencyTest {
     private static int userCounter = 0;
 
     @BeforeEach
+    @Transactional // Add @Transactional here
     void setUp() {
         // 핸들러가 등록되어 있는지 확인
         if (balanceChargedEventHandler == null) {
@@ -63,6 +69,7 @@ class ChargeBalanceIdempotencyTest {
         testUser = User.create("test" + (++userCounter) + "@example.com", "테스트유저");
         testUser.charge(100_000L);
         userRepository.save(testUser);
+        entityManager.flush(); // Ensure ID is populated immediately
     }
 
     @Test

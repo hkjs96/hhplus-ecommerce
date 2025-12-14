@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -28,6 +29,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * - 동시성 테스트
  */
 @SpringBootTest
+@ActiveProfiles("test")
 @Import(TestContainersConfig.class)
 class ProductRankingRepositoryTest {
 

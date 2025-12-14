@@ -243,7 +243,7 @@ public class DataInitializer implements ApplicationRunner {
 
         // User 1 (김항해)의 장바구니
         User user1 = userRepository.findByEmail("hanghae@example.com").orElseThrow();
-        Cart cart1 = Cart.create(user1.getId());
+        Cart cart1 = Cart.create(user1);
         Cart savedCart1 = cartRepository.save(cart1);
 
         // 노트북 1개 담기
@@ -258,7 +258,7 @@ public class DataInitializer implements ApplicationRunner {
 
         // User 2 (이플러스)의 장바구니
         User user2 = userRepository.findByEmail("plus@example.com").orElseThrow();
-        Cart cart2 = Cart.create(user2.getId());
+        Cart cart2 = Cart.create(user2);
         Cart savedCart2 = cartRepository.save(cart2);
 
         // 키보드 1개 담기
@@ -305,7 +305,7 @@ public class DataInitializer implements ApplicationRunner {
                 subtotal = speaker.getPrice() + mouse.getPrice() + keyboard.getPrice() + webcam.getPrice();
             }
 
-            Order order = Order.create(orderNumber, user1.getId(), subtotal, 0L);
+            Order order = Order.create(orderNumber, user1, subtotal, 0L);
 
             if (i % 3 == 0) {
                 OrderItem.create(order, laptop, 1, laptop.getPrice());
@@ -341,7 +341,7 @@ public class DataInitializer implements ApplicationRunner {
                 subtotal = (keyboard.getPrice() * 2) + (mouse.getPrice() * 3);
             }
 
-            Order order = Order.create(orderNumber, user2.getId(), subtotal, 0L);
+            Order order = Order.create(orderNumber, user2, subtotal, 0L);
 
             if (i % 2 == 0) {
                 OrderItem.create(order, laptop, 1, laptop.getPrice());
@@ -363,7 +363,7 @@ public class DataInitializer implements ApplicationRunner {
             String orderNumber = String.format("ORD-20250118-%03d", ++orderCount);
             Long subtotal = headset.getPrice() + webcam.getPrice();
 
-            Order order = Order.create(orderNumber, user3.getId(), subtotal, 0L);
+            Order order = Order.create(orderNumber, user3, subtotal, 0L);
 
             OrderItem.create(order, headset, 1, headset.getPrice());
             OrderItem.create(order, webcam, 1, webcam.getPrice());

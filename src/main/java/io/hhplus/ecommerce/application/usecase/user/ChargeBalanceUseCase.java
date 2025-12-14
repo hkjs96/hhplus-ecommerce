@@ -80,6 +80,8 @@ public class ChargeBalanceUseCase {
     public ChargeBalanceResponse execute(Long userId, ChargeBalanceRequest request) {
         log.info("Charging balance for userId: {}, amount: {}, idempotencyKey: {}",
                 userId, request.amount(), request.idempotencyKey());
+        
+        User user = userRepository.findByIdOrThrow(userId);
 
         // 1. 멱등성 키 조회
         Optional<ChargeBalanceIdempotency> existingIdempotency =
@@ -108,7 +110,7 @@ public class ChargeBalanceUseCase {
 
         // 2. 멱등성 키 생성 (PROCESSING 상태)
         ChargeBalanceIdempotency idempotency =
-                ChargeBalanceIdempotency.create(request.idempotencyKey(), userId, request.amount());
+                ChargeBalanceIdempotency.create(request.idempotencyKey(), user, request.amount());
         idempotencyRepository.save(idempotency);
 
         try {

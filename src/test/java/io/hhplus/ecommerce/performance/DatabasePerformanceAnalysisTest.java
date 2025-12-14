@@ -6,17 +6,20 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
 
 @SpringBootTest
 @Testcontainers
+@ActiveProfiles("test")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class DatabasePerformanceAnalysisTest {
 
@@ -37,7 +40,6 @@ class DatabasePerformanceAnalysisTest {
         registry.add("spring.jpa.hibernate.ddl-auto", () -> "create");
     }
 
-    @Autowired
     private PerformanceTestDataGenerator dataGenerator;
 
     @Autowired
@@ -46,6 +48,7 @@ class DatabasePerformanceAnalysisTest {
     private static boolean dataGenerated = false;
 
     @BeforeEach
+    @Transactional
     void setUp() {
         if (!dataGenerated) {
             log.info("=".repeat(100));
@@ -61,9 +64,9 @@ class DatabasePerformanceAnalysisTest {
         }
     }
 
-    // ============================================================
+    // ============================================================ 
     // Test 1: 인기 상품 조회 EXPLAIN 분석
-    // ============================================================
+    // ============================================================ 
 
     @Test
     @Order(1)
@@ -208,9 +211,9 @@ class DatabasePerformanceAnalysisTest {
         measureQueryPerformance(query, "Top Products (With Index)", 10);
     }
 
-    // ============================================================
+    // ============================================================ 
     // Test 2: 주문 내역 조회 EXPLAIN 분석
-    // ============================================================
+    // ============================================================ 
 
     @Test
     @Order(6)
@@ -258,9 +261,9 @@ class DatabasePerformanceAnalysisTest {
         measureQueryPerformance(query, "Orders with Items", 10);
     }
 
-    // ============================================================
+    // ============================================================ 
     // Test 3: 장바구니 조회 EXPLAIN 분석
-    // ============================================================
+    // ============================================================ 
 
     @Test
     @Order(8)
@@ -285,9 +288,9 @@ class DatabasePerformanceAnalysisTest {
         executeExplain(query, "Cart with Items");
     }
 
-    // ============================================================
+    // ============================================================ 
     // Test 4: 쿠폰 조회 EXPLAIN 분석
-    // ============================================================
+    // ============================================================ 
 
     @Test
     @Order(9)
@@ -311,9 +314,9 @@ class DatabasePerformanceAnalysisTest {
         executeExplain(query, "User Coupons");
     }
 
-    // ============================================================
+    // ============================================================ 
     // Helper Methods
-    // ============================================================
+    // ============================================================ 
 
     private void executeExplain(String query, String queryName) {
         log.info("\n" + "-".repeat(100));

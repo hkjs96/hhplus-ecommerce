@@ -1,6 +1,7 @@
 package io.hhplus.ecommerce.domain.cart;
 
 import io.hhplus.ecommerce.config.TestContainersConfig;
+import jakarta.persistence.EntityManager;
 import org.springframework.context.annotation.Import;
 
 import io.hhplus.ecommerce.domain.product.Product;
@@ -13,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
@@ -23,9 +25,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Import(TestContainersConfig.class)
-
 @SpringBootTest
 @ActiveProfiles("test")
+@org.springframework.test.annotation.DirtiesContext(classMode = org.springframework.test.annotation.DirtiesContext.ClassMode.AFTER_CLASS)
 class CartItemConcurrencyTest {
 
     @Autowired
@@ -40,8 +42,12 @@ class CartItemConcurrencyTest {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private EntityManager entityManager;
+
     @Test
     @DisplayName("CartItem 수량 변경 동시성 테스트 - Optimistic Lock으로 Lost Update 방지")
+    @Transactional
     void testCartItemQuantityConcurrency_OptimisticLock() throws InterruptedException {
         // Given: 사용자, 상품, 장바구니, 장바구니 아이템 생성
         String uniqueEmail = "test-" + UUID.randomUUID().toString().substring(0, 8) + "@example.com";
@@ -52,11 +58,15 @@ class CartItemConcurrencyTest {
         Product product = Product.create(uniqueProductCode, "테스트상품", "설명", 10000L, "카테고리", 100);
         productRepository.save(product);
 
-        Cart cart = Cart.create(user.getId());
+        entityManager.flush(); // Ensure user and product IDs are generated
+
+        Cart cart = Cart.create(user);
         cartRepository.save(cart);
 
         CartItem cartItem = CartItem.create(cart, product, 1);
         cartItemRepository.save(cartItem);
+
+        entityManager.flush(); // Ensure cartItem ID is generated
 
         int threadCount = 10;
         ExecutorService executor = Executors.newFixedThreadPool(threadCount);
@@ -102,6 +112,7 @@ class CartItemConcurrencyTest {
 
     @Test
     @DisplayName("동일 사용자 다른 스레드에서 장바구니 수정 - 충돌 빈도 확인")
+    @Transactional
     void testCartItemConcurrency_LowCollisionRate() throws InterruptedException {
         // Given
         String uniqueEmail = "test-" + UUID.randomUUID().toString().substring(0, 8) + "@example.com";
@@ -115,13 +126,17 @@ class CartItemConcurrencyTest {
         productRepository.save(product1);
         productRepository.save(product2);
 
-        Cart cart = Cart.create(user.getId());
+        entityManager.flush();
+
+        Cart cart = Cart.create(user);
         cartRepository.save(cart);
 
         CartItem item1 = CartItem.create(cart, product1, 1);
         CartItem item2 = CartItem.create(cart, product2, 1);
         cartItemRepository.save(item1);
         cartItemRepository.save(item2);
+        entityManager.flush();
+
 
         int threadCount = 5;
         CountDownLatch latch = new CountDownLatch(threadCount * 2);
