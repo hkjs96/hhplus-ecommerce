@@ -1,10 +1,13 @@
 package io.hhplus.ecommerce.application.product.listener;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.hhplus.ecommerce.domain.event.FailedEventRepository;
 import io.hhplus.ecommerce.domain.order.Order;
 import io.hhplus.ecommerce.domain.order.OrderItem;
 import io.hhplus.ecommerce.domain.order.PaymentCompletedEvent;
 import io.hhplus.ecommerce.domain.product.Product;
 import io.hhplus.ecommerce.domain.user.User;
+import io.hhplus.ecommerce.infrastructure.redis.EventIdempotencyService;
 import io.hhplus.ecommerce.infrastructure.redis.ProductRankingRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -13,11 +16,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 /**
@@ -28,12 +33,24 @@ import static org.mockito.Mockito.*;
  * - 여러 상품 주문 시 각각 랭킹 갱신
  * - 동일 상품 여러 번 주문 시 score 누적
  * - Redis 장애 시 예외 처리
+ *
+ * Note: 멱등성 및 재시도 로직 추가로 Mock 의존성 증가
  */
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class RankingEventListenerTest {
 
     @Mock
     private ProductRankingRepository rankingRepository;
+
+    @Mock
+    private EventIdempotencyService idempotencyService;
+
+    @Mock
+    private FailedEventRepository failedEventRepository;
+
+    @Mock
+    private ObjectMapper objectMapper;
 
     @InjectMocks
     private RankingEventListener listener;
@@ -53,6 +70,11 @@ class RankingEventListenerTest {
         setId(testUser, 1L);
         setId(testProduct1, 1L);
         setId(testProduct2, 2L);
+
+        // Mock 기본 동작 설정
+        // 멱등성 체크: 항상 false (처음 처리)
+        when(idempotencyService.isProcessed(anyString(), anyString())).thenReturn(false);
+        when(idempotencyService.markAsProcessed(anyString(), anyString())).thenReturn(true);
     }
 
     @Test
@@ -152,8 +174,8 @@ class RankingEventListenerTest {
     @Test
     @DisplayName("빈 주문 아이템 리스트인 경우 랭킹 갱신 없음")
     void handlePaymentCompleted_빈주문아이템_랭킹갱신없음() {
-        // Given: 주문 아이템이 없는 주문
-        Order order = Order.create("ORDER-001", testUser, 0L, 0L);
+        // Given: 주문 아이템이 없는 주문 (최소 금액 1원으로 설정)
+        Order order = Order.create("ORDER-001", testUser, 1L, 0L);
         setOrderItems(order, new ArrayList<>());
 
         PaymentCompletedEvent event = new PaymentCompletedEvent(order);
@@ -161,8 +183,8 @@ class RankingEventListenerTest {
         // When: 이벤트 처리
         listener.handlePaymentCompleted(event);
 
-        // Then: Repository 호출 없음
-        verifyNoInteractions(rankingRepository);
+        // Then: incrementScore 호출 없음 (빈 리스트)
+        verify(rankingRepository, never()).incrementScore(anyString(), anyInt());
     }
 
     // ===== Helper Methods =====

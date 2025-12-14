@@ -39,6 +39,10 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 	implementation 'org.redisson:redisson-spring-boot-starter:3.23.5'
 
+	// Retry mechanism
+	implementation 'org.springframework.retry:spring-retry'
+	implementation 'org.springframework:spring-aspects'
+
 	// OpenAPI Documentation (Swagger)
 	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.7.0'
 
@@ -76,7 +80,7 @@ tasks.named('test') {
 	testLogging {
 		events "passed", "skipped", "failed"
 		exceptionFormat "full"
-		showStandardStreams = false
+		showStandardStreams = true  // 임시로 디버깅을 위해 활성화
 	}
 }
 
