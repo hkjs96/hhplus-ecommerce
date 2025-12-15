@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 @Component
 @RequiredArgsConstructor
 @Slf4j
+@org.springframework.context.annotation.Profile("!test")  // 테스트 프로파일에서는 비활성화
 public class RankingBackupScheduler {
 
     private final ProductRankingRepository redisRankingRepository;

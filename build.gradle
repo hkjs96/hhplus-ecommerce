@@ -67,6 +67,9 @@ dependencies {
 	testImplementation 'org.testcontainers:junit-jupiter:1.19.3'
 	testImplementation 'org.testcontainers:mysql:1.19.3'
 	testImplementation 'com.redis.testcontainers:testcontainers-redis:1.6.4'
+
+	// Awaitility (비동기 테스트)
+	testImplementation 'org.awaitility:awaitility:4.2.0'
 }
 
 tasks.named('test') {

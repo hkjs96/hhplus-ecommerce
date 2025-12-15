@@ -49,6 +49,7 @@ public class RankingUpdateEventListener {
     private final ProductRankingRepository rankingRepository;
     private final FailedEventRepository failedEventRepository;
     private final ObjectMapper objectMapper;
+    private final io.hhplus.ecommerce.infrastructure.redis.EventIdempotencyService idempotencyService;
 
     /**
      * 랭킹 갱신 처리 (비동기 + 재시도)
@@ -63,8 +64,21 @@ public class RankingUpdateEventListener {
         backoff = @Backoff(delay = 1000, multiplier = 2)
     )
     public void updateRanking(PaymentCompletedEvent event) {
+        String eventType = "PaymentCompleted";
+        String eventId = "order-" + event.getOrder().getId();
+
         try {
-            // 핵심 로직: 랭킹 갱신
+            // 1. 멱등성 선점: SET NX로 원자적으로 처리 여부 결정
+            // EventIdempotencyListener와 독립적으로 동작 (@Async이므로 다른 스레드)
+            boolean isFirstProcessing = idempotencyService.markAsProcessed(eventType, eventId);
+
+            // 2. 중복 이벤트면 중단 (사이드이펙트 실행 안 함)
+            if (!isFirstProcessing) {
+                log.info("랭킹 갱신 중복 처리 방지 (멱등성 선점 실패): orderId={}", event.getOrder().getId());
+                return;
+            }
+
+            // 3. 핵심 로직: 랭킹 갱신 (최초 처리인 경우에만)
             for (OrderItem item : event.getOrder().getOrderItems()) {
                 rankingRepository.incrementScore(
                     item.getProduct().getId().toString(),

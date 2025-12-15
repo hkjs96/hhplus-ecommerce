@@ -24,7 +24,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
  * - "리스너 1개 = 책임 1개"
  * - "예외를 던져야 재시도 작동"
  */
-@Component
+// @Component  // 비활성화: 각 리스너가 독립적으로 멱등성 관리
 @Order(1)  // 가장 먼저 실행
 @RequiredArgsConstructor
 @Slf4j
@@ -33,7 +33,7 @@ public class EventIdempotencyListener {
     private final EventIdempotencyService idempotencyService;
 
     /**
-     * 멱등성 체크 및 기록
+     * 멱등성 체크 및 기록 (원자적 선점 방식)
      *
      * @param event PaymentCompletedEvent
      * @throws DuplicateEventException 중복 이벤트인 경우
@@ -43,14 +43,17 @@ public class EventIdempotencyListener {
         String eventType = "PaymentCompleted";
         String eventId = "order-" + event.getOrder().getId();
 
-        // 1. 이미 처리된 이벤트인지 확인
-        if (idempotencyService.isProcessed(eventType, eventId)) {
+        // 1. 원자적 선점 시도 (SET NX)
+        // 성공하면 최초 처리, 실패하면 중복 이벤트
+        boolean isFirstProcessing = idempotencyService.markAsProcessed(eventType, eventId);
+
+        if (!isFirstProcessing) {
+            // 2. 중복 이벤트인 경우 예외를 던져 후속 리스너 실행 방지
             log.info("중복 이벤트 감지, 처리 중단: eventId={}", eventId);
             throw new DuplicateEventException("이미 처리된 이벤트입니다: " + eventId);
         }
 
-        // 2. 처리 완료 기록
-        idempotencyService.markAsProcessed(eventType, eventId);
+        // 3. 최초 처리인 경우 기록 완료
         log.debug("멱등성 기록 완료: eventId={}", eventId);
     }
 

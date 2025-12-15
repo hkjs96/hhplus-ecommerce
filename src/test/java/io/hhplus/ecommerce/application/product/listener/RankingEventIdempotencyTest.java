@@ -24,6 +24,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDate;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -70,13 +71,14 @@ class RankingEventIdempotencyTest {
     void setUp() {
         // 테스트 데이터 준비: TransactionTemplate 내부에서 DB 저장 및 커밋
         TransactionTemplate template = new TransactionTemplate(transactionManager);
+        String uniqueId = UUID.randomUUID().toString().substring(0, 8);
 
         template.execute(status -> {
-            testUser = userRepository.save(User.create("idem-test@example.com", "멱등성테스트유저"));
+            testUser = userRepository.save(User.create("idem-test-" + uniqueId + "@example.com", "멱등성테스트유저"));
             testUser.charge(1_000_000L);
 
             testProduct = productRepository.save(
-                Product.create("IDEM-P001", "멱등성상품", "설명1", 10_000L, "전자제품", 100)
+                Product.create("IDEM-P001-" + uniqueId, "멱등성상품", "설명1", 10_000L, "전자제품", 100)
             );
 
             return null;
@@ -94,13 +96,14 @@ class RankingEventIdempotencyTest {
     void 동일이벤트_중복발행_멱등성보장() throws InterruptedException {
         // Given: 주문 생성
         TransactionTemplate template = new TransactionTemplate(transactionManager);
+        String uniqueOrderNumber = "ORDER-" + UUID.randomUUID().toString().substring(0, 8);
 
         Order savedOrder = template.execute(status -> {
             // testUser를 트랜잭션 내부에서 재조회 (detached → managed)
             User user = userRepository.findById(testUser.getId()).orElseThrow();
             Product product = productRepository.findById(testProduct.getId()).orElseThrow();
 
-            Order order = Order.create("ORDER-001", user, 30_000L, 0L);
+            Order order = Order.create(uniqueOrderNumber, user, 30_000L, 0L);
             Order saved = orderRepository.save(order);
 
             OrderItem item = OrderItem.create(saved, product, 3, 10_000L);
@@ -111,7 +114,10 @@ class RankingEventIdempotencyTest {
 
         // When: 동일 이벤트 2번 발행
         template.execute(status -> {
-            eventPublisher.publishEvent(new PaymentCompletedEvent(savedOrder));
+            // OrderItem을 명시적으로 로드 (Lazy Loading 대응)
+            Order order = orderRepository.findById(savedOrder.getId()).orElseThrow();
+            order.getOrderItems().size();  // force initialization
+            eventPublisher.publishEvent(new PaymentCompletedEvent(order));
             return null;
         });
 
@@ -119,7 +125,9 @@ class RankingEventIdempotencyTest {
 
         // 두 번째 이벤트 발행 (중복)
         template.execute(status -> {
-            eventPublisher.publishEvent(new PaymentCompletedEvent(savedOrder));
+            Order order = orderRepository.findById(savedOrder.getId()).orElseThrow();
+            order.getOrderItems().size();  // force initialization
+            eventPublisher.publishEvent(new PaymentCompletedEvent(order));
             return null;
         });
 
@@ -135,12 +143,13 @@ class RankingEventIdempotencyTest {
     void 동일이벤트_3번발행_1번만처리() throws InterruptedException {
         // Given: 주문 생성
         TransactionTemplate template = new TransactionTemplate(transactionManager);
+        String uniqueOrderNumber = "ORDER-" + UUID.randomUUID().toString().substring(0, 8);
 
         Order savedOrder = template.execute(status -> {
             User user = userRepository.findById(testUser.getId()).orElseThrow();
             Product product = productRepository.findById(testProduct.getId()).orElseThrow();
 
-            Order order = Order.create("ORDER-001", user, 50_000L, 0L);
+            Order order = Order.create(uniqueOrderNumber, user, 50_000L, 0L);
             Order saved = orderRepository.save(order);
 
             OrderItem item = OrderItem.create(saved, product, 5, 10_000L);
@@ -152,7 +161,9 @@ class RankingEventIdempotencyTest {
         // When: 동일 이벤트 3번 발행
         for (int i = 0; i < 3; i++) {
             template.execute(status -> {
-                eventPublisher.publishEvent(new PaymentCompletedEvent(savedOrder));
+                Order order = orderRepository.findById(savedOrder.getId()).orElseThrow();
+                order.getOrderItems().size();  // force initialization
+                eventPublisher.publishEvent(new PaymentCompletedEvent(order));
                 return null;
             });
             Thread.sleep(1000);
@@ -170,12 +181,13 @@ class RankingEventIdempotencyTest {
     void 멱등성체크_실패_재시도_중복방지() throws InterruptedException {
         // Given: 주문 생성
         TransactionTemplate template = new TransactionTemplate(transactionManager);
+        String uniqueOrderNumber = "ORDER-" + UUID.randomUUID().toString().substring(0, 8);
 
         Order savedOrder = template.execute(status -> {
             User user = userRepository.findById(testUser.getId()).orElseThrow();
             Product product = productRepository.findById(testProduct.getId()).orElseThrow();
 
-            Order order = Order.create("ORDER-001", user, 20_000L, 0L);
+            Order order = Order.create(uniqueOrderNumber, user, 20_000L, 0L);
             Order saved = orderRepository.save(order);
 
             OrderItem item = OrderItem.create(saved, product, 2, 10_000L);
@@ -186,7 +198,9 @@ class RankingEventIdempotencyTest {
 
         // When: 첫 번째 이벤트 발행 및 처리
         template.execute(status -> {
-            eventPublisher.publishEvent(new PaymentCompletedEvent(savedOrder));
+            Order order = orderRepository.findById(savedOrder.getId()).orElseThrow();
+            order.getOrderItems().size();  // force initialization
+            eventPublisher.publishEvent(new PaymentCompletedEvent(order));
             return null;
         });
 
@@ -197,7 +211,9 @@ class RankingEventIdempotencyTest {
 
         // When: 두 번째 이벤트 발행 (재시도 시뮬레이션)
         template.execute(status -> {
-            eventPublisher.publishEvent(new PaymentCompletedEvent(savedOrder));
+            Order order = orderRepository.findById(savedOrder.getId()).orElseThrow();
+            order.getOrderItems().size();  // force initialization
+            eventPublisher.publishEvent(new PaymentCompletedEvent(order));
             return null;
         });
 
@@ -213,12 +229,14 @@ class RankingEventIdempotencyTest {
     void 서로다른이벤트_각각처리() throws InterruptedException {
         // Given: 두 개의 주문 생성
         TransactionTemplate template = new TransactionTemplate(transactionManager);
+        String uniqueOrderNumber1 = "ORDER-" + UUID.randomUUID().toString().substring(0, 8);
+        String uniqueOrderNumber2 = "ORDER-" + UUID.randomUUID().toString().substring(0, 8);
 
         Order order1 = template.execute(status -> {
             User user = userRepository.findById(testUser.getId()).orElseThrow();
             Product product = productRepository.findById(testProduct.getId()).orElseThrow();
 
-            Order order = Order.create("ORDER-001", user, 30_000L, 0L);
+            Order order = Order.create(uniqueOrderNumber1, user, 30_000L, 0L);
             Order saved = orderRepository.save(order);
 
             OrderItem item = OrderItem.create(saved, product, 3, 10_000L);
@@ -231,7 +249,7 @@ class RankingEventIdempotencyTest {
             User user = userRepository.findById(testUser.getId()).orElseThrow();
             Product product = productRepository.findById(testProduct.getId()).orElseThrow();
 
-            Order order = Order.create("ORDER-002", user, 50_000L, 0L);
+            Order order = Order.create(uniqueOrderNumber2, user, 50_000L, 0L);
             Order saved = orderRepository.save(order);
 
             OrderItem item = OrderItem.create(saved, product, 5, 10_000L);
@@ -242,14 +260,18 @@ class RankingEventIdempotencyTest {
 
         // When: 두 이벤트 발행
         template.execute(status -> {
-            eventPublisher.publishEvent(new PaymentCompletedEvent(order1));
+            Order order = orderRepository.findById(order1.getId()).orElseThrow();
+            order.getOrderItems().size();  // force initialization
+            eventPublisher.publishEvent(new PaymentCompletedEvent(order));
             return null;
         });
 
         Thread.sleep(2000);
 
         template.execute(status -> {
-            eventPublisher.publishEvent(new PaymentCompletedEvent(order2));
+            Order order = orderRepository.findById(order2.getId()).orElseThrow();
+            order.getOrderItems().size();  // force initialization
+            eventPublisher.publishEvent(new PaymentCompletedEvent(order));
             return null;
         });
 

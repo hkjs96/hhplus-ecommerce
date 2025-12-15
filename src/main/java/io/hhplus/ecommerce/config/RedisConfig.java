@@ -17,10 +17,10 @@ import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
-import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.transaction.PlatformTransactionManager;
 
-import javax.sql.DataSource;
+import jakarta.persistence.EntityManagerFactory;
 
 /**
  * Redis 및 Redisson 설정
@@ -114,11 +114,14 @@ public class RedisConfig {
      * Primary TransactionManager 지정
      *
      * Redisson Starter가 JtaTransactionManager를 자동 생성하므로,
-     * DataSource 기반 TransactionManager를 Primary로 지정합니다.
+     * JPA TransactionManager를 Primary로 지정합니다.
+     *
+     * ⚠️ DataSourceTransactionManager는 JPA 작업(flush, saveAndFlush 등)을 지원하지 않으므로,
+     * JPA 엔티티를 사용하는 애플리케이션에서는 JpaTransactionManager를 사용해야 합니다.
      */
     @Bean
     @Primary
-    public PlatformTransactionManager transactionManager(DataSource dataSource) {
-        return new DataSourceTransactionManager(dataSource);
+    public PlatformTransactionManager transactionManager(EntityManagerFactory entityManagerFactory) {
+        return new JpaTransactionManager(entityManagerFactory);
     }
 }

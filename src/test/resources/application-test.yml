@@ -13,12 +13,14 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: create-drop  # 테스트 시작 시 스키마 생성, 종료 시 삭제
+      ddl-auto: create  # 테스트 시작 시 스키마 생성 (Testcontainers가 종료 시 자동 정리)
     properties:
       hibernate:
         format_sql: true
         use_sql_comments: true
         dialect: org.hibernate.dialect.MySQLDialect
+        # DDL 에러를 경고로만 처리 (테스트 로그 정리)
+        hbm2ddl.halt_on_error: false
     show-sql: true
 
   # 캐시 비활성화 (테스트 환경)
@@ -37,3 +39,5 @@ logging:
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
     org.testcontainers: INFO
+    # DDL 에러 로깅 억제 (테스트 초기화 시 무해한 경고)
+    org.hibernate.tool.schema.internal.ExceptionHandlerLoggedImpl: ERROR

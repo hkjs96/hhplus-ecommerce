@@ -72,17 +72,19 @@ public class RankingEventListener {
         String eventId = "order-" + event.getOrder().getId();
 
         try {
-            // 1. 멱등성 체크: 이미 처리된 이벤트인지 확인
-            if (idempotencyService.isProcessed(eventType, eventId)) {
-                log.info("이벤트 중복 처리 방지: orderId={}", event.getOrder().getId());
+            // 1. 멱등성 선점: SET NX로 원자적으로 처리 여부 결정
+            // 최초 처리이면 true, 이미 처리되었으면 false
+            boolean isFirstProcessing = idempotencyService.markAsProcessed(eventType, eventId);
+
+            // 2. 중복 이벤트면 중단 (사이드이펙트 실행 안 함)
+            if (!isFirstProcessing) {
+                log.info("이벤트 중복 처리 방지 (멱등성 선점 실패): orderId={}", event.getOrder().getId());
                 return;
             }
 
-            // 2. 랭킹 갱신 처리
+            // 3. 최초 처리인 경우에만 랭킹 갱신 (사이드이펙트)
+            // 멱등성이 이미 기록되었으므로 이후 실패해도 재시도 시 중복 처리 안 됨
             processRankingUpdate(event);
-
-            // 3. 처리 완료 기록 (멱등성)
-            idempotencyService.markAsProcessed(eventType, eventId);
 
             log.info("랭킹 갱신 완료: orderId={}, itemCount={}",
                 event.getOrder().getId(),
@@ -151,22 +153,22 @@ public class RankingEventListener {
         String eventId = failedEvent.getEventId();
 
         try {
-            // 이미 처리되었는지 재확인
-            if (idempotencyService.isProcessed(eventType, eventId)) {
+            // 1. 멱등성 선점 (재시도에서도 동일한 패턴 적용)
+            boolean isFirstProcessing = idempotencyService.markAsProcessed(eventType, eventId);
+
+            // 2. 이미 처리되었으면 스킵
+            if (!isFirstProcessing) {
                 log.info("재시도 스킵 (이미 처리됨): eventId={}", eventId);
                 return true;
             }
 
-            // 페이로드에서 orderId 추출
+            // 3. 페이로드에서 orderId 추출
             Map<String, Object> payload = objectMapper.readValue(failedEvent.getPayload(), Map.class);
             Long orderId = ((Number) payload.get("orderId")).longValue();
 
-            // Redis 랭킹 갱신 재시도
+            // 4. Redis 랭킹 갱신 재시도
             // Note: 실제로는 Order를 다시 조회해야 하지만, 간단한 재시도 로직으로 구현
             log.info("랭킹 갱신 재시도: eventId={}, orderId={}", eventId, orderId);
-
-            // 멱등성 기록
-            idempotencyService.markAsProcessed(eventType, eventId);
 
             return true;
 

@@ -73,13 +73,15 @@ class ProcessPaymentUseCaseIntegrationTest {
     @BeforeEach
     void setUp() {
         // 테스트 사용자 생성
-        testUser = userRepository.save(User.create("test@example.com", "테스트유저"));
+        testUser = userRepository.save(User.create("test-payment@example.com", "테스트유저"));
         testUser.charge(1_000_000L);  // 100만원 충전
 
         // 테스트 상품 생성
         testProduct = productRepository.save(
-            Product.create("P001", "테스트상품", "설명", 10_000L, "전자제품", 100)
+            Product.create("PAY-P001", "테스트상품", "설명", 10_000L, "전자제품", 100)
         );
+
+        // @Transactional이 자동으로 관리하므로 flush() 불필요
     }
 
     @Test
