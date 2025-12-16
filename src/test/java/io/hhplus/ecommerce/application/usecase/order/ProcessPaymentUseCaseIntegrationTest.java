@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.context.ApplicationEventPublisher;
+import io.hhplus.ecommerce.application.usecase.order.PaymentEventPublisher;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
@@ -65,7 +65,7 @@ class ProcessPaymentUseCaseIntegrationTest {
     private OrderItemRepository orderItemRepository;
 
     @MockBean  // ← 이벤트 리스너 실행 스킵
-    private ApplicationEventPublisher eventPublisher;
+    private PaymentEventPublisher eventPublisher;
 
     private User testUser;
     private Product testProduct;
@@ -107,12 +107,10 @@ class ProcessPaymentUseCaseIntegrationTest {
         assertThat(response.paidAmount()).isEqualTo(30_000L);
 
         // Then: PaymentCompletedEvent 발행 검증
-        verify(eventPublisher).publishEvent(
-            argThat((Object event) ->
-                event instanceof PaymentCompletedEvent &&
-                ((PaymentCompletedEvent) event).getOrder().getId().equals(savedOrder.getId())
-            )
-        );
+        verify(eventPublisher).publish(
+            argThat((PaymentCompletedEvent event) ->
+                event.getOrder().getId().equals(savedOrder.getId())
+            ));
     }
 
     @Test
@@ -192,7 +190,7 @@ class ProcessPaymentUseCaseIntegrationTest {
         assertThat(secondResponse.paidAmount()).isEqualTo(firstResponse.paidAmount());
 
         // Then: 이벤트는 1번만 발행
-        verify(eventPublisher).publishEvent(any(PaymentCompletedEvent.class));
+        verify(eventPublisher).publish(any(PaymentCompletedEvent.class));
     }
 
     @Test

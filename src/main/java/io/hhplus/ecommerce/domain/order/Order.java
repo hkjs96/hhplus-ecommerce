@@ -5,7 +5,6 @@ import io.hhplus.ecommerce.common.exception.ErrorCode;
 import io.hhplus.ecommerce.domain.common.BaseEntity;
 import io.hhplus.ecommerce.domain.user.User;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 

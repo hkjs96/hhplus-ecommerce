@@ -7,9 +7,7 @@ import io.hhplus.ecommerce.domain.order.OrderItemRepository;
 import io.hhplus.ecommerce.domain.order.OrderRepository;
 import io.hhplus.ecommerce.domain.order.PaymentCompletedEvent;
 import io.hhplus.ecommerce.domain.product.Product;
-import io.hhplus.ecommerce.domain.product.ProductRepository;
 import io.hhplus.ecommerce.domain.user.User;
-import io.hhplus.ecommerce.domain.user.UserRepository;
 import io.hhplus.ecommerce.infrastructure.persistence.product.JpaProductRepository;
 import io.hhplus.ecommerce.infrastructure.persistence.user.JpaUserRepository;
 import io.hhplus.ecommerce.infrastructure.redis.ProductRankingRepository;
@@ -22,7 +20,6 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDate;
@@ -42,7 +39,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @SpringBootTest
 @ActiveProfiles("test")
 @Import(TestContainersConfig.class)
-@Transactional  // 전체 테스트 클래스에 @Transactional 적용
 class RankingEventListenerIntegrationTest {
 
     @Autowired
@@ -80,6 +76,7 @@ class RankingEventListenerIntegrationTest {
     private Long testUserId;
     private Long testProduct1Id;
     private Long testProduct2Id;
+    private String testRunId;
 
     /**
      * 테스트 데이터 준비 헬퍼 메서드
@@ -98,6 +95,7 @@ class RankingEventListenerIntegrationTest {
             System.out.println(">>>>>> PREPARING DATA <<<<<<");
             String uniqueId = java.util.UUID.randomUUID().toString().substring(0, 8);
             System.out.println("uniqueId = " + uniqueId);
+            testRunId = uniqueId;
 
             User user = User.create("ranking-int-test-" + uniqueId + "@example.com", "랭킹통합테스트유저");
             System.out.println("User created: " + user);
@@ -113,12 +111,12 @@ class RankingEventListenerIntegrationTest {
             testUserId = savedUser.getId();  // ← ID 추출 (managed 상태에서)
             System.out.println("DEBUG: testUserId = " + testUserId);
 
-            Product product1 = Product.create("RANK-INT-P001-" + uniqueId, "랭킹통합상품1", "설명1", 10_000L, "전자제품", 100);
+            Product product1 = Product.create("RI-P01-" + uniqueId, "랭킹통합상품1", "설명1", 10_000L, "전자제품", 100);
             Product savedProduct1 = productRepository.saveAndFlush(product1);  // ← saveAndFlush 사용
             testProduct1Id = savedProduct1.getId();  // ← ID 추출
             System.out.println("DEBUG: testProduct1Id = " + testProduct1Id);
 
-            Product product2 = Product.create("RANK-INT-P002-" + uniqueId, "랭킹통합상품2", "설명2", 20_000L, "전자제품", 100);
+            Product product2 = Product.create("RI-P02-" + uniqueId, "랭킹통합상품2", "설명2", 20_000L, "전자제품", 100);
             Product savedProduct2 = productRepository.saveAndFlush(product2);  // ← saveAndFlush 사용
             testProduct2Id = savedProduct2.getId();  // ← ID 추출
             System.out.println("DEBUG: testProduct2Id = " + testProduct2Id);
@@ -147,7 +145,7 @@ class RankingEventListenerIntegrationTest {
             User user = userRepository.findById(testUserId).orElseThrow();
             Product product = productRepository.findById(testProduct1Id).orElseThrow();
 
-            Order order = Order.create("ORDER-001", user, 30_000L, 0L);
+            Order order = Order.create("ORD-" + testRunId + "-001", user, 30_000L, 0L);
             order = orderRepository.save(order);
 
             OrderItem item = OrderItem.create(order, product, 3, 10_000L);
@@ -183,7 +181,7 @@ class RankingEventListenerIntegrationTest {
                 User user = userRepository.findById(testUserId).orElseThrow();
                 Product product = productRepository.findById(testProduct1Id).orElseThrow();
 
-                Order order = Order.create("ORDER-001", user, 30_000L, 0L);
+                Order order = Order.create("ORD-" + testRunId + "-RB", user, 30_000L, 0L);
                 order = orderRepository.save(order);
 
                 OrderItem item = OrderItem.create(order, product, 3, 10_000L);
@@ -218,7 +216,7 @@ class RankingEventListenerIntegrationTest {
             Product product1 = productRepository.findById(testProduct1Id).orElseThrow();
             Product product2 = productRepository.findById(testProduct2Id).orElseThrow();
 
-            Order order = Order.create("ORDER-001", user, 50_000L, 0L);
+            Order order = Order.create("ORD-" + testRunId + "-M1", user, 50_000L, 0L);
             order = orderRepository.save(order);
 
             OrderItem item1 = OrderItem.create(order, product1, 2, 10_000L);
@@ -256,7 +254,7 @@ class RankingEventListenerIntegrationTest {
                 User user = userRepository.findById(testUserId).orElseThrow();
                 Product product = productRepository.findById(testProduct1Id).orElseThrow();
 
-                Order order = Order.create("ORDER-00" + quantity, user, 10_000L * quantity, 0L);
+                Order order = Order.create(String.format("ORD-%s-%03d", testRunId, quantity), user, 10_000L * quantity, 0L);
                 order = orderRepository.save(order);
 
                 OrderItem item = OrderItem.create(order, product, quantity, 10_000L);
@@ -291,7 +289,7 @@ class RankingEventListenerIntegrationTest {
             User user = userRepository.findById(testUserId).orElseThrow();
             Product product = productRepository.findById(testProduct1Id).orElseThrow();
 
-            Order order = Order.create("ORDER-001", user, 30_000L, 0L);
+            Order order = Order.create("ORD-" + testRunId + "-R1", user, 30_000L, 0L);
             order = orderRepository.save(order);
 
             OrderItem item = OrderItem.create(order, product, 3, 10_000L);

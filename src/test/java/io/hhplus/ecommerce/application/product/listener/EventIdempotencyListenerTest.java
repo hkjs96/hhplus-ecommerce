@@ -52,13 +52,12 @@ class EventIdempotencyListenerTest {
 
         PaymentCompletedEvent event = new PaymentCompletedEvent(order);
 
-        given(idempotencyService.isProcessed(anyString(), anyString())).willReturn(false);
+        given(idempotencyService.markAsProcessed(anyString(), anyString())).willReturn(true);
 
         // When: 멱등성 체크
         listener.checkIdempotency(event);
 
         // Then: 처리 완료 기록
-        verify(idempotencyService).isProcessed(eq("PaymentCompleted"), eq("order-" + order.getId()));
         verify(idempotencyService).markAsProcessed(eq("PaymentCompleted"), eq("order-" + order.getId()));
     }
 
@@ -81,7 +80,7 @@ class EventIdempotencyListenerTest {
 
         PaymentCompletedEvent event = new PaymentCompletedEvent(order);
 
-        given(idempotencyService.isProcessed(anyString(), anyString())).willReturn(true);
+        given(idempotencyService.markAsProcessed(anyString(), anyString())).willReturn(false);
 
         // When & Then: 예외 발생
         assertThatThrownBy(() -> listener.checkIdempotency(event))

@@ -1,7 +1,5 @@
 package io.hhplus.ecommerce.application.coupon.dto;
 
-import java.time.LocalDateTime;
-
 /**
  * 선착순 쿠폰 예약 응답
  */

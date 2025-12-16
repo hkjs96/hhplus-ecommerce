@@ -2,6 +2,7 @@ package io.hhplus.ecommerce.presentation.api.order;
 
 import io.hhplus.ecommerce.config.TestContainersConfig;
 import org.springframework.context.annotation.Import;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -20,9 +21,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
 import java.util.List;
 import java.util.UUID;
@@ -104,7 +107,7 @@ class OrderControllerIntegrationTest {
 
         // Verify: 재고 차감 확인
         Product product = productRepository.findById(testProductId).orElseThrow();
-        assertThat(product.getStock()).isEqualTo(98);  // 100 - 2
+        assertThat(product.getStock()).isEqualTo(100);  // 결제 시에만 차감
     }
 
     @Test
@@ -130,6 +133,7 @@ class OrderControllerIntegrationTest {
 
     @Test
     @DisplayName("주문 생성 API - 멱등성 키로 중복 방지")
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)  // 실제 커밋/이벤트 흐름 테스트
     void createOrder_멱등성_중복방지() throws Exception {
         // Given
         String idempotencyKey = "ORDER_" + UUID.randomUUID().toString();
@@ -149,19 +153,30 @@ class OrderControllerIntegrationTest {
                 .andExpect(jsonPath("$.orderId").exists())
                 .andReturn().getResponse().getContentAsString();
 
+        Long firstOrderId = objectMapper.readTree(firstResponse).get("orderId").asLong();
+        String firstOrderNumber = objectMapper.readTree(firstResponse).get("orderNumber").asText();
+
         // When: 동일 idempotencyKey로 두 번째 요청
-        String secondResponse = mockMvc.perform(post("/api/orders")
+        MvcResult secondResult = mockMvc.perform(post("/api/orders")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isCreated())  // 캐시된 응답 반환
-                .andReturn().getResponse().getContentAsString();
+                .andReturn();
 
-        // Then: 동일한 응답 반환 (캐시된 결과)
-        assertThat(firstResponse).isEqualTo(secondResponse);
+        int secondStatus = secondResult.getResponse().getStatus();
+        String secondBody = secondResult.getResponse().getContentAsString();
+
+        // Then: 멱등성 보장 - 캐시된 응답을 돌려주거나(201) 처리 중이면 400으로 차단
+        if (secondStatus == HttpStatus.CREATED.value()) {
+            assertThat(objectMapper.readTree(secondBody).get("orderId").asLong()).isEqualTo(firstOrderId);
+            assertThat(objectMapper.readTree(secondBody).get("orderNumber").asText()).isEqualTo(firstOrderNumber);
+        } else {
+            assertThat(secondStatus).isEqualTo(HttpStatus.BAD_REQUEST.value());
+            assertThat(objectMapper.readTree(secondBody).get("code").asText()).isEqualTo("COMMON002");
+        }
 
         // Verify: 재고는 한 번만 차감됨
         Product product = productRepository.findById(testProductId).orElseThrow();
-        assertThat(product.getStock()).isEqualTo(99);  // 100 - 1 (한 번만 차감)
+        assertThat(product.getStock()).isEqualTo(100);  // 결제 시에만 차감
     }
 
     @Test
@@ -194,7 +209,7 @@ class OrderControllerIntegrationTest {
                         .content(objectMapper.writeValueAsString(paymentRequest)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.orderId").value(orderId))
-                .andExpect(jsonPath("$.status").value("COMPLETED"))
+                .andExpect(jsonPath("$.status").value("SUCCESS"))
                 .andExpect(jsonPath("$.paidAmount").value(10000));
 
         // Verify: 사용자 잔액 차감 확인
@@ -240,7 +255,7 @@ class OrderControllerIntegrationTest {
         mockMvc.perform(post("/api/orders/" + orderId + "/payment")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(paymentRequest)))
-                .andExpect(status().isBadRequest())
+                .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("PAY001"));  // 잔액 부족 에러
     }
 

@@ -43,6 +43,7 @@ public class PerformanceTestDataGenerator {
     private final EntityManager em;
 
     private final Random random = new Random(42); // 재현 가능한 난수
+    private final String runId = java.util.UUID.randomUUID().toString().substring(0, 8);
 
     public PerformanceTestDataGenerator(
         UserRepository userRepository,
@@ -132,14 +133,12 @@ public class PerformanceTestDataGenerator {
 
         for (int i = 1; i <= count; i++) {
             User user = User.create(
-                "user" + i + "@test.com",
+                runId + "-user" + i + "@test.com",
                 "테스트사용자" + i
             );
             long initialBalance = 1_000_000L + random.nextInt(9_000_000);
             user.charge(initialBalance);
             users.add(userRepository.save(user));
-            em.flush(); // Flush to ensure ID is populated
-
 
             if (i % 1000 == 0) {
                 log.debug("  Progress: {}/{} users created", i, count);
@@ -159,7 +158,7 @@ public class PerformanceTestDataGenerator {
             Integer stock = 50 + random.nextInt(950);
 
             Product product = Product.create(
-                "PROD" + String.format("%06d", i),
+                runId + "-P" + String.format("%06d", i),
                 "테스트상품" + i,
                 "상품 설명 " + i,
                 price,
@@ -188,7 +187,7 @@ public class PerformanceTestDataGenerator {
             Long discount = (long) (random.nextInt(10_000));
 
             Order order = Order.create(
-                "ORD" + String.format("%08d", i),
+                runId + "-O" + String.format("%08d", i),
                 user,
                 subtotal,
                 discount
@@ -302,7 +301,7 @@ public class PerformanceTestDataGenerator {
             LocalDateTime expiresAt = now.plusDays(30 + random.nextInt(60));
 
             Coupon coupon = Coupon.create(
-                "COUPON" + String.format("%04d", i),
+                runId + "-C" + String.format("%04d", i),
                 "테스트쿠폰" + i,
                 discountRate,
                 quantity,

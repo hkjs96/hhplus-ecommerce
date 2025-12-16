@@ -46,7 +46,7 @@ class UserControllerIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        User user = User.create("test-" + UUID.randomUUID().toString().substring(0, 8) + "@example.com", "김항해");
+        User user = User.create("test@example.com", "김항해"); // 테스트 기대값과 일치하도록 고정 이메일 사용
         user.charge(100000L);
         User savedUser = userRepository.save(user);
         testUserId = savedUser.getId();

@@ -7,8 +7,6 @@ import io.hhplus.ecommerce.application.usecase.UseCase;
 import io.hhplus.ecommerce.common.exception.BusinessException;
 import io.hhplus.ecommerce.common.exception.ErrorCode;
 import io.hhplus.ecommerce.domain.order.Order;
-import io.hhplus.ecommerce.domain.order.OrderItem;
-import io.hhplus.ecommerce.domain.order.OrderRepository;
 import io.hhplus.ecommerce.domain.order.OrderStatus;
 import io.hhplus.ecommerce.domain.user.UserRepository;
 import io.hhplus.ecommerce.infrastructure.persistence.order.JpaOrderRepository;

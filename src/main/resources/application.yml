@@ -6,7 +6,7 @@ spring:
   jpa:
     open-in-view: false
     hibernate:
-      ddl-auto: create  # 개발 시 create (테스트 데이터 재생성용), 프로덕션에서는 none
+      ddl-auto: validate
     properties:
       hibernate:
         format_sql: true
@@ -19,9 +19,9 @@ spring:
   # MySQL 데이터소스 설정
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/ecommerce?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul
-    username: root
-    password: password
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DB:ecommerce}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul
+    username: ${MYSQL_USER:ecommerce_user}
+    password: ${MYSQL_PASSWORD:ecommerce_pass}
     hikari:
       # K6 테스트(최대 350 VUs)를 기반으로 200으로 설정했으나, 실제 모니터링 후 튜닝 필요
       # 우선 100으로 조정

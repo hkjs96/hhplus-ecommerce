@@ -1,7 +1,6 @@
 package io.hhplus.ecommerce.config;
 
 import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.GenericContainer;
@@ -17,77 +16,41 @@ import org.testcontainers.utility.DockerImageName;
 @TestConfiguration
 public class TestContainersConfig {
 
-    private static final MySQLContainer<?> mysql;
-    private static final GenericContainer<?> redis;
+    // 컨테이너는 static 블록에서 한 번만 기동 (JUnit 확장 없이도 동작하도록)
+    static final MySQLContainer<?> mysql = new MySQLContainer<>(DockerImageName.parse("mysql:8.0"))
+        .withDatabaseName("test_ecommerce")
+        .withUsername("test")
+        .withPassword("test")
+        .withCommand(
+            "--character-set-server=utf8mb4",
+            "--collation-server=utf8mb4_unicode_ci",
+            "--max_connections=300"  // 테스트 환경에서는 과도한 커넥션 풀을 줄여 안정성 확보
+        )
+        .withReuse(true);
+
+    static final GenericContainer<?> redis = new GenericContainer<>(DockerImageName.parse("redis:7-alpine"))
+        .withExposedPorts(6379)
+        .withCommand("redis-server", "--maxmemory", "256mb")
+        .withReuse(true);
 
     static {
-        try {
-            // MySQL Container
-            mysql = new MySQLContainer<>("mysql:8.0")
-                    .withDatabaseName("test_ecommerce")
-                    .withUsername("test")
-                    .withPassword("test")
-                    .withCommand(
-                            "--character-set-server=utf8mb4",
-                            "--collation-server=utf8mb4_unicode_ci",
-                            "--max_connections=1000"  // 테스트용 커넥션 풀 증가
-                    )
-                    .withReuse(true);  // 컨테이너 재사용 활성화
-
-            // Redis Container
-            redis = new GenericContainer<>(DockerImageName.parse("redis:7-alpine"))
-                    .withExposedPorts(6379)
-                    .withCommand("redis-server", "--maxmemory", "256mb")
-                    .withReuse(true);  // 컨테이너 재사용 활성화
-
-            // 컨테이너 시작
-            mysql.start();
-            redis.start();
-
-            // JVM 종료 시 컨테이너 정리
-            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-                mysql.stop();
-                redis.stop();
-            }));
-
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to start Testcontainers. Please check Docker is running.", e);
-        }
+        mysql.start();
+        redis.start();
+        // SpringBootTest 컨텍스트 로딩 전에 우선순위 높게 주입 (DynamicPropertySource는 테스트 클래스 한정이라 import 환경 대비)
+        System.setProperty("spring.datasource.url", mysql.getJdbcUrl());
+        System.setProperty("spring.datasource.username", mysql.getUsername());
+        System.setProperty("spring.datasource.password", mysql.getPassword());
+        System.setProperty("spring.data.redis.host", redis.getHost());
+        System.setProperty("spring.data.redis.port", String.valueOf(redis.getMappedPort(6379)));
     }
 
-    /**
-     * 동적으로 프로퍼티 설정
-     */
     @DynamicPropertySource
-    static void registerProperties(DynamicPropertyRegistry registry) {
-        // MySQL 설정
+    static void datasourceAndRedisProperties(DynamicPropertyRegistry registry) {
         registry.add("spring.datasource.url", mysql::getJdbcUrl);
         registry.add("spring.datasource.username", mysql::getUsername);
         registry.add("spring.datasource.password", mysql::getPassword);
 
-        // Redis 설정
         registry.add("spring.data.redis.host", redis::getHost);
-        registry.add("spring.data.redis.port", redis::getFirstMappedPort);
-    }
-
-    @Bean
-    public MySQLContainer<?> mysqlContainer() {
-        return mysql;
-    }
-
-    @Bean
-    public GenericContainer<?> redisContainer() {
-        return redis;
-    }
-
-    /**
-     * Static getters for use in @DynamicPropertySource
-     */
-    public static MySQLContainer<?> getMysqlContainer() {
-        return mysql;
-    }
-
-    public static GenericContainer<?> getRedisContainer() {
-        return redis;
+        registry.add("spring.data.redis.port", () -> redis.getMappedPort(6379));
     }
 }

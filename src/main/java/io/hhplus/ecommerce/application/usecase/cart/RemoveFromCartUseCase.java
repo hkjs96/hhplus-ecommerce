@@ -72,6 +72,9 @@ public class RemoveFromCartUseCase {
             }
             log.debug("Deleted cart item: {}", cartItem.getId());
 
+            // 5. 연관 관계 정리 (orphanRemoval=true)
+            cart.removeCartItem(cartItem);
+
             // 5. 장바구니 저장 (updatedAt은 JPA Auditing이 자동 처리)
             cartRepository.save(cart);
         });

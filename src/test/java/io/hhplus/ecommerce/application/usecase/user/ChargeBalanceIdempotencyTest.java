@@ -2,6 +2,7 @@ package io.hhplus.ecommerce.application.usecase.user;
 
 import io.hhplus.ecommerce.application.user.dto.ChargeBalanceRequest;
 import io.hhplus.ecommerce.application.user.dto.ChargeBalanceResponse;
+import io.hhplus.ecommerce.application.user.listener.BalanceChargedEventHandler;
 import io.hhplus.ecommerce.config.TestContainersConfig;
 import io.hhplus.ecommerce.domain.user.ChargeBalanceIdempotency;
 import io.hhplus.ecommerce.domain.user.ChargeBalanceIdempotencyRepository;
@@ -14,7 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.test.annotation.DirtiesContext;
 
 import java.time.Duration;
 import java.util.UUID;
@@ -35,7 +36,7 @@ import static org.awaitility.Awaitility.await;
 @SpringBootTest
 @ActiveProfiles("test")
 @Import(TestContainersConfig.class)
-@org.springframework.test.annotation.DirtiesContext(classMode = org.springframework.test.annotation.DirtiesContext.ClassMode.AFTER_CLASS)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class ChargeBalanceIdempotencyTest {
     // TestContainersConfig에서 자동으로 설정됨
 
@@ -48,17 +49,13 @@ class ChargeBalanceIdempotencyTest {
     @Autowired
     private ChargeBalanceIdempotencyRepository idempotencyRepository;
 
-    @Autowired
-    private jakarta.persistence.EntityManager entityManager;
-
     @Autowired(required = false)
-    private io.hhplus.ecommerce.application.user.listener.BalanceChargedEventHandler balanceChargedEventHandler;
+    private BalanceChargedEventHandler balanceChargedEventHandler;
 
     private User testUser;
     private static int userCounter = 0;
 
     @BeforeEach
-    @Transactional // Add @Transactional here
     void setUp() {
         // 핸들러가 등록되어 있는지 확인
         if (balanceChargedEventHandler == null) {
@@ -68,8 +65,7 @@ class ChargeBalanceIdempotencyTest {
         // 테스트 사용자 생성 (잔액 100,000원) - 매번 다른 이메일 사용
         testUser = User.create("test" + (++userCounter) + "@example.com", "테스트유저");
         testUser.charge(100_000L);
-        userRepository.save(testUser);
-        entityManager.flush(); // Ensure ID is populated immediately
+        testUser = userRepository.save(testUser); // save 자체가 트랜잭션으로 ID 부여
     }
 
     @Test

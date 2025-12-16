@@ -1,6 +1,5 @@
 package io.hhplus.ecommerce.domain.event;
 
-import io.hhplus.ecommerce.common.exception.ErrorCode;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;

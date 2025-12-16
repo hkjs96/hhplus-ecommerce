@@ -3,9 +3,6 @@ package io.hhplus.ecommerce.presentation.api.cart;
 import io.hhplus.ecommerce.config.TestContainersConfig;
 import org.springframework.context.annotation.Import;
 
-import io.hhplus.ecommerce.application.cart.dto.AddCartItemRequest;
-import io.hhplus.ecommerce.application.cart.dto.DeleteCartItemRequest;
-import io.hhplus.ecommerce.application.cart.dto.UpdateCartItemRequest;
 import io.hhplus.ecommerce.domain.cart.Cart;
 import io.hhplus.ecommerce.domain.cart.CartItem;
 import io.hhplus.ecommerce.domain.cart.CartItemRepository;

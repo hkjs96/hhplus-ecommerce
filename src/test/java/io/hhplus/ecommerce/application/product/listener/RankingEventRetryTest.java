@@ -1,5 +1,6 @@
 package io.hhplus.ecommerce.application.product.listener;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.hhplus.ecommerce.config.TestContainersConfig;
 import io.hhplus.ecommerce.domain.event.FailedEvent;
 import io.hhplus.ecommerce.domain.event.FailedEvent.FailedEventStatus;
@@ -10,26 +11,28 @@ import io.hhplus.ecommerce.domain.order.OrderItemRepository;
 import io.hhplus.ecommerce.domain.order.OrderRepository;
 import io.hhplus.ecommerce.domain.order.PaymentCompletedEvent;
 import io.hhplus.ecommerce.domain.product.Product;
-import io.hhplus.ecommerce.domain.product.ProductRepository;
 import io.hhplus.ecommerce.domain.user.User;
-import io.hhplus.ecommerce.domain.user.UserRepository;
 import io.hhplus.ecommerce.infrastructure.persistence.product.JpaProductRepository;
 import io.hhplus.ecommerce.infrastructure.persistence.user.JpaUserRepository;
+import io.hhplus.ecommerce.infrastructure.redis.EventIdempotencyService;
 import io.hhplus.ecommerce.infrastructure.redis.ProductRankingRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Import;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -49,10 +52,20 @@ import static org.mockito.Mockito.*;
 @Import(TestContainersConfig.class)
 class RankingEventRetryTest {
 
-    @Autowired
-    private ApplicationEventPublisher eventPublisher;
+    @TestConfiguration
+    static class RankingEventRetryTestConfig {
+        @Bean
+        RankingEventListener rankingEventListener(
+            ProductRankingRepository rankingRepository,
+            EventIdempotencyService idempotencyService,
+            FailedEventRepository failedEventRepository,
+            ObjectMapper objectMapper
+        ) {
+            return new RankingEventListener(rankingRepository, idempotencyService, failedEventRepository, objectMapper);
+        }
+    }
 
-    @SpyBean  // Mock이 아닌 Spy를 사용하여 실제 메서드 호출도 가능
+    @MockBean  // 장애 시나리오를 주입하기 위해 목으로 대체
     private ProductRankingRepository rankingRepository;
 
     @Autowired
@@ -75,6 +88,12 @@ class RankingEventRetryTest {
 
     @Autowired
     private RankingEventListener rankingEventListener;
+
+    @Autowired
+    private ApplicationEventPublisher eventPublisher;
+
+    @Autowired
+    private EventIdempotencyService idempotencyService;
 
     private User testUser;
     private Product testProduct;
@@ -117,22 +136,19 @@ class RankingEventRetryTest {
             return saved;
         });
 
-        // When: 이벤트 발행 (Redis 장애)
+        String eventType = "PaymentCompleted";
+        String eventId = "order-" + savedOrder.getId();
+        idempotencyService.remove(eventType, eventId); // 멱등성 키 초기화
+
+        // When: 이벤트 발행 (Redis 장애) - 실제 이벤트 흐름대로
         template.execute(status -> {
             eventPublisher.publishEvent(new PaymentCompletedEvent(savedOrder));
             return null;
         });
 
-        Thread.sleep(3000);  // 비동기 처리 대기
+        FailedEvent failedEvent = awaitFailedEvent(eventType, eventId);
 
         // Then: FailedEvent에 저장되었는지 확인
-        String eventType = "PaymentCompleted";
-        String eventId = "order-" + savedOrder.getId();
-
-        Optional<FailedEvent> failedEventOpt = failedEventRepository.findByEventTypeAndEventId(eventType, eventId);
-        assertThat(failedEventOpt).isPresent();
-
-        FailedEvent failedEvent = failedEventOpt.get();
         assertThat(failedEvent.getEventType()).isEqualTo(eventType);
         assertThat(failedEvent.getEventId()).isEqualTo(eventId);
         assertThat(failedEvent.getStatus()).isEqualTo(FailedEventStatus.PENDING);
@@ -162,23 +178,23 @@ class RankingEventRetryTest {
             return saved;
         });
 
+        String eventType = "PaymentCompleted";
+        String eventId = "order-" + savedOrder.getId();
+        idempotencyService.remove(eventType, eventId); // 멱등성 키 초기화
+
+        // 비동기 이벤트 흐름으로 실패 이벤트 생성
         template.execute(status -> {
             eventPublisher.publishEvent(new PaymentCompletedEvent(savedOrder));
             return null;
         });
 
-        Thread.sleep(3000);
-
-        String eventType = "PaymentCompleted";
-        String eventId = "order-" + savedOrder.getId();
-
-        FailedEvent failedEvent = failedEventRepository.findByEventTypeAndEventId(eventType, eventId)
-            .orElseThrow();
+        FailedEvent failedEvent = awaitFailedEvent(eventType, eventId);
 
         assertThat(failedEvent.getStatus()).isEqualTo(FailedEventStatus.PENDING);
 
         // Given: Redis 복구 (정상 동작)
-        doCallRealMethod().when(rankingRepository).incrementScore(anyString(), anyInt());
+        reset(rankingRepository);
+        doNothing().when(rankingRepository).incrementScore(anyString(), anyInt());
 
         // When: 재시도 시작
         failedEvent.startRetry();
@@ -207,6 +223,8 @@ class RankingEventRetryTest {
         String eventId = "order-12345";
         String payload = "{\"orderId\":12345,\"userId\":1}";
         String errorMessage = "First failure";
+
+        idempotencyService.remove(eventType, eventId); // 멱등성 키 초기화 (재시도 테스트 간 간섭 방지)
 
         FailedEvent failedEvent = FailedEvent.create(eventType, eventId, payload, errorMessage);
         failedEventRepository.save(failedEvent);
@@ -291,5 +309,16 @@ class RankingEventRetryTest {
         FailedEvent updated = failedEventRepository.findById(failedEvent.getId()).orElseThrow();
         boolean canRetryAfter = updated.canRetry();
         assertThat(canRetryAfter).isTrue();
+    }
+
+    private FailedEvent awaitFailedEvent(String eventType, String eventId) throws InterruptedException {
+        for (int i = 0; i < 30; i++) {
+            Optional<FailedEvent> found = failedEventRepository.findByEventTypeAndEventId(eventType, eventId);
+            if (found.isPresent()) {
+                return found.get();
+            }
+            TimeUnit.MILLISECONDS.sleep(100L);
+        }
+        throw new AssertionError("FailedEvent not found for type=" + eventType + ", id=" + eventId);
     }
 }

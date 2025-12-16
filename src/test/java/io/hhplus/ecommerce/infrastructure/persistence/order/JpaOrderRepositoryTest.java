@@ -4,6 +4,7 @@ import io.hhplus.ecommerce.domain.order.Order;
 import io.hhplus.ecommerce.domain.order.OrderStatus;
 import io.hhplus.ecommerce.domain.user.User;
 import io.hhplus.ecommerce.domain.user.UserRepository;
+import io.hhplus.ecommerce.config.JpaAuditingConfig;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -11,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DataJpaTest
 @Testcontainers
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@Import(JpaAuditingConfig.class)
 @DisplayName("JpaOrderRepository 통합 테스트 (MySQL Testcontainers)")
 class JpaOrderRepositoryTest {
 
@@ -53,14 +56,15 @@ class JpaOrderRepositoryTest {
 
     private User testUser;
 
-    @BeforeEach
-    @Transactional
-    void setUp() {
-        testUser = User.createForTest(1L, "test@example.com", "testuser", 0L);
-        userRepository.save(testUser);
-        entityManager.flush(); // Ensure ID is populated
-        entityManager.clear(); // Detach user to avoid conflicts in subsequent operations
-    }
+	    @BeforeEach
+	    @Transactional
+	    void setUp() {
+	        String uniqueId = java.util.UUID.randomUUID().toString().substring(0, 8);
+	        testUser = User.create("test-" + uniqueId + "@example.com", "testuser");
+	        userRepository.save(testUser);
+	        entityManager.flush(); // Ensure ID is populated
+	        entityManager.clear(); // Detach user to avoid conflicts in subsequent operations
+	    }
 
     @Test
     @DisplayName("주문 저장 및 조회 성공")
@@ -143,11 +147,12 @@ class JpaOrderRepositoryTest {
 
     @Test
     @DisplayName("다른 사용자의 주문은 조회되지 않음")
-    void findByUserId_DifferentUser() {
-        // Given: 서로 다른 사용자의 주문 생성
-        User otherUser = User.createForTest(2L, "other@example.com", "otheruser", 0L);
-        userRepository.save(otherUser);
-        entityManager.flush();
+	    void findByUserId_DifferentUser() {
+	        // Given: 서로 다른 사용자의 주문 생성
+	        String uniqueId = java.util.UUID.randomUUID().toString().substring(0, 8);
+	        User otherUser = User.create("other-" + uniqueId + "@example.com", "otheruser");
+	        userRepository.save(otherUser);
+	        entityManager.flush();
 
         Order order1 = Order.create("ORD-20250112-001", testUser, 10000L, 1000L);
         Order order2 = Order.create("ORD-20250112-002", otherUser, 20000L, 2000L);

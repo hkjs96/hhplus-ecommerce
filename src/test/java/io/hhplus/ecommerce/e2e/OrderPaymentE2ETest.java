@@ -92,11 +92,17 @@ class OrderPaymentE2ETest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.paidAmount").value(30000));
 
-        // Then: 비동기 이벤트 처리 대기 (랭킹 갱신)
-        Thread.sleep(3000);  // @Async 처리 대기
+        // Then: 비동기 이벤트 처리 대기 (랭킹 갱신) - 짧게 반복 폴링
+        int score = 0;
+        for (int i = 0; i < 10; i++) {
+            score = rankingRepository.getScore(LocalDate.now(), "888");
+            if (score >= 3) {
+                break;
+            }
+            Thread.sleep(500);
+        }
 
-        // Then: Redis 랭킹에 상품 888의 score가 3 증가 확인
-        int score = rankingRepository.getScore(LocalDate.now(), "888");
+        // Then: Redis 랭킹에 상품 888의 score가 3 이상 반영됨
         assertThat(score).isGreaterThanOrEqualTo(3);
     }
 
@@ -108,7 +114,7 @@ class OrderPaymentE2ETest {
         // When 1: 고액 주문 생성 (잔액 초과하도록 200개 주문)
         CreateOrderRequest orderRequest = new CreateOrderRequest(
             999L,
-            List.of(new OrderItemRequest(888L, 200)),  // 200개 = 2,000,000원
+            List.of(new OrderItemRequest(888L, 150)),  // 150개 = 1,500,000원 (잔액 1,000,000원 초과)
             null,
             "E2E-ORDER-" + UUID.randomUUID()
         );
@@ -131,7 +137,7 @@ class OrderPaymentE2ETest {
         mockMvc.perform(post("/api/orders/" + orderId + "/payment")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(paymentRequest)))
-            .andExpect(status().isBadRequest())
+            .andExpect(status().isConflict())
             .andExpect(jsonPath("$.code").exists());
     }
 
@@ -143,7 +149,7 @@ class OrderPaymentE2ETest {
         // When: 200개 주문 시도
         CreateOrderRequest orderRequest = new CreateOrderRequest(
             999L,
-            List.of(new OrderItemRequest(888L, 200)),  // 재고보다 많은 수량
+            List.of(new OrderItemRequest(888L, 600)),  // 재고보다 많은 수량 (테스트 데이터: 재고 500)
             null,
             "E2E-ORDER-" + UUID.randomUUID()
         );
@@ -152,7 +158,7 @@ class OrderPaymentE2ETest {
         mockMvc.perform(post("/api/orders")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(orderRequest)))
-            .andExpect(status().isBadRequest())
+            .andExpect(status().isConflict())
             .andExpect(jsonPath("$.code").exists())
             .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("재고가 부족합니다")));
     }

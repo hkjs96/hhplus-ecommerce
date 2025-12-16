@@ -15,7 +15,6 @@ import io.hhplus.ecommerce.domain.product.ProductSalesAggregateRepository;
 import io.hhplus.ecommerce.domain.order.Order;
 import io.hhplus.ecommerce.domain.order.OrderItem;
 import io.hhplus.ecommerce.domain.order.OrderRepository;
-import io.hhplus.ecommerce.domain.order.OrderStatus;
 import io.hhplus.ecommerce.domain.user.User;
 import io.hhplus.ecommerce.domain.user.UserRepository;
 import lombok.RequiredArgsConstructor;
