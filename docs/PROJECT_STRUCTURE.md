@@ -134,11 +134,9 @@ src/
 │   │
 │   └── resources/
 │       ├── application.yml
-│       ├── application-dev.yml
-│       ├── application-test.yml
+│       ├── application-local.yml
 │       ├── db/
-│       │   └── migration/             # Flyway/Liquibase
-│       │       └── V1__init.sql
+│       │   └── migration/             # (optional) migration scripts
 │       └── static/
 │
 └── test/

@@ -287,7 +287,7 @@ void testConcurrentCouponIssuance() throws InterruptedException {
 **애플리케이션 로그 레벨 조정:**
 
 ```yaml
-# application-dev.yml
+# application-local.yml
 logging:
   level:
     io.hhplus.ecommerce.application.usecase.coupon: DEBUG
@@ -399,4 +399,4 @@ Order + Payment:
 - 구현 코드: `IssueCouponUseCase.java:29-98`
 - 동시성 전략: `.claude/commands/concurrency.md`
 - 아키텍처 가이드: `.claude/commands/architecture.md`
-- DB 스키마: `src/main/resources/schema.sql`
+- DB 스키마: 애플리케이션 기동 시 자동 생성 (`spring.jpa.hibernate.ddl-auto=create`)

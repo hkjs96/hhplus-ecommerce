@@ -723,7 +723,7 @@ spring:
     url: jdbc:h2:mem:testdb
 
 ---
-# application-dev.yml (MySQL)
+# application-local.yml (MySQL)
 spring:
   datasource:
     url: jdbc:mysql://localhost:3306/ecommerce
