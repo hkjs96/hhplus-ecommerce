@@ -44,18 +44,16 @@ public class CouponController {
      *
      * POST /api/coupons/{couponId}/reserve
      * - Redis INCR로 순번 획득
-     * - DB에 예약 기록 (CouponReservation)
+     * - Redis Set으로 중복 예약 방지
      * - Event 발행 → 실제 발급 처리 (비동기)
      *
      * 응답:
      * {
-     *   "reservationId": 123,
      *   "couponId": 1,
      *   "userId": 456,
      *   "sequenceNumber": 42,
-     *   "status": "RESERVED",
-     *   "message": "쿠폰 발급 예약이 완료되었습니다. (42번째)",
-     *   "reservedAt": "2025-12-04T10:00:00"
+     *   "status": "RESERVED", 
+     *   "message": "쿠폰 발급 예약이 완료되었습니다. (42번째)"
      * }
      */
     @PostMapping("/coupons/{couponId}/reserve")
