@@ -58,9 +58,17 @@ class AddToCartUseCaseTest {
     @Autowired
     private io.hhplus.ecommerce.infrastructure.persistence.user.JpaUserRepository jpaUserRepository;
 
+    @Autowired
+    private io.hhplus.ecommerce.infrastructure.persistence.order.JpaOrderItemRepository jpaOrderItemRepository;
+
+    @Autowired
+    private io.hhplus.ecommerce.infrastructure.persistence.order.JpaOrderRepository jpaOrderRepository;
+
     @BeforeEach
     void setUp() {
         // 테이블 초기화
+        jpaOrderItemRepository.deleteAll();
+        jpaOrderRepository.deleteAll();
         jpaCartItemRepository.deleteAll();
         jpaCartRepository.deleteAll();
         jpaProductRepository.deleteAll();
