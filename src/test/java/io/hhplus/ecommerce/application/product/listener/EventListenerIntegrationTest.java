@@ -39,7 +39,7 @@ import java.util.concurrent.TimeUnit;
  *
  * 전략:
  * - ProcessPaymentUseCaseIntegrationTest 패턴 참고
- * - @MockBean 없이 실제 ApplicationEventPublisher 사용
+ * - @MockitoBean 없이 실제 ApplicationEventPublisher 사용
  * - 비동기 처리 대기는 Awaitility 사용
  */
 @SpringBootTest

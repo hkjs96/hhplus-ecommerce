@@ -17,7 +17,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import io.hhplus.ecommerce.application.usecase.order.PaymentEventPublisher;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
@@ -40,7 +40,7 @@ import static org.mockito.Mockito.verify;
  *
  * 특징:
  * - @Transactional: 각 테스트 후 자동 롤백
- * - @MockBean ApplicationEventPublisher: 이벤트 리스너 실행 스킵
+ * - @MockitoBean ApplicationEventPublisher: 이벤트 리스너 실행 스킵
  * - 실제 DB 연동하여 비즈니스 로직 검증
  */
 @SpringBootTest
@@ -64,7 +64,7 @@ class ProcessPaymentUseCaseIntegrationTest {
     @Autowired
     private OrderItemRepository orderItemRepository;
 
-    @MockBean  // ← 이벤트 리스너 실행 스킵
+    @MockitoBean  // ← 이벤트 리스너 실행 스킵
     private PaymentEventPublisher eventPublisher;
 
     private User testUser;
