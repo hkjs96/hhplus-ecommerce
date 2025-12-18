@@ -21,7 +21,10 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -92,18 +95,14 @@ class OrderPaymentE2ETest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.paidAmount").value(30000));
 
-        // Then: 비동기 이벤트 처리 대기 (랭킹 갱신) - 짧게 반복 폴링
-        int score = 0;
-        for (int i = 0; i < 10; i++) {
-            score = rankingRepository.getScore(LocalDate.now(), "888");
-            if (score >= 3) {
-                break;
-            }
-            Thread.sleep(500);
-        }
-
-        // Then: Redis 랭킹에 상품 888의 score가 3 이상 반영됨
-        assertThat(score).isGreaterThanOrEqualTo(3);
+        // Then: 비동기 이벤트 처리 대기 (랭킹 갱신) - Awaitility로 상태 기반 검증
+        LocalDate today = LocalDate.now();
+        await().atMost(5, SECONDS)
+            .pollInterval(200, MILLISECONDS)
+            .untilAsserted(() -> {
+                int score = rankingRepository.getScore(today, "888");
+                assertThat(score).isGreaterThanOrEqualTo(3);
+            });
     }
 
     @Test
