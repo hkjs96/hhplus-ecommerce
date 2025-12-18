@@ -100,11 +100,16 @@ jacocoTestReport {
 		csv.required = true
 	}
 
+	def jacocoExcludes = [
+		'**/EcommerceApplication.class',
+		'**/infrastructure/config/**',
+		'**/infrastructure/init/**'
+	]
+
 	afterEvaluate {
 		classDirectories.setFrom(files(classDirectories.files.collect {
 			fileTree(dir: it, exclude: [
-				'**/EcommerceApplication.class',
-				'**/configdtoexception/**'
+				*jacocoExcludes
 			])
 		}))
 	}
@@ -117,6 +122,20 @@ jacocoTestCoverageVerification {
 				minimum = 0.70
 			}
 		}
+	}
+
+	afterEvaluate {
+		def jacocoExcludes = [
+			'**/EcommerceApplication.class',
+			'**/infrastructure/config/**',
+			'**/infrastructure/init/**'
+		]
+
+		classDirectories.setFrom(files(classDirectories.files.collect {
+			fileTree(dir: it, exclude: [
+				*jacocoExcludes
+			])
+		}))
 	}
 }
 
