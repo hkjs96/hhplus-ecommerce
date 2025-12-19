@@ -7,8 +7,10 @@ import io.hhplus.ecommerce.domain.order.Order;
 import io.hhplus.ecommerce.domain.order.OrderRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestClient;
 
 import java.util.UUID;
 
@@ -20,6 +22,13 @@ public class OrderFacade {
     private final CreateOrderUseCase createOrderUseCase;
     private final ProcessPaymentUseCase processPaymentUseCase;
     private final OrderRepository orderRepository;
+    private final RestClient.Builder restClientBuilder;
+
+    @Value("${demo.payment.remote.enabled:false}")
+    private boolean remotePaymentEnabled;
+
+    @Value("${demo.payment.remote.base-url:}")
+    private String remotePaymentBaseUrl;
 
     public CompleteOrderResponse createAndPayOrder(CompleteOrderRequest request) {
         log.info("Facade: Create and pay order for user: {}", request.userId());
@@ -40,7 +49,9 @@ public class OrderFacade {
         String idempotencyKey = "ORDER_" + order.orderId() + "_" + UUID.randomUUID().toString();
         PaymentRequest paymentRequest = new PaymentRequest(request.userId(), idempotencyKey);
 
-        PaymentResponse payment = processPaymentUseCase.execute(order.orderId(), paymentRequest);
+        PaymentResponse payment = remotePaymentEnabled
+                ? requestRemotePayment(order.orderId(), paymentRequest)
+                : processPaymentUseCase.execute(order.orderId(), paymentRequest);
         log.debug("Payment processed: {}", payment.status());
 
         // 3. 결제 후 최신 주문 상태 반영
@@ -61,9 +72,21 @@ public class OrderFacade {
         return new CompleteOrderResponse(updatedOrderResponse, payment);
     }
 
+    private PaymentResponse requestRemotePayment(Long orderId, PaymentRequest request) {
+        if (remotePaymentBaseUrl == null || remotePaymentBaseUrl.isBlank()) {
+            throw new IllegalStateException("demo.payment.remote.base-url must be set when demo.payment.remote.enabled=true");
+        }
+
+        RestClient client = restClientBuilder.baseUrl(remotePaymentBaseUrl).build();
+        return client.post()
+                .uri("/api/orders/{orderId}/payment", orderId)
+                .body(request)
+                .retrieve()
+                .body(PaymentResponse.class);
+    }
+
     @Transactional(readOnly = true)
     protected Order getUpdatedOrder(Long orderId) {
         return orderRepository.findByIdOrThrow(orderId);
     }
 }
-
