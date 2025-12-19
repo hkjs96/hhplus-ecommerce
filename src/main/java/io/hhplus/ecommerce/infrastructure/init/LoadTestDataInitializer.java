@@ -78,14 +78,10 @@ public class LoadTestDataInitializer implements CommandLineRunner {
 
         int created = 0;
         String insertSql = "INSERT INTO users (id, email, username, balance, version, created_at, updated_at) " +
-                           "VALUES (?, ?, ?, ?, ?, NOW(), NOW())";
+                           "VALUES (?, ?, ?, ?, ?, NOW(), NOW()) " +
+                           "ON DUPLICATE KEY UPDATE id = id";
 
         for (long id = startId; id <= endId; id++) {
-            // 이미 존재하는지 확인
-            if (userRepository.findById(id).isPresent()) {
-                continue; // 이미 존재하면 skip
-            }
-
             // 네이티브 SQL INSERT로 사용자 생성
             String email = String.format("k6test%d@loadtest.com", id);
             String username = String.format("%s-%d", namePrefix, id);
@@ -94,8 +90,10 @@ public class LoadTestDataInitializer implements CommandLineRunner {
             long balance = (id == 1) ? 20_000_000_000L : 10_000L;  // 200억원 (여유 확보)
             long version = 0L;
 
-            jdbcTemplate.update(insertSql, id, email, username, balance, version);
-            created++;
+            int affectedRows = jdbcTemplate.update(insertSql, id, email, username, balance, version);
+            if (affectedRows == 1) {
+                created++;
+            }
 
             // 진행 상황 로깅 (매 1000명마다)
             if (created % 1000 == 0) {
