@@ -5,7 +5,7 @@ scrape_configs:
   - job_name: app
     metrics_path: /actuator/prometheus
     static_configs:
-      - targets: ["order-service:8080", "payment-service:8080"]
+      - targets: ["gateway:8080", "order-service:8080", "payment-service:8080"]
 
   - job_name: mysqld-exporter
     static_configs:

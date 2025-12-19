@@ -8,7 +8,6 @@ docker compose -f observability/ms-demo/docker-compose.yml up -d --build
 ```
 
 ## URLs
-- Gateway (nginx): http://localhost:8080
+- Gateway (Spring Cloud Gateway): http://localhost:8080
 - Grafana: http://localhost:3000 (admin/admin)
 - Prometheus: http://localhost:9090
-
