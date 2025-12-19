@@ -11,10 +11,19 @@
     "list": [
       {
         "name": "route",
-        "type": "textbox",
-        "label": "route (http.route, optional)",
-        "query": "/api/users/{userId}/balance",
-        "current": { "text": "/api/users/{userId}/balance", "value": "/api/users/{userId}/balance" }
+        "type": "query",
+        "label": "route (http.route)",
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "refresh": 2,
+        "includeAll": true,
+        "allValue": "",
+        "sort": 1,
+        "definition": "label_values(http_server_requests_seconds_count, uri)",
+        "query": {
+          "query": "label_values(http_server_requests_seconds_count, uri)",
+          "refId": "StandardVariableQuery"
+        },
+        "current": { "text": "All", "value": "$__all" }
       }
     ]
   },
@@ -48,11 +57,11 @@
       "type": "logs",
       "title": "App logs (errors)",
       "datasource": { "type": "loki", "uid": "loki" },
-      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 6 },
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 18 },
       "targets": [
         {
           "refId": "A",
-          "expr": "{compose_service=~\"app.*\"} |= \"ERROR\""
+          "expr": "{compose_service=~\"app.*\"} |= \"${route}\" |= \"ERROR\""
         }
       ],
       "options": {
@@ -61,6 +70,57 @@
         "prettifyLogMessage": false,
         "dedupStrategy": "none"
       }
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Top 10 routes by 5xx (rate)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 6 },
+      "fieldConfig": {
+        "defaults": {
+          "links": [
+            {
+              "title": "Filter this route",
+              "url": "/d/lgtm-route-drilldown/02-route-drilldown?var-route=${__field.labels.uri}&from=${__from}&to=${__to}",
+              "targetBlank": false
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "topk(10, sum(rate(http_server_requests_seconds_count{status=~\"5..\"}[5m])) by (uri))"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Top 10 routes by p95 (seconds)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 6 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "links": [
+            {
+              "title": "Filter this route",
+              "url": "/d/lgtm-route-drilldown/02-route-drilldown?var-route=${__field.labels.uri}&from=${__from}&to=${__to}",
+              "targetBlank": false
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "topk(10, histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket[5m])) by (le, uri)))"
+        }
+      ]
     }
   ]
 }

@@ -34,8 +34,5 @@ datasources:
         datasourceUid: loki
         spanStartTimeShift: "-1m"
         spanEndTimeShift: "1m"
-        tags:
-          - key: service.name
-            value: ecommerce-app
         filterByTraceID: true
         filterBySpanID: false
