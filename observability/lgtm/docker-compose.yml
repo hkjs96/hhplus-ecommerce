@@ -142,7 +142,7 @@ services:
       - ./app.env
     environment:
       # OTel Java Agent (config file mounted below)
-      JAVA_TOOL_OPTIONS: "-javaagent:/otel/opentelemetry-javaagent.jar -Dotel.javaagent.configuration-file=/etc/otel/otel-agent.properties"
+      JAVA_TOOL_OPTIONS: "-javaagent:/otel/opentelemetry-javaagent.jar -Dotel.javaagent.configuration-file=/etc/otel/otel-agent.properties -Dotel.service.name=ecommerce-app-1"
     volumes:
       - ./otel-agent.properties:/etc/otel/otel-agent.properties:ro
     depends_on:
@@ -158,7 +158,7 @@ services:
     env_file:
       - ./app.env
     environment:
-      JAVA_TOOL_OPTIONS: "-javaagent:/otel/opentelemetry-javaagent.jar -Dotel.javaagent.configuration-file=/etc/otel/otel-agent.properties"
+      JAVA_TOOL_OPTIONS: "-javaagent:/otel/opentelemetry-javaagent.jar -Dotel.javaagent.configuration-file=/etc/otel/otel-agent.properties -Dotel.service.name=ecommerce-app-2"
     volumes:
       - ./otel-agent.properties:/etc/otel/otel-agent.properties:ro
     depends_on:
@@ -174,7 +174,7 @@ services:
     env_file:
       - ./app.env
     environment:
-      JAVA_TOOL_OPTIONS: "-javaagent:/otel/opentelemetry-javaagent.jar -Dotel.javaagent.configuration-file=/etc/otel/otel-agent.properties"
+      JAVA_TOOL_OPTIONS: "-javaagent:/otel/opentelemetry-javaagent.jar -Dotel.javaagent.configuration-file=/etc/otel/otel-agent.properties -Dotel.service.name=ecommerce-app-3"
     volumes:
       - ./otel-agent.properties:/etc/otel/otel-agent.properties:ro
     depends_on:
