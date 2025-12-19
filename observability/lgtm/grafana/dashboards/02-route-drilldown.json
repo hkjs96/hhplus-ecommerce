@@ -12,9 +12,9 @@
       {
         "name": "route",
         "type": "textbox",
-        "label": "route (http.route)",
-        "query": "/api/users/{userId}/balance",
-        "current": { "text": "/api/users/{userId}/balance", "value": "/api/users/{userId}/balance" }
+        "label": "route (http.route, optional)",
+        "query": "",
+        "current": { "text": "", "value": "" }
       }
     ]
   },
@@ -46,13 +46,13 @@
     {
       "id": 2,
       "type": "logs",
-      "title": "App logs (filtered by route)",
+      "title": "App logs (errors)",
       "datasource": { "type": "loki", "uid": "loki" },
       "gridPos": { "h": 12, "w": 24, "x": 0, "y": 6 },
       "targets": [
         {
           "refId": "A",
-          "expr": "{compose_service=~\"app.*\"} |= \"${route}\""
+          "expr": "{compose_service=~\"app.*\"} |= \"ERROR\""
         }
       ],
       "options": {
@@ -64,4 +64,3 @@
     }
   ]
 }
-
