@@ -1,0 +1,208 @@
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: ecommerce
+      MYSQL_USER: ecommerce_user
+      MYSQL_PASSWORD: ecommerce_pass
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./data/mysql:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-proot"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./data/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  mysqld-exporter:
+    image: prom/mysqld-exporter:v0.16.0
+    command: ["--config.my-cnf=/etc/mysqld-exporter/.my.cnf"]
+    volumes:
+      - ./mysqld-exporter.my.cnf:/etc/mysqld-exporter/.my.cnf:ro
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.66.0
+    environment:
+      REDIS_ADDR: redis://redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  statsd-exporter:
+    image: prom/statsd-exporter:v0.27.2
+    ports:
+      - "9102:9102"
+    expose:
+      - "9125/udp"
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--web.enable-remote-write-receiver"
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./data/prometheus:/prometheus
+
+  loki:
+    image: grafana/loki:3.2.1
+    command: ["-config.file=/etc/loki/loki.yaml"]
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./loki.yaml:/etc/loki/loki.yaml:ro
+      - ./data/loki:/loki
+
+  tempo:
+    image: grafana/tempo:2.6.1
+    command:
+      - "-config.file=/etc/tempo/tempo.yaml"
+      - "-ingester.max-traces-per-user=200000"
+    ports:
+      - "3200:3200"   # http
+      - "4317:4317"   # otlp grpc
+      - "4318:4318"   # otlp http
+    volumes:
+      - ./tempo.yaml:/etc/tempo/tempo.yaml:ro
+      - ./data/tempo:/var/tempo
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.114.0
+    command: ["--config=/etc/otel-collector.yaml"]
+    volumes:
+      - ./otel-collector.yaml:/etc/otel-collector.yaml:ro
+    depends_on:
+      - tempo
+
+  alloy:
+    image: grafana/alloy:latest
+    user: "0:0"
+    command: ["run", "--server.http.listen-addr=0.0.0.0:12345", "/etc/alloy/alloy.river"]
+    volumes:
+      - ./alloy.river:/etc/alloy/alloy.river:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "12345:12345"
+    depends_on:
+      - loki
+      - prometheus
+
+  grafana:
+    image: grafana/grafana:11.3.0
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./data/grafana:/var/lib/grafana
+    depends_on:
+      - loki
+      - tempo
+      - prometheus
+
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - app1
+      - app2
+      - app3
+
+  app1:
+    build:
+      context: ../..
+      dockerfile: observability/lgtm/app.Dockerfile
+    image: hhplus-ecommerce-app:lgtm
+    env_file:
+      - ./app.env
+    environment:
+      # OTel Java Agent (config file mounted below)
+      JAVA_TOOL_OPTIONS: "-javaagent:/otel/opentelemetry-javaagent.jar -Dotel.javaagent.configuration-file=/etc/otel/otel-agent.properties"
+    volumes:
+      - ./otel-agent.properties:/etc/otel/otel-agent.properties:ro
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+
+  app2:
+    image: hhplus-ecommerce-app:lgtm
+    env_file:
+      - ./app.env
+    environment:
+      JAVA_TOOL_OPTIONS: "-javaagent:/otel/opentelemetry-javaagent.jar -Dotel.javaagent.configuration-file=/etc/otel/otel-agent.properties"
+    volumes:
+      - ./otel-agent.properties:/etc/otel/otel-agent.properties:ro
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+
+  app3:
+    image: hhplus-ecommerce-app:lgtm
+    env_file:
+      - ./app.env
+    environment:
+      JAVA_TOOL_OPTIONS: "-javaagent:/otel/opentelemetry-javaagent.jar -Dotel.javaagent.configuration-file=/etc/otel/otel-agent.properties"
+    volumes:
+      - ./otel-agent.properties:/etc/otel/otel-agent.properties:ro
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+
+  k6:
+    image: grafana/k6:0.49.0
+    profiles: ["k6"]
+    environment:
+      BASE_URL: http://nginx
+      K6_STATSD_ADDR: statsd-exporter:9125
+    volumes:
+      - ./k6:/k6:ro
+    entrypoint:
+      [
+        "k6",
+        "run",
+        "-o",
+        "statsd",
+        "--traces-output",
+        "otel=http://otel-collector:4318",
+        "/k6/script.js"
+      ]
+    depends_on:
+      - nginx
+      - statsd-exporter

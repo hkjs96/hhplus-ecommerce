@@ -32,3 +32,6 @@ docs/week6/loadtest/k6/results/*-summary.json
 *.log
 build-*.log
 build-*.txt
+
+# Observability demo runtime data (local persistence volumes)
+observability/lgtm/data/
