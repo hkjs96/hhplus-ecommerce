@@ -1,6 +1,7 @@
 services:
   mysql:
     image: mysql:8.4
+    container_name: ecommerce-mysql
     environment:
       MYSQL_DATABASE: ecommerce
       MYSQL_USER: ecommerce_user
@@ -18,6 +19,7 @@ services:
 
   redis:
     image: redis:7
+    container_name: ecommerce-redis
     command: ["redis-server", "--appendonly", "yes"]
     ports:
       - "6379:6379"
