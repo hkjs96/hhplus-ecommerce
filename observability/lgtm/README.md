@@ -14,8 +14,16 @@
 - 포트 사용: `3000(Grafana)`, `8080(App)`, `3100(Loki)`, `3200(Tempo)`, `9090(Prometheus)`
 
 ## 빠른 시작
+### 1) 최초 1회(앱 이미지 빌드)
 ```bash
-docker compose -f observability/lgtm/docker-compose.yml up -d --build
+docker compose -f observability/lgtm/docker-compose.yml build app1
+```
+
+### 2) 일반 실행(이미지 재사용)
+> `--build`를 붙이지 않으면 기존 `hhplus-ecommerce-app:lgtm` 이미지를 사용합니다.
+
+```bash
+docker compose -f observability/lgtm/docker-compose.yml up -d
 ```
 
 ### 영속성(로컬 디렉터리)
@@ -23,7 +31,7 @@ docker compose -f observability/lgtm/docker-compose.yml up -d --build
 - 필요하면 전체 초기화: `rm -rf observability/lgtm/data`
 
 ### 접속
-- App: `http://localhost:8080`
+- App(Nginx → app1~3 로드밸런싱): `http://localhost:8080`
 - Swagger: `http://localhost:8080/swagger-ui.html`
 - Grafana: `http://localhost:3000` (기본: `admin` / `admin`)
 

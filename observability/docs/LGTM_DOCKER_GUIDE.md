@@ -37,12 +37,22 @@
 - 영속 데이터: `observability/lgtm/data/` (자동 생성)
 
 ## 4) 실행
+### 4.1 최초 1회(이미지 빌드)
+> 앱 코드를 바꿔도 “이미지”를 다시 만들기 전까지는 기존 이미지를 그대로 사용합니다.
+
 ```bash
-docker compose -f observability/lgtm/docker-compose.yml up -d --build
+docker compose -f observability/lgtm/docker-compose.yml build app1
+```
+
+### 4.2 일반 실행(이미지 재사용)
+> `--build`를 붙이지 않으면 기존 `hhplus-ecommerce-app:lgtm` 이미지를 사용합니다.
+
+```bash
+docker compose -f observability/lgtm/docker-compose.yml up -d
 ```
 
 ### 접속
-- App: `http://localhost:8080`
+- App(Nginx → app1~3 로드밸런싱): `http://localhost:8080`
 - Swagger: `http://localhost:8080/swagger-ui.html`
 - Grafana: `http://localhost:3000` (기본: `admin` / `admin`)
 - Prometheus: `http://localhost:9090`
@@ -102,7 +112,7 @@ docker compose -f observability/lgtm/docker-compose.yml restart app
 ```bash
 docker compose -f observability/lgtm/docker-compose.yml down
 rm -rf observability/lgtm/data
-docker compose -f observability/lgtm/docker-compose.yml up -d --build
+docker compose -f observability/lgtm/docker-compose.yml up -d
 ```
 
 ### 8.2 LGTM만 초기화(예: Grafana/Loki/Tempo/Prometheus만)
@@ -110,7 +120,15 @@ docker compose -f observability/lgtm/docker-compose.yml up -d --build
 ```bash
 docker compose -f observability/lgtm/docker-compose.yml down
 rm -rf observability/lgtm/data/{grafana,loki,tempo,prometheus}
-docker compose -f observability/lgtm/docker-compose.yml up -d --build
+docker compose -f observability/lgtm/docker-compose.yml up -d
+```
+
+## 8.3 앱 코드 변경을 반영하고 싶다면(이미지 재빌드)
+> 이 문서에서 말하는 “재빌드”는 Gradle 빌드가 아니라 **Docker 이미지 빌드**입니다.
+
+```bash
+docker compose -f observability/lgtm/docker-compose.yml build app1
+docker compose -f observability/lgtm/docker-compose.yml up -d --force-recreate app1 app2 app3 nginx
 ```
 
 ## 9) 자주 겪는 이슈(체크리스트)
