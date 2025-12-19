@@ -107,6 +107,19 @@ curl "http://localhost:9090/api/v1/query?query=traces_service_graph_request_tota
 docker compose -f observability/lgtm/docker-compose.yml restart app
 ```
 
+## 7.1 (옵션) Service Graph에 앱 3개 노드로 보이게 하기
+> Tempo Service Graph는 기본적으로 `service.name` 단위라, 동일 서비스의 복제본(app1~3)은 1개로 합쳐 보입니다.  
+> 데모 목적상 “3개로 분리해서 보고 싶으면” app별로 `otel.service.name`을 다르게 설정합니다.
+
+- app1: `ecommerce-app-1`
+- app2: `ecommerce-app-2`
+- app3: `ecommerce-app-3`
+
+이 변경은 **이미지 재빌드 없이**, 컨테이너만 다시 만들면 적용됩니다.
+```bash
+docker compose -f observability/lgtm/docker-compose.yml up -d --force-recreate app1 app2 app3
+```
+
 ## 8) 영속성/초기화
 ### 8.1 전체 초기화(트레이스/로그/메트릭/그라파나 + DB/Redis까지)
 ```bash

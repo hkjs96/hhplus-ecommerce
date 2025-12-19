@@ -57,6 +57,14 @@ docker compose -f observability/lgtm/docker-compose.yml run --rm k6
 - Grafana → Explore → Tempo에서 **Service Graph** / **Node Graph** 탭이 활성화되는지 확인합니다.
 - Prometheus에서 `traces_service_graph_request_total` 이 조회되면(service graph 메트릭 생성) 정상입니다.
 
+### (옵션) Service Graph에 앱 3개 노드로 보이게 하기
+Tempo Service Graph는 기본적으로 `service.name` 단위라, 동일 서비스의 복제본(app1~3)은 1개로 합쳐 보입니다.  
+데모 목적상 분리해서 보고 싶으면 app별로 `otel.service.name`을 다르게 설정합니다(이미지 재빌드 불필요).
+
+```bash
+docker compose -f observability/lgtm/docker-compose.yml up -d --force-recreate app1 app2 app3
+```
+
 ## DB/Redis 스팬(현재 기본)
 - 지금 구성은 **DB/JDBC, Hibernate, Redis** 스팬을 기본으로 포함합니다.
 - 대신 Repository 스팬이 너무 많아 **Spring Data만 기본 OFF** 입니다: `otel.instrumentation.spring-data.enabled=false`
