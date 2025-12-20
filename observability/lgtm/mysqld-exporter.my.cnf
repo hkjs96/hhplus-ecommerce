@@ -1,6 +1,0 @@
-[client]
-user=ecommerce_user
-password=ecommerce_pass
-host=mysql
-port=3306
-
