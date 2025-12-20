@@ -19,6 +19,7 @@ import io.hhplus.ecommerce.domain.user.User;
 import io.hhplus.ecommerce.domain.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Profile;
@@ -34,6 +35,9 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class DataInitializer implements ApplicationRunner {
 
+    @Value("${demo.seed.enabled:true}")
+    private boolean demoSeedEnabled;
+
     private final UserRepository userRepository;
     private final ProductRepository productRepository;
     private final CouponRepository couponRepository;
@@ -46,6 +50,11 @@ public class DataInitializer implements ApplicationRunner {
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
+        if (!demoSeedEnabled) {
+            log.info("⏭️  demo.seed.enabled=false. Skipping data initialization.");
+            return;
+        }
+
         log.info("🚀 Starting initial data loading...");
 
         // 중복 방지: 이미 데이터가 존재하면 건너뜀
