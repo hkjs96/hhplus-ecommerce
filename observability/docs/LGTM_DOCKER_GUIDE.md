@@ -147,6 +147,9 @@ docker compose -f observability/lgtm/docker-compose.yml up -d --force-recreate a
 ## 9) 자주 겪는 이슈(체크리스트)
 > 아래는 실제 구성 과정에서 “한 번씩 다 터졌던” 트러블슈팅을 모아둔 목록입니다.
 
+추가 트러블슈팅 모음( `lgtm` + `ms-demo` 공통/확장 ):
+- `observability/docs/OBSERVABILITY_TROUBLESHOOTING.md`
+
 ### 9.1 trace가 안 들어온다: `Failed to connect to otel-collector:4317`
 - collector OTLP receiver가 `0.0.0.0:4317/4318`로 바인딩돼야 합니다.
 - 재시작:

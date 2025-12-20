@@ -18,3 +18,6 @@ docker compose -f observability/ms-demo/docker-compose.yml run --rm k6
 - Gateway (Spring Cloud Gateway): http://localhost:8080
 - Grafana: http://localhost:3000 (admin/admin)
 - Prometheus: http://localhost:9090
+
+## Troubleshooting
+- `observability/docs/OBSERVABILITY_TROUBLESHOOTING.md`
