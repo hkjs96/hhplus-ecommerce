@@ -16,7 +16,7 @@
         "datasource": { "type": "prometheus", "uid": "prometheus" },
         "refresh": 2,
         "includeAll": true,
-        "allValue": "",
+        "allValue": ".*",
         "sort": 1,
         "definition": "label_values(http_server_requests_seconds_count, uri)",
         "query": {
@@ -31,13 +31,13 @@
     {
       "title": "Explore Tempo (route)",
       "type": "link",
-      "url": "/explore?orgId=1&left=%7B%22datasource%22%3A%22tempo%22%2C%22queries%22%3A%5B%7B%22refId%22%3A%22A%22%2C%22query%22%3A%22http.route%3D%5C%22${route:percentencode}%5C%22%22%2C%22queryType%22%3A%22traceql%22%7D%5D%2C%22range%22%3A%7B%22from%22%3A%22now-15m%22%2C%22to%22%3A%22now%22%7D%7D",
+      "url": "/explore?orgId=1&left=%7B%22datasource%22%3A%22tempo%22%2C%22queries%22%3A%5B%7B%22refId%22%3A%22A%22%2C%22query%22%3A%22http.route%20%3D~%20%5C%22${route:percentencode}%5C%22%22%2C%22queryType%22%3A%22traceql%22%7D%5D%2C%22range%22%3A%7B%22from%22%3A%22now-15m%22%2C%22to%22%3A%22now%22%7D%7D",
       "targetBlank": true
     },
     {
       "title": "Explore Loki (route)",
       "type": "link",
-      "url": "/explore?orgId=1&left=%7B%22datasource%22%3A%22loki%22%2C%22queries%22%3A%5B%7B%22refId%22%3A%22A%22%2C%22expr%22%3A%22%7Bcompose_service%3D~%5C%22gateway%7Corder-service%7Cpayment-service%5C%22%7D%20%7C%3D%20%5C%22${route:percentencode}%5C%22%22%2C%22queryType%22%3A%22range%22%7D%5D%2C%22range%22%3A%7B%22from%22%3A%22now-15m%22%2C%22to%22%3A%22now%22%7D%7D",
+      "url": "/explore?orgId=1&left=%7B%22datasource%22%3A%22loki%22%2C%22queries%22%3A%5B%7B%22refId%22%3A%22A%22%2C%22expr%22%3A%22%7Bcompose_service%3D~%5C%22gateway%7Corder-service%7Cpayment-service%5C%22%7D%20%7C~%20%5C%22${route:percentencode}%5C%22%22%2C%22queryType%22%3A%22range%22%7D%5D%2C%22range%22%3A%7B%22from%22%3A%22now-15m%22%2C%22to%22%3A%22now%22%7D%7D",
       "targetBlank": true
     }
   ],
@@ -61,7 +61,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "{compose_service=~\"gateway|order-service|payment-service\"} |= \"${route}\" |= \"ERROR\""
+          "expr": "{compose_service=~\"gateway|order-service|payment-service\"} |~ \"${route}\" |= \"ERROR\""
         }
       ],
       "options": {

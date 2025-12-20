@@ -27,6 +27,20 @@ export default function () {
   const userId = 1;
   const productId = randomInt(2, 7);
 
+  // Top-up user balance periodically to avoid "insufficient balance" turning into 5xx noise.
+  // This keeps most traffic happy-path and makes service graph easier to read.
+  if (__ITER % 20 === 0) {
+    const chargeRes = http.post(
+      `${BASE_URL}/api/users/${userId}/balance/charge`,
+      JSON.stringify({
+        amount: 1000000000,
+        idempotencyKey: `k6-charge-vu${__VU}-iter${__ITER}-${Date.now()}`,
+      }),
+      jsonHeaders()
+    );
+    check(chargeRes, { 'balance charge returns 200/201': (r) => r.status >= 200 && r.status < 300 });
+  }
+
   // 1) Happy-path: create+pay in one call
   const createAndPayRes = http.post(
     `${BASE_URL}/api/orders/complete`,
@@ -42,8 +56,8 @@ export default function () {
     'complete order returns 201': (r) => r.status === 201,
   });
 
-  // 2) Small failure mix: invalid user (expected 4xx) to show errors in RED + traces.
-  if (Math.random() < 0.1) {
+  // 2) Small failure mix: invalid user (expected 4xx) to show errors without overwhelming the graphs.
+  if (Math.random() < 0.02) {
     const invalidUserRes = http.post(
       `${BASE_URL}/api/orders/complete`,
       JSON.stringify({
@@ -66,4 +80,3 @@ export default function () {
 
   sleep(1);
 }
-
