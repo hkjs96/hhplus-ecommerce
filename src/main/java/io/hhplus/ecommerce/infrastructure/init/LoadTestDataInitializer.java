@@ -3,6 +3,7 @@ package io.hhplus.ecommerce.infrastructure.init;
 import io.hhplus.ecommerce.domain.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.context.annotation.Profile;
@@ -29,12 +30,20 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class LoadTestDataInitializer implements CommandLineRunner {
 
+    @Value("${demo.loadtest.seed.enabled:true}")
+    private boolean demoLoadtestSeedEnabled;
+
     private final UserRepository userRepository;
     private final JdbcTemplate jdbcTemplate;
 
     @Override
     @Transactional
     public void run(String... args) {
+        if (!demoLoadtestSeedEnabled) {
+            log.info("=== K6 Load Test Data Initializer SKIPPED (demo.loadtest.seed.enabled=false) ===");
+            return;
+        }
+
         log.info("=== K6 Load Test Data Initializer START ===");
 
         long startTime = System.currentTimeMillis();

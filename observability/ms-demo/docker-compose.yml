@@ -135,6 +135,7 @@ services:
       DEMO_PAYMENT_REMOTE_ENABLED: "true"
       DEMO_PAYMENT_REMOTE_BASE_URL: "http://payment-service:8080"
       DEMO_SEED_ENABLED: "true"
+      DEMO_LOADTEST_SEED_ENABLED: "false"
     volumes:
       - ./otel-agent.properties:/etc/otel/otel-agent.properties:ro
     depends_on:
@@ -153,6 +154,7 @@ services:
       JAVA_TOOL_OPTIONS: "-javaagent:/otel/opentelemetry-javaagent.jar -Dotel.javaagent.configuration-file=/etc/otel/otel-agent.properties -Dotel.service.name=payment-service"
       DEMO_PAYMENT_REMOTE_ENABLED: "false"
       DEMO_SEED_ENABLED: "false"
+      DEMO_LOADTEST_SEED_ENABLED: "false"
     volumes:
       - ./otel-agent.properties:/etc/otel/otel-agent.properties:ro
     depends_on:
