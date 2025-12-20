@@ -7,6 +7,13 @@
 docker compose -f observability/ms-demo/docker-compose.yml up -d --build
 ```
 
+## k6 (steady traffic)
+> 부하 테스트가 아니라 “흐름/실패” 가시화가 목적입니다.
+
+```bash
+docker compose -f observability/ms-demo/docker-compose.yml run --rm k6
+```
+
 ## URLs
 - Gateway (Spring Cloud Gateway): http://localhost:8080
 - Grafana: http://localhost:3000 (admin/admin)
