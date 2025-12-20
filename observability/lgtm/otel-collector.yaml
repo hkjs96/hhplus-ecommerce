@@ -7,6 +7,12 @@ receivers:
         endpoint: 0.0.0.0:4318
 
 processors:
+  transform/peer-service:
+    trace_statements:
+      - context: span
+        statements:
+          - set(attributes["peer.service"], attributes["server.address"]) where kind == SPAN_KIND_CLIENT and IsNil(attributes["peer.service"]) and not IsNil(attributes["server.address"])
+          - set(attributes["peer.service"], attributes["net.peer.name"]) where kind == SPAN_KIND_CLIENT and IsNil(attributes["peer.service"]) and not IsNil(attributes["net.peer.name"])
   batch:
 
 connectors:
@@ -30,7 +36,7 @@ service:
   pipelines:
     traces:
       receivers: [otlp]
-      processors: [batch]
+      processors: [transform/peer-service, batch]
       exporters: [otlp/tempo, servicegraph, spanmetrics]
     metrics/servicegraph:
       receivers: [servicegraph]
