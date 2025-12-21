@@ -44,7 +44,8 @@ class JpaOrderRepositoryTest {
         registry.add("spring.datasource.username", mysql::getUsername);
         registry.add("spring.datasource.password", mysql::getPassword);
         registry.add("spring.datasource.driver-class-name", () -> "com.mysql.cj.jdbc.Driver");
-        registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");  // 테스트용 스키마 자동 생성
+        // 종료 시 drop은 컨테이너 종료 타이밍과 충돌해 커넥션 노이즈 로그가 발생할 수 있어 create로 제한
+        registry.add("spring.jpa.hibernate.ddl-auto", () -> "create");
     }
 
     @Autowired
