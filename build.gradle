@@ -43,6 +43,9 @@ dependencies {
 	implementation 'org.springframework.retry:spring-retry'
 	implementation 'org.springframework:spring-aspects'
 
+	// Kafka
+	implementation 'org.springframework.kafka:spring-kafka'
+
 	// OpenAPI Documentation (Swagger)
 	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.7.0'
 
@@ -67,6 +70,7 @@ dependencies {
 	testImplementation 'org.testcontainers:testcontainers:1.19.3'
 	testImplementation 'org.testcontainers:junit-jupiter:1.19.3'
 	testImplementation 'org.testcontainers:mysql:1.19.3'
+	testImplementation 'org.testcontainers:kafka:1.19.3'
 	testImplementation 'com.redis.testcontainers:testcontainers-redis:1.6.4'
 
 	// Awaitility (비동기 테스트)
