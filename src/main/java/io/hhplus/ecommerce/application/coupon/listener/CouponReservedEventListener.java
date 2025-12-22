@@ -81,9 +81,8 @@ public class CouponReservedEventListener {
     private void rollbackRedisState(Long couponId, Long userId, Exception cause) {
         try {
             if (cause instanceof BusinessException businessException
-                && (businessException.getErrorCode() == ErrorCode.COUPON_SOLD_OUT
-                || businessException.getErrorCode() == ErrorCode.ALREADY_ISSUED_COUPON)) {
-                // 실제 재고 소진/중복 발급 등 "비즈니스 실패"는 remaining을 복구하지 않음
+                && businessException.getErrorCode() == ErrorCode.COUPON_SOLD_OUT) {
+                // 실제 재고 소진은 remaining을 복구하지 않음
                 couponIssueReservationStore.cancelReservation(couponId, userId);
                 log.warn("Redis reservation cancelled without restock: couponId={}, userId={}", couponId, userId);
                 return;
