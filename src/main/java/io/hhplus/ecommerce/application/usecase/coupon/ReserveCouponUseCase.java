@@ -8,13 +8,13 @@ import io.hhplus.ecommerce.domain.coupon.Coupon;
 import io.hhplus.ecommerce.domain.coupon.CouponRepository;
 import io.hhplus.ecommerce.domain.coupon.CouponReservedEvent;
 import io.hhplus.ecommerce.domain.user.UserRepository;
+import io.hhplus.ecommerce.infrastructure.kafka.producer.CouponIssueRequestedProducer;
 import io.hhplus.ecommerce.infrastructure.redis.CouponIssueReservationStore;
 import io.hhplus.ecommerce.infrastructure.kafka.message.CouponIssueRequestedMessage;
 import io.hhplus.ecommerce.infrastructure.metrics.MetricsCollector;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,11 +43,10 @@ public class ReserveCouponUseCase {
     private final UserRepository userRepository;
     private final CouponIssueReservationStore couponIssueReservationStore;
     private final ApplicationEventPublisher eventPublisher;
-    private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final CouponIssueRequestedProducer couponIssueRequestedProducer;
     private final MetricsCollector metricsCollector;
 
     private static final Duration COUPON_RESERVATION_TTL = Duration.ofDays(1);
-    private static final String COUPON_ISSUE_REQUESTED_TOPIC = "coupon-issue-requested";
 
     @Value("${coupon.issue.publisher:kafka}")
     private String couponIssuePublisher;
@@ -152,6 +151,6 @@ public class ReserveCouponUseCase {
             userId,
             UUID.randomUUID().toString()
         );
-        kafkaTemplate.send(COUPON_ISSUE_REQUESTED_TOPIC, String.valueOf(couponId), message);
+        couponIssueRequestedProducer.publish(message);
     }
 }
