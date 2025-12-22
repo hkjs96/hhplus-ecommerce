@@ -1,16 +1,20 @@
 package io.hhplus.ecommerce.application.coupon.listener;
 
 import io.hhplus.ecommerce.application.usecase.coupon.IssueCouponActualService;
+import io.hhplus.ecommerce.common.exception.BusinessException;
+import io.hhplus.ecommerce.common.exception.ErrorCode;
 import io.hhplus.ecommerce.domain.coupon.CouponReservedEvent;
 import io.hhplus.ecommerce.domain.coupon.UserCoupon;
+import io.hhplus.ecommerce.infrastructure.redis.CouponIssueReservationStore;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
+
+import java.time.Duration;
 
 /**
  * 쿠폰 예약 완료 이벤트 리스너
@@ -26,7 +30,9 @@ import org.springframework.transaction.event.TransactionalEventListener;
 public class CouponReservedEventListener {
 
     private final IssueCouponActualService issueCouponActualService;
-    private final RedisTemplate<String, String> redisTemplate;
+    private final CouponIssueReservationStore couponIssueReservationStore;
+
+    private static final Duration ISSUED_TTL = Duration.ofDays(365);
 
     /**
      * 쿠폰 예약 완료 이벤트 처리
@@ -46,6 +52,8 @@ public class CouponReservedEventListener {
                 event.getUserId()
             );
 
+            couponIssueReservationStore.confirmIssued(event.getCouponId(), event.getUserId(), ISSUED_TTL);
+
             log.info("Coupon issued successfully via event: couponId={}, userId={}, userCouponId={}",
                 event.getCouponId(), event.getUserId(), userCoupon.getId());
 
@@ -54,7 +62,7 @@ public class CouponReservedEventListener {
             log.error("Coupon issue failed, rolling back Redis: couponId={}, userId={}, error={}",
                 event.getCouponId(), event.getUserId(), e.getMessage(), e);
 
-            rollbackRedisState(event.getCouponId(), event.getUserId());
+            rollbackRedisState(event.getCouponId(), event.getUserId(), e);
 
             // 실패를 외부로 전파하지 않음 (이미 처리됨)
         }
@@ -70,17 +78,19 @@ public class CouponReservedEventListener {
      * @param couponId 쿠폰 ID
      * @param userId 사용자 ID
      */
-    private void rollbackRedisState(Long couponId, Long userId) {
+    private void rollbackRedisState(Long couponId, Long userId, Exception cause) {
         try {
-            // 1. 순번 감소
-            String sequenceKey = String.format("coupon:%d:sequence", couponId);
-            Long newSequence = redisTemplate.opsForValue().decrement(sequenceKey);
+            if (cause instanceof BusinessException businessException
+                && (businessException.getErrorCode() == ErrorCode.COUPON_SOLD_OUT
+                || businessException.getErrorCode() == ErrorCode.ALREADY_ISSUED_COUPON)) {
+                // 실제 재고 소진/중복 발급 등 "비즈니스 실패"는 remaining을 복구하지 않음
+                couponIssueReservationStore.cancelReservation(couponId, userId);
+                log.warn("Redis reservation cancelled without restock: couponId={}, userId={}", couponId, userId);
+                return;
+            }
 
-            // 2. 예약자 Set에서 제거
-            String reservationSetKey = String.format("coupon:%d:reservations", couponId);
-            redisTemplate.opsForSet().remove(reservationSetKey, String.valueOf(userId));
-
-            log.warn("Redis state rolled back: couponId={}, userId={}, newSequence={}", couponId, userId, newSequence);
+            boolean compensated = couponIssueReservationStore.compensateReservation(couponId, userId);
+            log.warn("Redis state compensated: couponId={}, userId={}, compensated={}", couponId, userId, compensated);
 
         } catch (Exception e) {
             log.error("Failed to rollback Redis state: couponId={}, userId={}", couponId, userId, e);
