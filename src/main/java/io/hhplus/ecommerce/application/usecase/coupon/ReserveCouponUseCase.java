@@ -8,11 +8,11 @@ import io.hhplus.ecommerce.domain.coupon.Coupon;
 import io.hhplus.ecommerce.domain.coupon.CouponRepository;
 import io.hhplus.ecommerce.domain.coupon.CouponReservedEvent;
 import io.hhplus.ecommerce.domain.user.UserRepository;
+import io.hhplus.ecommerce.infrastructure.redis.CouponIssueReservationStore;
 import io.hhplus.ecommerce.infrastructure.metrics.MetricsCollector;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
@@ -37,7 +37,7 @@ public class ReserveCouponUseCase {
 
     private final CouponRepository couponRepository;
     private final UserRepository userRepository;
-    private final RedisTemplate<String, String> redisTemplate;
+    private final CouponIssueReservationStore couponIssueReservationStore;
     private final ApplicationEventPublisher eventPublisher;
     private final MetricsCollector metricsCollector;
 
@@ -68,69 +68,34 @@ public class ReserveCouponUseCase {
             Coupon coupon = couponRepository.findByIdOrThrow(couponId);
             coupon.validateIssuable();
 
-            // 3. 중복 예약 선점 (Redis SADD 결과로 원자적 제어)
-            String reservationSetKey = buildReservationSetKey(couponId);
-            Long added = redisTemplate.opsForSet().add(reservationSetKey, String.valueOf(userId));
-            redisTemplate.expire(reservationSetKey, COUPON_RESERVATION_TTL);
+            long totalQuantity = coupon.getTotalQuantity();
+            CouponIssueReservationStore.ReserveResponse reserved = couponIssueReservationStore.reserve(
+                couponId,
+                userId,
+                totalQuantity,
+                COUPON_RESERVATION_TTL
+            );
 
-            if (added == null) {
+            if (reserved.result() == CouponIssueReservationStore.ReserveResult.SOLD_OUT) {
                 throw new BusinessException(
-                    ErrorCode.INTERNAL_SERVER_ERROR,
-                    "Redis 예약 기록 실패"
+                    ErrorCode.COUPON_SOLD_OUT,
+                    "쿠폰이 모두 소진되었습니다."
                 );
             }
-
-            if (added == 0L) {
+            if (reserved.result() == CouponIssueReservationStore.ReserveResult.ALREADY_RESERVED) {
                 throw new BusinessException(
                     ErrorCode.ALREADY_ISSUED_COUPON,
                     String.format("이미 예약한 쿠폰입니다. userId: %d, couponId: %d", userId, couponId)
                 );
             }
-
-            // 4. Redis INCR로 순번 획득 (원자적, 락 불필요)
-            String sequenceKey = buildSequenceKey(couponId);
-            log.info("[REDIS INCR] Calling increment for key: {}", sequenceKey);
-
-            Long sequence = redisTemplate.opsForValue().increment(sequenceKey);
-            log.info("[REDIS INCR] Result: sequence={}, couponId={}, userId={}", sequence, couponId, userId);
-
-            if (sequence == null) {
-                log.error("[REDIS INCR] Sequence is NULL for couponId: {}", couponId);
+            if (reserved.result() == CouponIssueReservationStore.ReserveResult.ALREADY_ISSUED) {
                 throw new BusinessException(
-                    ErrorCode.INTERNAL_SERVER_ERROR,
-                    "Redis 순번 획득 실패"
+                    ErrorCode.ALREADY_ISSUED_COUPON,
+                    String.format("이미 발급받은 쿠폰입니다. userId: %d, couponId: %d", userId, couponId)
                 );
             }
 
-            log.debug("Acquired sequence: {} for coupon: {}", sequence, couponId);
-
-            // 5. 수량 체크 (선착순 마감 검증)
-            log.info("[QUANTITY CHECK] sequence={}, totalQuantity={}, couponId={}",
-                sequence, coupon.getTotalQuantity(), couponId);
-
-            if (sequence > coupon.getTotalQuantity()) {
-                log.warn("[SOLD OUT] Coupon sold out: couponId={}, sequence={}, totalQuantity={}",
-                    couponId, sequence, coupon.getTotalQuantity());
-
-                // 예약 선점 해제 (중복 차단 Set 복구)
-                redisTemplate.opsForSet().remove(reservationSetKey, String.valueOf(userId));
-                // 순번은 증가했지만 발급은 안되므로, 보상 트랜잭션으로 순번을 다시 감소시킬 수 있음 (선택적)
-                // redisTemplate.opsForValue().decrement(sequenceKey);
-
-                throw new BusinessException(
-                    ErrorCode.COUPON_SOLD_OUT,
-                    String.format("쿠폰이 모두 소진되었습니다. (%d/%d)", sequence, coupon.getTotalQuantity())
-                );
-            }
-
-            log.info("[QUANTITY CHECK PASSED] sequence={} <= totalQuantity={}",
-                sequence, coupon.getTotalQuantity());
-
-            // 6. Redis Set에 예약 기록 (멱등성 보장)
-            redisTemplate.expire(sequenceKey, COUPON_RESERVATION_TTL);
-
-            log.info("Coupon reserved in Redis: userId={}, couponId={}, sequence={}",
-                userId, couponId, sequence);
+            long sequence = totalQuantity - reserved.remainingAfter();
 
             // 7. Event 발행 (AFTER_COMMIT 시점에 발행됨)
             //    → CouponReservedEventListener에서 실제 발급 처리
@@ -170,18 +135,6 @@ public class ReserveCouponUseCase {
     }
 
     /**
-     * Redis 순번 키 생성
-     * 패턴: coupon:{couponId}:sequence
+     * (Deprecated) Redis 키 유틸은 CouponIssueReservationStore로 이동
      */
-    private String buildSequenceKey(Long couponId) {
-        return String.format("coupon:%d:sequence", couponId);
-    }
-
-    /**
-     * Redis 예약자 Set 키 생성
-     * 패턴: coupon:{couponId}:reservations
-     */
-    private String buildReservationSetKey(Long couponId) {
-        return String.format("coupon:%d:reservations", couponId);
-    }
 }

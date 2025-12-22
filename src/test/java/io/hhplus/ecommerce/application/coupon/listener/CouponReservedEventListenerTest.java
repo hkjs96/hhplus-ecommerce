@@ -8,6 +8,7 @@ import io.hhplus.ecommerce.domain.coupon.CouponRepository;
 import io.hhplus.ecommerce.domain.coupon.CouponReservedEvent;
 import io.hhplus.ecommerce.domain.coupon.UserCoupon;
 import io.hhplus.ecommerce.domain.coupon.UserCouponRepository;
+import io.hhplus.ecommerce.infrastructure.redis.CouponIssueReservationStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -49,6 +50,9 @@ class CouponReservedEventListenerTest {
     private RedisTemplate<String, String> redisTemplate;
 
     @Autowired
+    private CouponIssueReservationStore couponIssueReservationStore;
+
+    @Autowired
     private PlatformTransactionManager transactionManager;
 
     @BeforeEach
@@ -79,11 +83,8 @@ class CouponReservedEventListenerTest {
             );
             Coupon saved = couponRepository.save(coupon);
 
-            // Redis 상태 설정 (예약 완료 상태 시뮬레이션)
-            String sequenceKey = "coupon:" + saved.getId() + ":sequence";
-            String reservationKey = "coupon:" + saved.getId() + ":reservations";
-            redisTemplate.opsForValue().set(sequenceKey, "1");
-            redisTemplate.opsForSet().add(reservationKey, "1");
+            // Redis 예약 상태 생성 (UseCase를 거치지 않고 예약만 시뮬레이션)
+            couponIssueReservationStore.reserve(saved.getId(), 1L, saved.getTotalQuantity(), java.time.Duration.ofDays(1));
 
             // 이벤트 발행
             CouponReservedEvent event = new CouponReservedEvent(saved.getId(), 1L, 1L);
@@ -143,11 +144,8 @@ class CouponReservedEventListenerTest {
 
         // 새 트랜잭션: 이미 소진된 쿠폰에 대한 예약 이벤트 발행
         txTemplate.execute(status -> {
-            // Redis 상태 설정 (순번 2, userId=2 예약 상태)
-            String sequenceKey = "coupon:" + couponId + ":sequence";
-            String reservationKey = "coupon:" + couponId + ":reservations";
-            redisTemplate.opsForValue().set(sequenceKey, "2");
-            redisTemplate.opsForSet().add(reservationKey, "2");
+            // Redis 예약 상태 생성 (DB 재고와 불일치하게 예약이 잡혔다고 가정)
+            couponIssueReservationStore.reserve(couponId, 2L, 1, java.time.Duration.ofDays(1));
 
             // 이벤트 발행 (발급 실패 예상: SOLD_OUT)
             CouponReservedEvent event = new CouponReservedEvent(couponId, 2L, 2L);
@@ -165,15 +163,18 @@ class CouponReservedEventListenerTest {
         assertThat(exists).isFalse();
 
         // Redis 원복 확인
-        String sequenceKey = "coupon:" + couponId + ":sequence";
-        String reservationKey = "coupon:" + couponId + ":reservations";
+        String remainingKey = "coupon:" + couponId + ":remaining";
+        String reservationKey = "coupon:" + couponId + ":reservation:2";
+        String reservationSetKey = "coupon:" + couponId + ":reservations";
 
-        // 순번이 감소했는지 확인 (2 → 1)
-        String sequenceValue = redisTemplate.opsForValue().get(sequenceKey);
-        assertThat(sequenceValue).isEqualTo("1");
+        // 재고 소진으로 실패한 경우 remaining은 복구하지 않음 (cancel)
+        String remainingValue = redisTemplate.opsForValue().get(remainingKey);
+        assertThat(remainingValue).isEqualTo("0");
 
-        // 예약자 Set에서 제거되었는지 확인
-        Boolean isMember = redisTemplate.opsForSet().isMember(reservationKey, "2");
+        String reservationValue = redisTemplate.opsForValue().get(reservationKey);
+        assertThat(reservationValue).isNull();
+
+        Boolean isMember = redisTemplate.opsForSet().isMember(reservationSetKey, "2");
         assertThat(isMember).isFalse();
     }
 
@@ -194,11 +195,10 @@ class CouponReservedEventListenerTest {
             );
             Coupon saved = couponRepository.save(coupon);
 
-            // Redis 상태 설정 (3개 예약)
-            String sequenceKey = "coupon:" + saved.getId() + ":sequence";
-            String reservationKey = "coupon:" + saved.getId() + ":reservations";
-            redisTemplate.opsForValue().set(sequenceKey, "3");
-            redisTemplate.opsForSet().add(reservationKey, "1", "2", "3");
+            // Redis 예약 상태 생성 (3개 예약)
+            couponIssueReservationStore.reserve(saved.getId(), 1L, saved.getTotalQuantity(), java.time.Duration.ofDays(1));
+            couponIssueReservationStore.reserve(saved.getId(), 2L, saved.getTotalQuantity(), java.time.Duration.ofDays(1));
+            couponIssueReservationStore.reserve(saved.getId(), 3L, saved.getTotalQuantity(), java.time.Duration.ofDays(1));
 
             // 3개 이벤트 발행
             for (long userId = 1; userId <= 3; userId++) {

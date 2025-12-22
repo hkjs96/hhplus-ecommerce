@@ -107,6 +107,24 @@ public class CouponIssueReservationStore {
         Long.class
     );
 
+    private static final DefaultRedisScript<Long> CANCEL_SCRIPT = new DefaultRedisScript<>(
+        """
+            local reservationKey = KEYS[1]
+            local reservationSetKey = KEYS[2]
+
+            local userId = ARGV[1]
+
+            if redis.call('GET', reservationKey) ~= 'RESERVED' then
+              return 0
+            end
+
+            redis.call('DEL', reservationKey)
+            redis.call('SREM', reservationSetKey, userId)
+            return 1
+            """,
+        Long.class
+    );
+
     public ReserveResponse reserve(Long couponId, Long userId, long initialQuantity, Duration reservationTtl) {
         String remainingKey = String.format("coupon:%d:remaining", couponId);
         String issuedSetKey = String.format("coupon:%d:issued", couponId);
@@ -159,6 +177,18 @@ public class CouponIssueReservationStore {
         Long result = redisTemplate.execute(
             COMPENSATE_SCRIPT,
             List.of(remainingKey, reservationKey, reservationSetKey),
+            String.valueOf(userId)
+        );
+        return result != null && result == 1L;
+    }
+
+    public boolean cancelReservation(Long couponId, Long userId) {
+        String reservationKey = String.format("coupon:%d:reservation:%d", couponId, userId);
+        String reservationSetKey = String.format("coupon:%d:reservations", couponId);
+
+        Long result = redisTemplate.execute(
+            CANCEL_SCRIPT,
+            List.of(reservationKey, reservationSetKey),
             String.valueOf(userId)
         );
         return result != null && result == 1L;
