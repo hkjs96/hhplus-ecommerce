@@ -69,6 +69,11 @@ spring:
     listener:
       ack-mode: manual  # 수동 ACK
 
+# Coupon issuing publisher (event|kafka)
+coupon:
+  issue:
+    publisher: kafka
+
 # Batch Scheduling
 ranking:
   backup:
