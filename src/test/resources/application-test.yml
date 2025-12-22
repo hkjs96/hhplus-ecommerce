@@ -43,5 +43,7 @@ logging:
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
     org.testcontainers: INFO
+    org.apache.kafka.clients.NetworkClient: ERROR
+    io.lettuce.core.protocol.ConnectionWatchdog: ERROR
     # DDL 에러 로깅 억제 (테스트 초기화 시 무해한 경고)
     org.hibernate.tool.schema.internal.ExceptionHandlerLoggedImpl: ERROR
