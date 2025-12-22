@@ -9,13 +9,17 @@ import io.hhplus.ecommerce.domain.coupon.CouponRepository;
 import io.hhplus.ecommerce.domain.coupon.CouponReservedEvent;
 import io.hhplus.ecommerce.domain.user.UserRepository;
 import io.hhplus.ecommerce.infrastructure.redis.CouponIssueReservationStore;
+import io.hhplus.ecommerce.infrastructure.kafka.message.CouponIssueRequestedMessage;
 import io.hhplus.ecommerce.infrastructure.metrics.MetricsCollector;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
+import java.util.UUID;
 
 /**
  * 선착순 쿠폰 예약 UseCase
@@ -39,9 +43,14 @@ public class ReserveCouponUseCase {
     private final UserRepository userRepository;
     private final CouponIssueReservationStore couponIssueReservationStore;
     private final ApplicationEventPublisher eventPublisher;
+    private final KafkaTemplate<String, Object> kafkaTemplate;
     private final MetricsCollector metricsCollector;
 
     private static final Duration COUPON_RESERVATION_TTL = Duration.ofDays(1);
+    private static final String COUPON_ISSUE_REQUESTED_TOPIC = "coupon-issue-requested";
+
+    @Value("${coupon.issue.publisher:kafka}")
+    private String couponIssuePublisher;
 
     /**
      * 선착순 쿠폰 예약
@@ -97,14 +106,7 @@ public class ReserveCouponUseCase {
 
             long sequence = totalQuantity - reserved.remainingAfter();
 
-            // 7. Event 발행 (AFTER_COMMIT 시점에 발행됨)
-            //    → CouponReservedEventListener에서 실제 발급 처리
-            CouponReservedEvent event = new CouponReservedEvent(
-                couponId,
-                userId,
-                sequence
-            );
-            eventPublisher.publishEvent(event);
+            publishIssueRequest(couponId, userId, sequence);
 
             log.debug("Published CouponReservedEvent: couponId={}, userId={}", couponId, userId);
 
@@ -137,4 +139,19 @@ public class ReserveCouponUseCase {
     /**
      * (Deprecated) Redis 키 유틸은 CouponIssueReservationStore로 이동
      */
+
+    private void publishIssueRequest(Long couponId, Long userId, long sequence) {
+        if ("event".equalsIgnoreCase(couponIssuePublisher)) {
+            CouponReservedEvent event = new CouponReservedEvent(couponId, userId, sequence);
+            eventPublisher.publishEvent(event);
+            return;
+        }
+
+        CouponIssueRequestedMessage message = CouponIssueRequestedMessage.of(
+            couponId,
+            userId,
+            UUID.randomUUID().toString()
+        );
+        kafkaTemplate.send(COUPON_ISSUE_REQUESTED_TOPIC, String.valueOf(couponId), message);
+    }
 }
