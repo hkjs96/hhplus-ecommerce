@@ -18,12 +18,14 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDateTime;
+import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -85,14 +87,20 @@ class ReserveCouponUseCaseTest {
         assertThat(response.sequenceNumber()).isEqualTo(1L); // 첫 번째 예약
 
         // Redis 검증
-        String sequenceKey = "coupon:" + coupon.getId() + ":sequence";
-        String reservationKey = "coupon:" + coupon.getId() + ":reservations";
+        String remainingKey = "coupon:" + coupon.getId() + ":remaining";
+        String reservationKey = "coupon:" + coupon.getId() + ":reservation:" + user.getId();
+        String issuedKey = "coupon:" + coupon.getId() + ":issued";
 
-        String sequenceValue = redisTemplate.opsForValue().get(sequenceKey);
-        assertThat(sequenceValue).isEqualTo("1");
+        String remainingValue = redisTemplate.opsForValue().get(remainingKey);
+        assertThat(remainingValue).isEqualTo("99");
 
-        Boolean isMember = redisTemplate.opsForSet().isMember(reservationKey, String.valueOf(user.getId()));
-        assertThat(isMember).isTrue();
+        await().atMost(Duration.ofSeconds(2)).untilAsserted(() -> {
+            String reservationValue = redisTemplate.opsForValue().get(reservationKey);
+            assertThat(reservationValue).isNull();
+
+            Boolean isIssued = redisTemplate.opsForSet().isMember(issuedKey, String.valueOf(user.getId()));
+            assertThat(isIssued).isTrue();
+        });
     }
 
     @Test
@@ -121,14 +129,14 @@ class ReserveCouponUseCaseTest {
             .hasMessageContaining("만료된 쿠폰입니다");
 
         // Redis 검증 - 예약되지 않아야 함
-        String sequenceKey = "coupon:" + coupon.getId() + ":sequence";
-        String reservationKey = "coupon:" + coupon.getId() + ":reservations";
+        String remainingKey = "coupon:" + coupon.getId() + ":remaining";
+        String issuedKey = "coupon:" + coupon.getId() + ":issued";
 
-        String sequenceValue = redisTemplate.opsForValue().get(sequenceKey);
-        assertThat(sequenceValue).isNull(); // 순번 미증가
+        String remainingValue = redisTemplate.opsForValue().get(remainingKey);
+        assertThat(remainingValue).isNull(); // remaining 미생성
 
-        Long reservationCount = redisTemplate.opsForSet().size(reservationKey);
-        assertThat(reservationCount).isEqualTo(0); // 예약 기록 없음
+        Long issuedCount = redisTemplate.opsForSet().size(issuedKey);
+        assertThat(issuedCount).isEqualTo(0); // 발급 기록 없음
     }
 
     @Test
@@ -155,14 +163,14 @@ class ReserveCouponUseCaseTest {
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.USER_NOT_FOUND);
 
         // Redis 검증 - 예약되지 않아야 함
-        String sequenceKey = "coupon:" + coupon.getId() + ":sequence";
-        String reservationKey = "coupon:" + coupon.getId() + ":reservations";
+        String remainingKey = "coupon:" + coupon.getId() + ":remaining";
+        String issuedKey = "coupon:" + coupon.getId() + ":issued";
 
-        String sequenceValue = redisTemplate.opsForValue().get(sequenceKey);
-        assertThat(sequenceValue).isNull(); // 순번 미증가
+        String remainingValue = redisTemplate.opsForValue().get(remainingKey);
+        assertThat(remainingValue).isNull(); // remaining 미생성
 
-        Long reservationCount = redisTemplate.opsForSet().size(reservationKey);
-        assertThat(reservationCount).isEqualTo(0); // 예약 기록 없음
+        Long issuedCount = redisTemplate.opsForSet().size(issuedKey);
+        assertThat(issuedCount).isEqualTo(0); // 발급 기록 없음
     }
 
     @Test
@@ -201,14 +209,16 @@ class ReserveCouponUseCaseTest {
             .hasMessageContaining("쿠폰이 모두 소진되었습니다");
 
         // Redis 검증
-        String sequenceKey = "coupon:" + coupon.getId() + ":sequence";
-        String reservationKey = "coupon:" + coupon.getId() + ":reservations";
+        String remainingKey = "coupon:" + coupon.getId() + ":remaining";
+        String issuedKey = "coupon:" + coupon.getId() + ":issued";
 
-        String sequenceValue = redisTemplate.opsForValue().get(sequenceKey);
-        assertThat(sequenceValue).isEqualTo("6"); // 6번까지 INCR되었지만
+        String remainingValue = redisTemplate.opsForValue().get(remainingKey);
+        assertThat(remainingValue).isEqualTo("0");
 
-        Long reservationCount = redisTemplate.opsForSet().size(reservationKey);
-        assertThat(reservationCount).isEqualTo(5); // 예약은 5명만 (6번째는 rollback)
+        await().atMost(Duration.ofSeconds(2)).untilAsserted(() -> {
+            Long issuedCount = redisTemplate.opsForSet().size(issuedKey);
+            assertThat(issuedCount).isEqualTo(5);
+        });
     }
 
     @Test
@@ -273,14 +283,16 @@ class ReserveCouponUseCaseTest {
         assertThat(duplicateCount.get()).isEqualTo(0); // 중복 없음
 
         // Redis 검증
-        String sequenceKey = "coupon:" + coupon.getId() + ":sequence";
-        String reservationKey = "coupon:" + coupon.getId() + ":reservations";
+        String remainingKey = "coupon:" + coupon.getId() + ":remaining";
+        String issuedKey = "coupon:" + coupon.getId() + ":issued";
 
-        String sequenceValue = redisTemplate.opsForValue().get(sequenceKey);
-        assertThat(Long.parseLong(sequenceValue)).isGreaterThanOrEqualTo(10L); // 최소 10까지 증가
+        String remainingValue = redisTemplate.opsForValue().get(remainingKey);
+        assertThat(remainingValue).isEqualTo("0");
 
-        Long reservationCount = redisTemplate.opsForSet().size(reservationKey);
-        assertThat(reservationCount).isEqualTo(10); // 예약은 정확히 10명
+        await().atMost(Duration.ofSeconds(3)).untilAsserted(() -> {
+            Long issuedCount = redisTemplate.opsForSet().size(issuedKey);
+            assertThat(issuedCount).isEqualTo(10);
+        });
     }
 
     @Test
@@ -332,13 +344,15 @@ class ReserveCouponUseCaseTest {
         assertThat(successCount.get()).isEqualTo(1);
         assertThat(duplicateFailCount.get()).isEqualTo(1);
 
-        String sequenceKey = "coupon:" + coupon.getId() + ":sequence";
-        String reservationKey = "coupon:" + coupon.getId() + ":reservations";
+        String remainingKey = "coupon:" + coupon.getId() + ":remaining";
+        String issuedKey = "coupon:" + coupon.getId() + ":issued";
 
-        String sequenceValue = redisTemplate.opsForValue().get(sequenceKey);
-        assertThat(sequenceValue).isEqualTo("1");  // 순번은 한 번만 증가
+        String remainingValue = redisTemplate.opsForValue().get(remainingKey);
+        assertThat(remainingValue).isEqualTo("9");
 
-        Long reservationCount = redisTemplate.opsForSet().size(reservationKey);
-        assertThat(reservationCount).isEqualTo(1); // 예약자는 한 명만 기록
+        await().atMost(Duration.ofSeconds(2)).untilAsserted(() -> {
+            Long issuedCount = redisTemplate.opsForSet().size(issuedKey);
+            assertThat(issuedCount).isEqualTo(1);
+        });
     }
 }

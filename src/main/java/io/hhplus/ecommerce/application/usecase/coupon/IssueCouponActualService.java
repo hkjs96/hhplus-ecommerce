@@ -9,8 +9,10 @@ import io.hhplus.ecommerce.domain.coupon.UserCouponRepository;
 import io.hhplus.ecommerce.infrastructure.metrics.MetricsCollector;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
@@ -48,7 +50,7 @@ public class IssueCouponActualService {
      * @return 발급된 UserCoupon
      * @throws BusinessException 재고 부족, 중복 발급 등
      */
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public UserCoupon issueActual(Long couponId, Long userId) {
         log.debug("Starting actual coupon issue: couponId={}, userId={}", couponId, userId);
 
@@ -87,6 +89,15 @@ public class IssueCouponActualService {
             metricsCollector.recordCouponIssueSuccess();
 
             return userCoupon;
+
+        } catch (DataIntegrityViolationException e) {
+            // 중복 발급(uk_user_coupon)은 정상적인 멱등 케이스로 처리
+            log.info("Coupon already issued (idempotent): couponId={}, userId={}", couponId, userId);
+            metricsCollector.recordCouponIssueFailure();
+            throw new BusinessException(
+                ErrorCode.ALREADY_ISSUED_COUPON,
+                String.format("이미 발급받은 쿠폰입니다. userId: %d, couponId: %d", userId, couponId)
+            );
 
         } catch (BusinessException e) {
             log.warn("Coupon issue failed: couponId={}, userId={}, error={}",

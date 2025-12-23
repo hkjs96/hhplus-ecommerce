@@ -3,26 +3,33 @@ package io.hhplus.ecommerce.application.payment.listener;
 import io.hhplus.ecommerce.domain.order.Order;
 import io.hhplus.ecommerce.domain.order.PaymentCompletedEvent;
 import io.hhplus.ecommerce.domain.user.User;
+import io.hhplus.ecommerce.infrastructure.kafka.producer.OrderEventProducer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
 
 /**
  * DataPlatformEventListener Unit Test
  *
- * 목적: 비즈니스 로직만 검증 (현재는 로그만 남김)
- * - 이벤트 수신 시 정상 처리
+ * 목적: 비즈니스 로직만 검증
+ * - 이벤트 수신 시 Kafka 발행
  * - 예외 발생 시 로그로만 처리 (주문 영향 없음)
  *
- * Note: 실제 외부 API 클라이언트가 추가되면 Mock으로 검증
+ * Note: Kafka Producer는 Mock으로 검증
  */
 @ExtendWith(MockitoExtension.class)
 class DataPlatformEventListenerTest {
+
+    @Mock
+    private OrderEventProducer orderEventProducer;
 
     @InjectMocks
     private DataPlatformEventListener listener;
@@ -33,6 +40,9 @@ class DataPlatformEventListenerTest {
     void setUp() {
         testUser = User.create("test@example.com", "테스트유저");
         setId(testUser, 1L);
+
+        // Mock: Kafka Producer는 정상 동작한다고 가정
+        doNothing().when(orderEventProducer).publishOrderCompleted(any());
     }
 
     @Test

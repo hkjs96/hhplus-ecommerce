@@ -13,7 +13,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: create-drop  # 테스트 시작 시 생성, 종료 시 drop (Testcontainers 종료 시 자동 정리)
+      ddl-auto: create       # 테스트 종료 시 drop 시도는 컨테이너 종료 타이밍과 충돌해 노이즈 로그가 발생할 수 있어 create로 제한
     properties:
       hibernate:
         format_sql: true
@@ -27,6 +27,20 @@ spring:
   cache:
     type: none
 
+  data:
+    redis:
+      repositories:
+        enabled: false
+
+  kafka:
+    listener:
+      auto-startup: false  # 테스트에서는 Kafka 브로커 연결/리스닝 비활성화
+
+# 쿠폰 발급 퍼블리셔는 테스트에선 이벤트 기반 유지
+coupon:
+  issue:
+    publisher: event
+
 # Test-specific scheduling
 ranking:
   backup:
@@ -39,5 +53,7 @@ logging:
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
     org.testcontainers: INFO
+    org.apache.kafka.clients.NetworkClient: ERROR
+    io.lettuce.core.protocol.ConnectionWatchdog: ERROR
     # DDL 에러 로깅 억제 (테스트 초기화 시 무해한 경고)
     org.hibernate.tool.schema.internal.ExceptionHandlerLoggedImpl: ERROR
