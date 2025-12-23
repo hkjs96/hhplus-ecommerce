@@ -46,6 +46,24 @@ public class IdempotencySaveService {
     }
 
     /**
+     * 완료된 멱등성 키 저장 (별도 트랜잭션)
+     *
+     * 주문 생성 성공 후 COMPLETED 상태로 업데이트
+     *
+     * 중요: idempotencyKey로 다시 조회하여 새로운 영속성 컨텍스트에서 처리
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void saveCompletedIdempotency(String idempotencyKey, Long createdOrderId, String responsePayload) {
+        OrderIdempotency idempotency = idempotencyRepository
+                .findByIdempotencyKey(idempotencyKey)
+                .orElseThrow(() -> new IllegalStateException(
+                        "Idempotency key not found: " + idempotencyKey));
+
+        idempotency.complete(createdOrderId, responsePayload);
+        idempotencyRepository.save(idempotency);
+    }
+
+    /**
      * 실패한 멱등성 키 저장 (별도 트랜잭션)
      *
      * 주문 생성 실패 시 트랜잭션 롤백되어도

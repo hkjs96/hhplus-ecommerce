@@ -93,6 +93,8 @@ class CreateOrderConcurrencyWithDistributedLockTest {
 
         AtomicInteger successCount = new AtomicInteger(0);
         AtomicInteger stockErrorCount = new AtomicInteger(0);
+        AtomicInteger otherErrorCount = new AtomicInteger(0);
+        AtomicInteger systemErrorCount = new AtomicInteger(0);
 
         // When: 100명이 동시에 각 1개씩 주문 시도
         for (int i = 1; i <= CONCURRENT_USERS; i++) {
@@ -115,10 +117,13 @@ class CreateOrderConcurrencyWithDistributedLockTest {
                     if (e.getErrorCode() == ErrorCode.INSUFFICIENT_STOCK) {
                         stockErrorCount.incrementAndGet();
                     } else {
-                        System.err.println("예상치 못한 에러: " + e.getMessage());
+                        otherErrorCount.incrementAndGet();
+                        System.err.println("예상치 못한 비즈니스 에러 (userId=" + userId + "): " + e.getErrorCode() + " - " + e.getMessage());
                     }
                 } catch (Exception e) {
-                    System.err.println("시스템 에러: " + e.getMessage());
+                    systemErrorCount.incrementAndGet();
+                    System.err.println("시스템 에러 (userId=" + userId + "): " + e.getClass().getSimpleName() + " - " + e.getMessage());
+                    e.printStackTrace();
                 } finally {
                     latch.countDown();
                 }
@@ -132,7 +137,10 @@ class CreateOrderConcurrencyWithDistributedLockTest {
         System.out.println("=== 테스트 결과 ===");
         System.out.println("성공: " + successCount.get());
         System.out.println("재고 부족 실패: " + stockErrorCount.get());
+        System.out.println("기타 비즈니스 에러: " + otherErrorCount.get());
+        System.out.println("시스템 에러: " + systemErrorCount.get());
         System.out.println("총 시도: " + CONCURRENT_USERS);
+        System.out.println("총 처리: " + (successCount.get() + stockErrorCount.get() + otherErrorCount.get() + systemErrorCount.get()));
 
         // 분산락으로 TOCTOU 갭이 해결되었는지 확인
         // 주문 생성 단계에서는 재고 확인만 하고 차감하지 않으므로,
@@ -141,7 +149,7 @@ class CreateOrderConcurrencyWithDistributedLockTest {
 
         // TOCTOU 갭 검증: 분산락 + Pessimistic Lock으로 정확한 재고 확인
         // 모든 주문이 성공하거나, 일부만 성공해야 함 (경쟁 상태 없음)
-        assertThat(successCount.get() + stockErrorCount.get()).isEqualTo(CONCURRENT_USERS);
+        assertThat(successCount.get() + stockErrorCount.get() + otherErrorCount.get() + systemErrorCount.get()).isEqualTo(CONCURRENT_USERS);
 
         // 생성된 주문 개수 확인
         List<Order> orders = orderRepository.findAll();

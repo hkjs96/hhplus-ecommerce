@@ -108,10 +108,10 @@ public class CacheConfig {
     }
 
     private Jackson2JsonRedisSerializer<?> cartValueSerializer() {
-        Jackson2JsonRedisSerializer<?> serializer =
-            new Jackson2JsonRedisSerializer<>(io.hhplus.ecommerce.application.cart.dto.CartResponse.class);
-        serializer.setObjectMapper(cartObjectMapper());
-        return serializer;
+        return new Jackson2JsonRedisSerializer<>(
+            cartObjectMapper(),
+            io.hhplus.ecommerce.application.cart.dto.CartResponse.class
+        );
     }
 
     /**

@@ -23,11 +23,12 @@ spring:
     username: root
     password: password
     hikari:
-      maximum-pool-size: 50      # Before: 10 (동시 처리량 5배 증가)
-      minimum-idle: 10           # Before: 5 (최소 유휴 커넥션 증가)
-      connection-timeout: 30000  # 30초 (커넥션 획득 대기 시간)
+      maximum-pool-size: 200     # 50 → 200 (K6 350 VUs 대응)
+      minimum-idle: 50           # 10 → 50 (최소 유휴 커넥션 증가)
+      connection-timeout: 10000  # 30초 → 10초 (빠른 실패)
       idle-timeout: 600000       # 10분 (유휴 커넥션 유지 시간)
       max-lifetime: 1800000      # 30분 (커넥션 최대 수명)
+      leak-detection-threshold: 30000  # 30초 이상 hold 시 경고
 
   # Redis 설정
   data:

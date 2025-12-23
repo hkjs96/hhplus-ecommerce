@@ -1,285 +1,167 @@
-# CLAUDE.md
+# CLAUDE.md – hhplus-ecommerce (Week 7: Redis 기반 시스템 설계)
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+## 1. 프로젝트 개요
 
-## Project Overview
-
-This is a Spring Boot e-commerce reference project for the Hanghe Plus backend curriculum (항해플러스 백엔드 커리큘럼). It's a Java-based application using Spring Boot 3.5.7 with Gradle as the build tool.
-
-**Current Phase:** Week 4 - Database Integration (Step 7-8)
-
-**핵심 목표**: JPA 기반 데이터베이스 통합 및 트랜잭션 관리
+항해플러스 이커머스 백엔드 과제 프로젝트입니다.
+**현재 단계:** Week 7 - Redis 기반 랭킹 시스템 및 선착순 쿠폰 발급
+**핵심 목표:** Redis Sorted Set을 활용한 실시간 랭킹 구현 및 동시성 제어
 
 ---
 
-## 📊 Implementation Progress
+## 2. 기술 스택 & 구조 (WHAT)
 
-### Phase 1: Documentation & Design ✅ (Week 2)
-- ✅ step1-2: ERD, Sequence Diagrams, API Specification, Requirements
-- ✅ step3: Infrastructure + Core Controllers (Product, Cart, Order)
-- ✅ step4: Additional Controllers (Coupon, User)
-- **Status**: 15 API endpoints with Mock data
+### Stack
+- Java 17, Spring Boot 3.5.7, Gradle
+- Database: MySQL 8 (JPA, Spring Data JPA)
+- Cache/Ranking/Lock: **Redis**
+- Test: JUnit 5, Testcontainers (MySQL, Redis)
 
-### Phase 2: Layered Architecture Implementation ✅ (Week 3)
-- ✅ **step5**: Domain & Application Layer (Entity, UseCase, In-Memory Repository)
-- ✅ **step6**: Concurrency Control & Integration Testing
-- **Status**: 94% test coverage, layered architecture complete
-
-### Phase 3: Database Integration ✅ (Week 4)
-- ✅ **step7-8**: JPA Entity, Spring Data JPA, Transaction Management
-- ✅ **step9-10**: N+1 문제 해결, 쿼리 최적화, 코치 피드백 반영
-- **Status**: 완료 (테스트 커버리지 94%, N+1 해결, 쿼리 최적화)
-
----
-
-## Technology Stack
-
-- **Language**: Java 17
-- **Framework**: Spring Boot 3.5.7
-- **Build Tool**: Gradle
-- **Architecture**: Layered Architecture (4-Layer)
-- **Data Storage**: In-Memory (Week 3) → **Database (Week 4+)**
-- **ORM**: Spring Data JPA, Hibernate (Week 4+)
-- **Testing**: JUnit 5, Mockito, AssertJ
-
----
-
-## 📚 Documentation Structure
-
-When you receive a task, **first check the relevant documentation** before starting implementation.
-
-### Available Commands (Slash Commands)
-
-| Command | Description | When to Use |
-|---------|-------------|-------------|
-| `/architecture` | Layered Architecture, Best Practices | 레이어 구조, Repository 패턴 질문 시 |
-| `/concurrency` | Concurrency Control (synchronized, ReentrantLock, CAS) | 동시성 제어 구현 시 |
-| `/testing` | Test Strategy, Coverage, Isolation | 테스트 작성 및 품질 개선 시 |
-
-### Available Documentation Files
-
-| File Path | Content | When to Reference |
-|-----------|---------|-------------------|
-| `@.claude/commands/architecture.md` | Layered Architecture 상세 설명 | Repository 패턴, 검증 레이어 분리 |
-| `@.claude/commands/concurrency.md` | 동시성 제어 패턴 비교 | synchronized vs ReentrantLock vs CAS |
-| `@.claude/commands/testing.md` | 테스트 전략 및 품질 | F.I.R.S.T 원칙, Test Isolation |
-| `@.claude/commands/implementation.md` | Step 5-6 구현 가이드 | Week 3 UseCase 패턴, Repository 구현 |
-| `@docs/week2/` | Week 2 문서 (ERD, Sequence, API) | API 명세, 요구사항 확인 |
-| `@docs/week4/` | Week 4 문서 (JPA, N+1, 쿼리 최적화) | 현재 구현 참조, 검증 방법 |
-| `@docs/week4/verification/` | 검증 문서 (N+1, EXPLAIN, 피드백) | N+1 해결, 쿼리 분석, 개선 사항 |
-| `@docs/archive/week3/` | Week 3 아카이브 (InMemory 구현) | InMemory 학습, Repository 패턴 기초 |
-| `@docs/learning-points/` | 학습 포인트 (아키텍처, JPA, 테스트) | 개념 학습, 설계 원칙 |
-
----
-
-## 🚩 Current Status: Week 4 Complete ✅
-
-### Week 4 완료 사항
-1. ✅ **JPA Entity 구현**: Week 3 도메인 모델을 JPA Entity로 전환 완료
-2. ✅ **Spring Data JPA Repository**: JpaRepository 활용, InMemory Repository 제거 완료
-3. ✅ **Transaction Management**: @Transactional 적용 완료
-4. ✅ **Database 연동**: MySQL 연동 및 초기 데이터 로딩 완료
-5. ✅ **N+1 문제 해결**: Fetch Join 적용, N+1 문제 전체 해결
-6. ✅ **쿼리 최적화**: EXPLAIN ANALYZE 기반 성능 분석 및 최적화
-7. ✅ **코치 피드백 반영**: Yulmu 코치 피드백 전체 적용 (Step 9-10)
-
-### Pass 조건 달성
-- ✅ JPA Entity 변환 (비즈니스 로직 유지)
-- ✅ Spring Data JPA Repository 활용
-- ✅ @Transactional 적절히 적용
-- ✅ InMemory Repository 제거
-- ✅ 테스트 커버리지 94% 유지
-- ✅ N+1 문제 해결
-- ✅ 쿼리 최적화
-
-### 검증 문서
-- 📄 [`docs/week4/verification/`](./docs/week4/verification/) - 전체 검증 문서
-- 📄 [`docs/week4/verification/YULMU_FEEDBACK_STATUS.md`](./docs/week4/verification/YULMU_FEEDBACK_STATUS.md) - 피드백 반영 상태
-
-### 다음 단계
-**Week 5**: 외부 API 연동, Async/Fallback, 인기 상품 배치
-
----
-
-## 🎯 Implementation Quick Guide
-
-### 1. JPA Entity 전환
-
-```java
-// Week 3: 순수 Java 클래스
-public class Product {
-    private String id;
-    private String name;
-    private Integer stock;
-
-    public void decreaseStock(int quantity) { /* 비즈니스 로직 */ }
-}
-
-// Week 4: JPA Entity (비즈니스 로직 유지!)
-@Entity
-@Table(name = "products")
-@NoArgsConstructor
-public class Product {
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @Column(nullable = false)
-    private String name;
-
-    @Column(nullable = false)
-    private Integer stock;
-
-    public void decreaseStock(int quantity) { /* 비즈니스 로직 유지 */ }
-}
+### 패키지 구조 (Layered Architecture)
 ```
-
-### 2. Spring Data JPA Repository
-
-```java
-// Week 3: InMemoryRepository 구현체
-@Repository
-public class InMemoryProductRepository implements ProductRepository {
-    private final Map<String, Product> storage = new ConcurrentHashMap<>();
-    // 직접 구현...
-}
-
-// Week 4: JpaRepository 상속 (구현체 불필요)
-@Repository
-public interface JpaProductRepository extends JpaRepository<Product, Long>, ProductRepository {
-    List<Product> findByCategory(String category);  // 메서드 네이밍 쿼리
-}
-```
-
-### 3. Transaction Management
-
-```java
-@Service
-@RequiredArgsConstructor
-@Transactional(readOnly = true)  // 기본 readOnly
-public class OrderUseCase {
-
-    @Transactional  // 쓰기 작업은 readOnly=false
-    public OrderResponse createOrder(CreateOrderRequest request) {
-        // 트랜잭션 내에서 Entity 변경 시 자동 UPDATE (Dirty Checking)
-    }
-
-    // 조회 전용 메서드는 기본값(readOnly=true) 사용
-    public OrderResponse getOrder(Long orderId) { /* ... */ }
-}
+io.hhplus.ecommerce/
+├── domain/              # Entity, Domain Service, Repository Interface
+├── application/         # UseCase, DTO
+├── infrastructure/      # JPA Repository, Redis Repository
+│   ├── persistence/     # JPA 구현체
+│   └── redis/          # Redis 접근 어댑터
+└── api/                # REST Controller
 ```
 
 ---
 
-## 📖 How to Use This Guide
+## 3. 핵심 도메인 (WHY)
 
-### When starting a new task:
+### 3.1 주문/결제
+- 사용자는 잔액 충전 후 상품 주문/결제
+- **결제 완료 시점**에 다음 작업 수행:
+   - 상품 판매량 기반 랭킹 업데이트 (비동기)
+   - 쿠폰 사용 처리 (필요 시)
 
-1. **Read the user request carefully**
-2. **Check if relevant documentation exists**:
-   - Use `/architecture` for layered architecture questions
-   - Use `/concurrency` for concurrency control implementation
-   - Use `/testing` for test writing
-   - Read `@.claude/commands/*.md` files for detailed guidance
-   - Read `@docs/week*/` for requirements and specifications
+### 3.2 실시간 랭킹 (Sorted Set)
+**목표:** 가장 많이 주문된 상품을 실시간에 가깝게 제공
 
-3. **Ask for clarification if needed**:
-   - "어떤 문서를 참조해야 할까요?"
-   - "Week 2 API 명세를 확인해야 하나요?"
-   - "동시성 제어 방식을 선택해야 하나요?"
+**저장 방식:**
+- Redis Sorted Set 사용
+- 키 패턴: `ranking:product:orders:daily:{yyyyMMdd}`
+- member: `productId`, score: 누적 판매 수량
 
-4. **Execute the task** using the guidance from documentation
+**갱신 시점:**
+- **결제 성공 시점**에 각 상품별로 `ZINCRBY`로 score 증가
+- 주문 생성이 아닌 **결제 확정** 기준
 
-### When receiving unclear instructions:
+**동시성/정합성:**
+- Redis는 단일 스레드 + `ZINCRBY`는 atomic
+- 별도 분산락 불필요
+- 많은 동시 요청이 와도 score는 정확히 누적됨
 
-**Always ask the user**:
-- "어떤 작업을 수행해야 하나요?"
-- "Week 몇 차 작업인가요?"
-- "참조할 문서가 있나요? (@.claude/, @docs/, 또는 slash command)"
+### 3.3 선착순 쿠폰 (Set + Atomic)
+**목표:** 동시 다발적 요청에서도 선착순 수량을 정확히 보장
 
----
+**데이터 배치:**
+- 쿠폰 메타(할인율, 유효기간, 총 수량): **DB**
+- 선착순 재고/발급 상태: **Redis**
+   - `coupon:{id}:remain` → 남은 수량 (정수)
+   - `coupon:{id}:issued` → 발급된 userId Set
 
-## ✅ Week 4 Implementation Checklist (완료)
+**발급 규칙 (핵심 정합성):**
+- "잔여 수량 차감"과 "userId 발급 기록"은 **하나의 트랜잭션 단위**로 처리
+- 둘 중 하나라도 실패하면 원복 필요
+- 스케줄러로 나중에 맞추는 방식 사용 금지
 
-### JPA Entity ✅
-- [x] Product, User, Order, OrderItem Entity 변환
-- [x] Cart, CartItem Entity 변환
-- [x] Coupon, UserCoupon Entity 변환
-- [x] 비즈니스 로직 메서드 유지
-
-### Spring Data JPA Repository ✅
-- [x] JpaRepository 상속
-- [x] 커스텀 쿼리 메서드 작성 (@Query, Fetch Join)
-- [x] InMemory Repository 제거 (8개 파일 삭제)
-
-### Database Configuration ✅
-- [x] application.yml 설정 (MySQL)
-- [x] 초기 데이터 로딩 (DataInitializer)
-
-### Transaction Management ✅
-- [x] UseCase에 @Transactional 적용
-- [x] 읽기 전용 메서드 readOnly=true
-- [x] OptimisticLockingFailureException 처리
-
-### Performance Optimization ✅
-- [x] N+1 문제 전체 해결 (Fetch Join)
-- [x] EXPLAIN ANALYZE 기반 쿼리 최적화
-- [x] ProductSalesAggregate 롤업 전략
-
-### Testing ✅
-- [x] Repository 테스트 (@DataJpaTest)
-- [x] 통합 테스트 (@SpringBootTest)
-- [x] 테스트 커버리지 94% 유지
-- [x] N+1 검증 테스트 (N1ProblemVerificationTest)
+**구현 방식:**
+1. (권장) 짧은 Lua 스크립트로 `remain 체크 → DECR → SADD`를 원자적으로 처리
+2. (대안) 개별 명령 + 방어적 롤백 로직
+3. 같은 userId 중복 발급 방지는 Redis 레벨에서 처리
 
 ---
 
-## 🔍 Common Pitfalls to Avoid
+## 4. Redis 사용 원칙 (HOW)
 
-### JPA
-- ❌ Entity를 단순 데이터 객체로 사용 (비즈니스 로직 제거)
-- ✅ Week 3의 비즈니스 로직 메서드를 그대로 유지
+### 단일 스레드 이벤트 루프
+- Redis는 **단일 스레드 이벤트 루프**로 동작
+- 개별 명령은 atomic하지만, **CPU를 오래 쓰는 Lua 스크립트는 전체 처리 지연 유발**
 
-### Transaction
-- ❌ Controller나 Entity에 @Transactional 적용
-- ✅ UseCase(Application Layer)에만 @Transactional 적용
-
-### N+1 Problem
-- ❌ 지연 로딩으로 인한 N+1 문제
-- ✅ Fetch Join, @EntityGraph, Batch Size 설정
+### 이 프로젝트의 Redis 사용 규칙
+1. **짧은 명령 조합 또는 짧은 Lua 스크립트만 사용**
+2. **랭킹 갱신:** `ZINCRBY` 한 번으로 처리, 별도 분산락 불필요
+3. **쿠폰 발급:**
+   - (선호) 짧은 Lua로 `잔여 수량 체크 + 차감 + 발급 기록`을 한 번에
+   - (대안) 단일 명령 조합 + 실패 시 원복 로직
+4. **Redis 역할 명확화:**
+   - 랭킹: Redis Sorted Set이 사실상의 진실 소스
+   - 쿠폰: Redis 기준으로 동시성 보장, DB는 통계/백오피스용 eventual sync
 
 ---
 
-## 🛠️ Development Commands
+## 5. 작업 방법 (빌드/테스트/실행)
 
 ```bash
 # Build
-./gradlew build
+./gradlew clean build
 
 # Run
 ./gradlew bootRun
 
-# Test with coverage
-./gradlew test jacocoTestReport
+# Test (단위 + 통합)
+./gradlew test
 
-# MySQL 접속 (Development)
-mysql -u root -p ecommerce
+# Redis/MySQL (Docker)
+# docker-compose.yml 또는 scripts/ 폴더 참조
 ```
 
+### 7주차 핵심 테스트
+- 다중 스레드 환경에서 쿠폰 발급 수량 초과 방지 검증
+- 동시 다발 주문 시 랭킹 score 정확성 검증
+- Testcontainers로 Redis 통합 테스트
+
+**자세한 테스트 시나리오:** `agent_docs/testing_redis_features.md` 참조
+
 ---
 
-## 📝 Next Steps
+## 6. 추가 문서 (Progressive Disclosure)
 
-1. **Week 5**: 외부 API 연동, Async/Fallback, 인기 상품 배치
-2. **Week 6**: 캐싱, 인덱스 최적화, 부하 테스트
-3. **Week 7**: Docker, CI/CD, 모니터링
+세부 지침은 아래 문서를 참조하세요. **필요 시에만** 열어보세요.
+
+- `agent_docs/redis_ranking.md`
+  → Sorted Set 키 설계, 만료 정책, 랭킹 조회 API 설계 상세
+
+- `agent_docs/redis_coupon_issue.md`
+  → 쿠폰 발급 Lua 스크립트 예시, 실패/원복 전략, 에러 케이스
+
+- `agent_docs/testing_redis_features.md`
+  → Redis 동시성/통합 테스트 시나리오와 예제 코드
+
+- `docs/week6/`
+  → Week 6 과제 (분산락, 캐시 전략) 참고 문서
+
+- `.claude/commands/`
+  → `/architecture`, `/concurrency`, `/testing` 슬래시 커맨드
 
 ---
 
-## Configuration
+## 7. Claude 사용 가이드
 
-Application configuration is in `src/main/resources/application.yml`.
+### 이 프로젝트에서 Claude가 지켜야 할 규칙
 
-### Key Configurations
-- **Database**: MySQL
-- **JPA**: ddl-auto, show-sql, format_sql, dialect (MySQL8)
-- **Logging**: SQL, Parameter binding
+1. **레이어링 존중:**
+   코드 수정/추가 시 항상 기존 4계층 구조(Presentation → Application → Domain ← Infrastructure) 유지
+
+2. **Redis 관련 코드 변경 시:**
+   - 먼저 `infrastructure.redis` 패키지의 기존 패턴 확인
+   - 위 4번 섹션(Redis 사용 원칙) 준수
+   - 필요하면 `agent_docs/redis_*.md` 참고
+
+3. **코드 스타일/포맷팅:**
+   IDE/린터에 맡기며, CLAUDE.md에서 따로 규정하지 않음
+
+---
+
+## 📌 Week 7 Pass 기준 (참고)
+
+- [ ] Redis Sorted Set 기반 랭킹 제공 로직 구현
+- [ ] 적절한 트랜잭션 + 파이프라인 구성
+- [ ] Redis 기반 선착순 쿠폰 발급 (동시성 보장)
+- [ ] 기존 RDBMS 로직을 Redis 로직으로 마이그레이션
+- [ ] Testcontainers 기반 통합 테스트
+
+**상세 평가 기준:** `docs/week7/REQUIREMENTS.md` 참조

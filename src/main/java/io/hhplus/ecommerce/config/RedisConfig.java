@@ -10,6 +10,11 @@ import org.redisson.config.Config;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
+import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 /**
  * Redis 및 Redisson 설정
@@ -28,10 +33,52 @@ public class RedisConfig {
     private int redisPort;
 
     /**
+     * Redis Connection Factory 설정
+     *
+     * Spring Data Redis의 기본 연결 팩토리입니다.
+     */
+    @Bean
+    public RedisConnectionFactory redisConnectionFactory() {
+        RedisStandaloneConfiguration config = new RedisStandaloneConfiguration();
+        config.setHostName(redisHost);
+        config.setPort(redisPort);
+        return new LettuceConnectionFactory(config);
+    }
+
+    /**
+     * RedisTemplate 설정
+     *
+     * String-String 타입의 RedisTemplate을 제공합니다.
+     * - Key: String Serializer
+     * - Value: String Serializer
+     *
+     * 사용처:
+     * - ProductRankingRepository (Sorted Set)
+     */
+    @Bean
+    public RedisTemplate<String, String> redisTemplate(RedisConnectionFactory connectionFactory) {
+        RedisTemplate<String, String> template = new RedisTemplate<>();
+        template.setConnectionFactory(connectionFactory);
+
+        // Key와 Value 모두 String Serializer 사용
+        StringRedisSerializer stringSerializer = new StringRedisSerializer();
+        template.setKeySerializer(stringSerializer);
+        template.setValueSerializer(stringSerializer);
+        template.setHashKeySerializer(stringSerializer);
+        template.setHashValueSerializer(stringSerializer);
+
+        template.afterPropertiesSet();
+        return template;
+    }
+
+    /**
      * Redisson 클라이언트 설정
      *
      * Jackson Codec을 사용하여 객체를 JSON으로 직렬화합니다.
      * Java 8 Time API (LocalDateTime 등)를 지원하도록 설정합니다.
+     *
+     * 사용처:
+     * - 분산 락 (DistributedLockAspect)
      */
     @Bean
     public RedissonClient redissonClient() {

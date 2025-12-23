@@ -17,6 +17,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 import java.util.List;
 import java.util.UUID;
@@ -35,7 +37,18 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @SpringBootTest
 @Import(TestContainersConfig.class)
+@org.springframework.test.annotation.DirtiesContext(classMode = org.springframework.test.annotation.DirtiesContext.ClassMode.AFTER_CLASS)
 class PaymentConcurrencyWithDistributedLockTest {
+
+    /**
+     * Override Hikari pool size for high-concurrency tests
+     * Note: @DynamicPropertySource in test class has higher priority than in @TestConfiguration
+     */
+    @DynamicPropertySource
+    static void overrideHikariConfig(DynamicPropertyRegistry registry) {
+        registry.add("spring.datasource.hikari.maximum-pool-size", () -> 150);
+        registry.add("spring.datasource.hikari.minimum-idle", () -> 50);
+    }
 
     @Autowired
     private CreateOrderUseCase createOrderUseCase;
