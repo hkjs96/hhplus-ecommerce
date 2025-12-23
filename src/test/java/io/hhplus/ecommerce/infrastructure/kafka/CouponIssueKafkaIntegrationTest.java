@@ -139,8 +139,8 @@ class CouponIssueKafkaIntegrationTest {
     }
 
     @Test
-    @DisplayName("재시도 초과 → DLT로 이동 → DLT 컨슈머가 remaining 보상")
-    void issue_failure_goesToDlt_andCompensatesRemaining() {
+    @DisplayName("중복 발급(UK 충돌)은 멱등 처리되어 remaining 보상 없이 issued 확정")
+    void issue_duplicate_is_idempotent_and_doesNotCompensateRemaining() {
         Coupon coupon = Coupon.create(
             "COUP-KAFKA-2",
             "Kafka 쿠폰 2",
@@ -169,7 +169,34 @@ class CouponIssueKafkaIntegrationTest {
         Long couponId = coupon.getId();
         Long userId = user.getId();
         String remainingKey = "coupon:" + couponId + ":remaining";
+        String issuedKey = "coupon:" + couponId + ":issued";
         String reservationKey = "coupon:" + couponId + ":reservation:" + userId;
+
+        await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> {
+            assertThat(redisTemplate.opsForValue().get(remainingKey)).isEqualTo("0");
+            assertThat(redisTemplate.opsForSet().isMember(issuedKey, String.valueOf(userId))).isTrue();
+            assertThat(redisTemplate.opsForValue().get(reservationKey)).isNull();
+        });
+    }
+
+    @Test
+    @DisplayName("영구 실패(쿠폰 없음) → 재시도 초과 → DLT로 이동 → DLT 컨슈머가 remaining 보상")
+    void issue_invalidCoupon_goesToDlt_andCompensatesRemaining() {
+        Long invalidCouponId = 9999L;
+
+        User user = User.create("kafka-user3@test.com", "kafka-user3");
+        user = userRepository.save(user);
+
+        couponIssueReservationStore.reserve(invalidCouponId, user.getId(), 1, Duration.ofMinutes(5));
+
+        kafkaTemplate.send(
+            "coupon-issue-requested",
+            CouponIssueRequestedMessage.of(invalidCouponId, user.getId(), UUID.randomUUID().toString())
+        );
+
+        Long userId = user.getId();
+        String remainingKey = "coupon:" + invalidCouponId + ":remaining";
+        String reservationKey = "coupon:" + invalidCouponId + ":reservation:" + userId;
 
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> {
             assertThat(redisTemplate.opsForValue().get(remainingKey)).isEqualTo("1");
