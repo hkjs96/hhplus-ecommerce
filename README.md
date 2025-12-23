@@ -1,32 +1,30 @@
 # E-Commerce Backend System
 
-항해플러스 백엔드 커리큘럼 - 이커머스 시스템 (Week 7: Redis 기반 시스템 설계)
+항해플러스 백엔드 커리큘럼 - 이커머스 시스템 (Week 10: 장애 대응 & 성능 테스트)
 
 ---
 
 ## 📋 프로젝트 개요
 
-**현재 단계**: Week 7 - Redis 기반 랭킹 시스템 및 선착순 쿠폰 발급
+**현재 단계**: Week 10 - 부하 테스트 및 (가상) 장애 대응 문서화
 
-**핵심 목표**: Redis 자료구조를 활용한 실시간 랭킹 및 고성능 동시성 제어
+**핵심 목표**: 서비스 장애를 빠르게 탐지/분석/대응할 수 있도록 성능 테스트 및 장애 대응 역량 강화
 
-단일 서버 환경에서 Redis를 활용하여 RDBMS의 한계를 극복하고, 대용량 트래픽을 처리할 수 있는 시스템 설계 및 구현
+부하 테스트(k6)로 시스템 병목을 탐색하고, 결과 분석 및 (가상) 장애 대응 문서를 작성합니다.
 
 ---
 
-## 🎯 7주차 목표
+## 🎯 10주차 목표
 
-### Step 13: Ranking Design (필수)
-- **Redis Sorted Set 활용**: 실시간 상품 판매 랭킹 시스템 구현
-- **결제 완료 시점 갱신**: 주문 생성이 아닌 결제 확정 기준
-- **동시성 제어**: ZINCRBY 원자성으로 해결 (별도 분산락 불필요)
-- **TTL 관리**: 일간/주간 랭킹 분리 및 자동 만료
+### Step 19: 부하 테스트 스크립트 작성 및 진행
+- 부하 테스트 대상 선정 및 목적/시나리오/목표치 계획 문서 작성
+- k6 스크립트 작성 및 실행
+- (정확도 우선) 부하 발생기(k6)와 SUT(서비스) 자원 경합 최소화
 
-### Step 14: Asynchronous Design (필수)
-- **Redis 기반 쿠폰 발급**: Set + String으로 선착순 수량 제어
-- **트랜잭션 단위 처리**: 수량 차감 + 발급 기록은 하나의 단위
-- **중복 방지**: Set 자료구조로 동일 사용자 중복 발급 차단
-- **Lua 스크립트 활용**: 원자적 처리 (선택적)
+### Step 20: 분석/개선 및 (가상) 장애 대응 문서 작성
+- 테스트 결과(p95/p99, error rate, 리소스 지표) 분석 및 병목 탐색
+- 개선안 적용 및 재측정(또는 개선 가설 수립)
+- 장애 대응 문서(탐지/전파/복구/회고) 작성
 
 ---
 
@@ -104,14 +102,16 @@ docs/
 │   ├── erd.md                    # ERD (DBML, Mermaid)
 │   └── sequence-diagrams.md      # 시퀀스 다이어그램 (API별)
 │
-├── week7/                        # Week 7 Redis 학습 ⭐ (현재)
-│   ├── README.md                 # Week 7 전체 가이드 (시작점)
-│   ├── REDIS_BASICS.md           # Redis 기초 개념
-│   ├── COACH_QNA_SUMMARY.md      # 코치 QnA 핵심 요약
-│   ├── REQUIREMENTS.md           # Step 13-14 요구사항
-│   ├── LEARNING_ROADMAP.md       # 10시간/3시간 학습 로드맵
-│   ├── STEP_CHECKLIST.md         # 진행 체크리스트
-│   └── CLAUDE_MD_MIGRATION_GUIDE.md  # CLAUDE.md 재구성
+├── week10/                       # Week 10 장애 대응 & 성능 테스트 ⭐ (현재)
+│   ├── README.md                 # Week 10 전체 가이드(요약)
+│   ├── step19-load-test-plan.md  # STEP19: 부하 테스트 계획서
+│   └── step20-incident-report.md # STEP20: 결과 분석/장애 대응 문서
+│
+├── week9/                        # Week 9 Kafka 학습 및 적용
+│   └── README.md
+│
+├── week7/                        # Week 7 Redis 학습
+│   └── README.md
 │
 ├── week4/                        # Week 4 DB 통합
 │   ├── README.md                 # Week 4 가이드
