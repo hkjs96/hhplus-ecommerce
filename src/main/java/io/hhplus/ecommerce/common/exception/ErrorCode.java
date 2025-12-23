@@ -12,6 +12,7 @@ public enum ErrorCode {
     // ====================================
     PRODUCT_NOT_FOUND("P001", "상품을 찾을 수 없습니다"),
     INSUFFICIENT_STOCK("P002", "재고가 부족합니다"),
+    STOCK_UPDATE_CONFLICT("P003", "재고 업데이트 중 동시성 충돌이 발생했습니다"),
 
     // ====================================
     // 주문 관련 (O)
@@ -25,6 +26,7 @@ public enum ErrorCode {
     // ====================================
     INSUFFICIENT_BALANCE("PAY001", "잔액이 부족합니다"),
     PAYMENT_FAILED("PAY002", "결제 처리에 실패했습니다"),
+    DUPLICATE_REQUEST("PAY003", "중복 요청입니다"),
 
     // ====================================
     // 쿠폰 관련 (C)
@@ -50,7 +52,8 @@ public enum ErrorCode {
     // 공통 (COMMON)
     // ====================================
     INTERNAL_SERVER_ERROR("COMMON001", "서버 내부 오류가 발생했습니다"),
-    INVALID_INPUT("COMMON002", "입력값이 올바르지 않습니다");
+    INVALID_INPUT("COMMON002", "입력값이 올바르지 않습니다"),
+    NOT_FOUND("COMMON003", "리소스를 찾을 수 없습니다");
 
     private final String code;
     private final String message;

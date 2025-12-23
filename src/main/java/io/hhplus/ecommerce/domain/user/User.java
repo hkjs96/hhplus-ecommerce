@@ -17,7 +17,7 @@ import java.time.LocalDateTime;
     }
 )
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@NoArgsConstructor
 public class User {
 
     @Id
@@ -32,6 +32,9 @@ public class User {
 
     @Column(nullable = false)
     private Long balance;  // 포인트 잔액 (내부 포인트 시스템, PG 없음)
+
+    @Version
+    private Long version;  // Optimistic Lock (Pessimistic Lock과 함께 사용 가능)
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

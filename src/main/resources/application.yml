@@ -6,7 +6,7 @@ spring:
   jpa:
     open-in-view: false
     hibernate:
-      ddl-auto: update  # 개발 시 update, 프로덕션에서는 none
+      ddl-auto: create  # 개발 시 create (테스트 데이터 재생성용), 프로덕션에서는 none
     properties:
       hibernate:
         format_sql: true
@@ -23,11 +23,11 @@ spring:
     username: root
     password: password
     hikari:
-      maximum-pool-size: 10
-      minimum-idle: 5
-      connection-timeout: 30000
-      idle-timeout: 600000
-      max-lifetime: 1800000
+      maximum-pool-size: 50      # Before: 10 (동시 처리량 5배 증가)
+      minimum-idle: 10           # Before: 5 (최소 유휴 커넥션 증가)
+      connection-timeout: 30000  # 30초 (커넥션 획득 대기 시간)
+      idle-timeout: 600000       # 10분 (유휴 커넥션 유지 시간)
+      max-lifetime: 1800000      # 30분 (커넥션 최대 수명)
 
 # SpringDoc OpenAPI 설정
 springdoc:
@@ -60,3 +60,26 @@ server:
   error:
     include-message: always
     include-binding-errors: always
+
+# Actuator & Metrics 설정
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,prometheus
+      base-path: /actuator
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+      percentiles:
+        http.server.requests: 0.5, 0.95, 0.99
+  endpoint:
+    health:
+      show-details: always
+    metrics:
+      enabled: true
+    prometheus:
+      enabled: true

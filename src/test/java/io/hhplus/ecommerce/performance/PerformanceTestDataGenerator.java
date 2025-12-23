@@ -26,28 +26,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-/**
- * 대용량 테스트 데이터 생성기
- *
- * <p>목적:
- * <ul>
- *   <li>DB 최적화 효과 검증을 위한 대용량 데이터 생성</li>
- *   <li>실제 운영 환경 시뮬레이션 (100만 건 주문, 10만 명 사용자)</li>
- *   <li>EXPLAIN 분석 및 성능 측정용 데이터</li>
- * </ul>
- *
- * <p>데이터 규모:
- * <ul>
- *   <li>사용자: 10,000명</li>
- *   <li>상품: 1,000개</li>
- *   <li>주문: 100,000건</li>
- *   <li>주문 상세: 300,000건 (주문당 평균 3개 상품)</li>
- *   <li>장바구니: 5,000개</li>
- *   <li>장바구니 아이템: 15,000개</li>
- *   <li>쿠폰: 100개</li>
- *   <li>사용자 쿠폰: 50,000건</li>
- * </ul>
- */
 @Component
 public class PerformanceTestDataGenerator {
 
@@ -84,11 +62,6 @@ public class PerformanceTestDataGenerator {
         this.userCouponRepository = userCouponRepository;
     }
 
-    /**
-     * 전체 테스트 데이터 생성 (Full Dataset)
-     *
-     * <p>경고: 약 5~10분 소요될 수 있습니다.
-     */
     @Transactional
     public void generateFullDataset() {
         log.info("=".repeat(80));
@@ -140,9 +113,6 @@ public class PerformanceTestDataGenerator {
         log.info("=".repeat(80));
     }
 
-    /**
-     * 소규모 테스트 데이터 생성 (빠른 테스트용)
-     */
     @Transactional
     public void generateSmallDataset() {
         log.info("Generating SMALL dataset for quick testing");
@@ -267,8 +237,8 @@ public class PerformanceTestDataGenerator {
                 Integer quantity = 1 + random.nextInt(4); // 1~5개
 
                 OrderItem orderItem = OrderItem.create(
-                    order.getId(),
-                    product.getId(),
+                    order,
+                    product,
                     quantity,
                     product.getPrice()
                 );
@@ -328,8 +298,8 @@ public class PerformanceTestDataGenerator {
                 Integer quantity = 1 + random.nextInt(4); // 1~5개
 
                 CartItem cartItem = CartItem.create(
-                    cart.getId(),
-                    product.getId(),
+                    cart,
+                    product,
                     quantity
                 );
                 cartItems.add(cartItemRepository.save(cartItem));
@@ -415,10 +385,6 @@ public class PerformanceTestDataGenerator {
         return userCoupons;
     }
 
-    /**
-     * 데이터 통계 출력
-     * Note: count() method는 JpaRepository에만 있으므로 주석 처리
-     */
     public void printStatistics() {
         log.info("=".repeat(80));
         log.info("Database Statistics");

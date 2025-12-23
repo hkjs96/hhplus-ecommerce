@@ -98,7 +98,7 @@ public class InMemoryProductRepository implements ProductRepository {
 @Entity
 @Table(name = "products")
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)  // JPA 필수
+@NoArgsConstructor  // JPA 필수
 public class Product {
 
     @Id

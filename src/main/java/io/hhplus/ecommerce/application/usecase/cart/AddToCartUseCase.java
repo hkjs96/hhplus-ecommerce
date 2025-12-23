@@ -52,7 +52,7 @@ public class AddToCartUseCase {
                 return cartRepository.save(newCart);
             });
 
-        // 4. 장바구니 아이템 추가 또는 수량 증가
+        // 4. 장바구니 아이템 추가 또는 수량 증가 (개선: Cart 엔티티 직접 참조)
         cartItemRepository.findByCartIdAndProductId(cart.getId(), request.productId())
             .ifPresentOrElse(
                 existingItem -> {
@@ -71,18 +71,20 @@ public class AddToCartUseCase {
                     log.debug("Updated existing cart item: {}, new quantity: {}", existingItem.getId(), newQuantity);
                 },
                 () -> {
+                    // 개선: Cart 엔티티 직접 참조 (cart.getId() → cart)
                     CartItem newItem = CartItem.create(
-                        cart.getId(),
-                        request.productId(),
+                        cart,      // Cart 엔티티 직접 전달
+                        product,   // Product 엔티티 직접 전달
                         request.quantity()
                     );
+                    // 양방향 관계 동기화 (선택적)
+                    cart.addCartItem(newItem);
                     cartItemRepository.save(newItem);
                     log.debug("Created new cart item: {}", newItem.getId());
                 }
             );
 
-        // 5. 장바구니 업데이트 시간 갱신
-        cart.updateTimestamp();
+        // 5. 장바구니 저장 (updatedAt은 JPA Auditing이 자동 처리)
         cartRepository.save(cart);
 
         // 6. 장바구니 조회 후 반환

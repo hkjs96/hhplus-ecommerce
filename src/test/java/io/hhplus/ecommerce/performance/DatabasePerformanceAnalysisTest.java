@@ -15,23 +15,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import java.util.List;
 import java.util.Map;
 
-/**
- * DB 성능 분석 통합 테스트
- *
- * <p>목적:
- * <ul>
- *   <li>대용량 테스트 데이터로 실제 성능 측정</li>
- *   <li>EXPLAIN 실행 계획 분석 및 비교</li>
- *   <li>인덱스 적용 전후 성능 비교</li>
- * </ul>
- *
- * <p>테스트 환경:
- * <ul>
- *   <li>Testcontainers MySQL 8.0</li>
- *   <li>대용량 테스트 데이터 (100,000 주문)</li>
- *   <li>실제 운영 환경 시뮬레이션</li>
- * </ul>
- */
 @SpringBootTest
 @Testcontainers
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -291,12 +274,12 @@ class DatabasePerformanceAnalysisTest {
             SELECT
                 c.id, c.user_id, c.created_at, c.updated_at,
                 ci.id AS item_id, ci.product_id, p.name AS product_name,
-                p.price, ci.quantity, ci.added_at
+                p.price, ci.quantity, ci.created_at
             FROM carts c
             LEFT JOIN cart_items ci ON c.id = ci.cart_id
             LEFT JOIN products p ON ci.product_id = p.id
             WHERE c.user_id = 1
-            ORDER BY ci.added_at DESC
+            ORDER BY ci.created_at DESC
             """;
 
         executeExplain(query, "Cart with Items");
@@ -332,9 +315,6 @@ class DatabasePerformanceAnalysisTest {
     // Helper Methods
     // ============================================================
 
-    /**
-     * EXPLAIN 쿼리 실행 및 결과 출력
-     */
     private void executeExplain(String query, String queryName) {
         log.info("\n" + "-".repeat(100));
         log.info("Query: {}", queryName);
@@ -372,9 +352,6 @@ class DatabasePerformanceAnalysisTest {
         analyzeExplainResult(results);
     }
 
-    /**
-     * EXPLAIN 결과 분석 및 요약
-     */
     private void analyzeExplainResult(List<Map<String, Object>> results) {
         log.info("\n📊 Analysis Summary:");
 
@@ -425,9 +402,6 @@ class DatabasePerformanceAnalysisTest {
         log.info("=".repeat(100));
     }
 
-    /**
-     * 쿼리 성능 측정 (여러 번 실행 후 평균 계산)
-     */
     private void measureQueryPerformance(String query, String queryName, int iterations) {
         log.info("\n" + "-".repeat(100));
         log.info("Query: {}", queryName);
@@ -464,9 +438,6 @@ class DatabasePerformanceAnalysisTest {
         log.info("=".repeat(100));
     }
 
-    /**
-     * 인덱스 생성
-     */
     private void createIndex(String indexName, String tableName, String columns) {
         try {
             String sql = String.format("CREATE INDEX %s ON %s(%s)", indexName, tableName, columns);
@@ -477,9 +448,6 @@ class DatabasePerformanceAnalysisTest {
         }
     }
 
-    /**
-     * 인덱스가 없을 때만 생성
-     */
     private void createIndexIfNotExists(String indexName, String tableName, String columns) {
         try {
             // 인덱스 존재 여부 확인
@@ -496,9 +464,6 @@ class DatabasePerformanceAnalysisTest {
         }
     }
 
-    /**
-     * 문자열 자르기 (로그 출력용)
-     */
     private String truncate(String str, int maxLength) {
         if (str == null || "null".equals(str)) {
             return "-";

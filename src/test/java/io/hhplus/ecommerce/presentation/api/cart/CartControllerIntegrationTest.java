@@ -54,15 +54,18 @@ class CartControllerIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        // 테스트용 사용자 데이터 생성
-        User user = User.create("test@example.com", "테스트유저");
+        // 테스트용 사용자 데이터 생성 (UUID로 고유한 email 생성)
+        String uniqueEmail = "test-" + java.util.UUID.randomUUID().toString().substring(0, 8) + "@example.com";
+        User user = User.create(uniqueEmail, "테스트유저");
         user.charge(500000L);
         User savedUser = userRepository.save(user);
         testUserId = savedUser.getId();
 
-        // 테스트용 상품 데이터 생성
-        Product product1 = Product.create("TEST_P001", "테스트노트북", "고성능 노트북", 890000L, "전자제품", 10);
-        Product product2 = Product.create("TEST_P002", "테스트키보드", "기계식 키보드", 120000L, "주변기기", 20);
+        // 테스트용 상품 데이터 생성 (UUID로 고유한 product code 생성)
+        String uniqueCode1 = "TEST_P001_" + java.util.UUID.randomUUID().toString().substring(0, 8);
+        String uniqueCode2 = "TEST_P002_" + java.util.UUID.randomUUID().toString().substring(0, 8);
+        Product product1 = Product.create(uniqueCode1, "테스트노트북", "고성능 노트북", 890000L, "전자제품", 10);
+        Product product2 = Product.create(uniqueCode2, "테스트키보드", "기계식 키보드", 120000L, "주변기기", 20);
         Product savedProduct1 = productRepository.save(product1);
         Product savedProduct2 = productRepository.save(product2);
         testProduct1Id = savedProduct1.getId();
@@ -109,7 +112,7 @@ class CartControllerIntegrationTest {
         // Given: 장바구니에 이미 상품 존재
         Cart cart = Cart.create(testUserId);
         Cart savedCart = cartRepository.save(cart);
-        CartItem existingItem = CartItem.create(savedCart.getId(), testProduct1Id, 3);
+        CartItem existingItem = CartItem.create(savedCart, productRepository.findById(testProduct1Id).orElseThrow(), 3);
         cartItemRepository.save(existingItem);
 
         String requestBody = String.format("""
@@ -208,8 +211,8 @@ class CartControllerIntegrationTest {
         Cart cart = Cart.create(testUserId);
         Cart savedCart = cartRepository.save(cart);
 
-        CartItem item1 = CartItem.create(savedCart.getId(), testProduct1Id, 2);
-        CartItem item2 = CartItem.create(savedCart.getId(), testProduct2Id, 3);
+        CartItem item1 = CartItem.create(savedCart, productRepository.findById(testProduct1Id).orElseThrow(), 2);
+        CartItem item2 = CartItem.create(savedCart, productRepository.findById(testProduct2Id).orElseThrow(), 3);
         cartItemRepository.save(item1);
         cartItemRepository.save(item2);
 
@@ -250,7 +253,7 @@ class CartControllerIntegrationTest {
         Cart savedCart = cartRepository.save(cart);
 
         // 장바구니 수량(5개)이 재고(2개)보다 많음
-        CartItem item = CartItem.create(savedCart.getId(), savedLowStockProduct.getId(), 5);
+        CartItem item = CartItem.create(savedCart, savedLowStockProduct, 5);
         cartItemRepository.save(item);
 
         // When & Then
@@ -284,7 +287,7 @@ class CartControllerIntegrationTest {
         // Given
         Cart cart = Cart.create(testUserId);
         Cart savedCart = cartRepository.save(cart);
-        CartItem item = CartItem.create(savedCart.getId(), testProduct1Id, 2);
+        CartItem item = CartItem.create(savedCart, productRepository.findById(testProduct1Id).orElseThrow(), 2);
         cartItemRepository.save(item);
 
         String requestBody = String.format("""
@@ -313,7 +316,7 @@ class CartControllerIntegrationTest {
         // Given
         Cart cart = Cart.create(testUserId);
         Cart savedCart = cartRepository.save(cart);
-        CartItem item = CartItem.create(savedCart.getId(), testProduct1Id, 2);
+        CartItem item = CartItem.create(savedCart, productRepository.findById(testProduct1Id).orElseThrow(), 2);
         cartItemRepository.save(item);
 
         String requestBody = String.format("""
@@ -363,7 +366,7 @@ class CartControllerIntegrationTest {
         // Given
         Cart cart = Cart.create(testUserId);
         Cart savedCart = cartRepository.save(cart);
-        CartItem item = CartItem.create(savedCart.getId(), testProduct1Id, 2);
+        CartItem item = CartItem.create(savedCart, productRepository.findById(testProduct1Id).orElseThrow(), 2);
         cartItemRepository.save(item);
 
         String requestBody = String.format("""
@@ -394,7 +397,7 @@ class CartControllerIntegrationTest {
         // Given
         Cart cart = Cart.create(testUserId);
         Cart savedCart = cartRepository.save(cart);
-        CartItem item = CartItem.create(savedCart.getId(), testProduct1Id, 2);
+        CartItem item = CartItem.create(savedCart, productRepository.findById(testProduct1Id).orElseThrow(), 2);
         cartItemRepository.save(item);
 
         String requestBody = String.format("""

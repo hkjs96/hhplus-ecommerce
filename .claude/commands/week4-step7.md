@@ -185,7 +185,7 @@ logging:
 @Entity
 @Table(name = "products")
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@NoArgsConstructor
 public class Product {
 
     @Id
@@ -250,7 +250,7 @@ public class Product {
 @Entity
 @Table(name = "orders")
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@NoArgsConstructor
 public class Order {
 
     @Id
@@ -976,7 +976,7 @@ public class OrderItem {
 ```java
 @Entity
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@NoArgsConstructor
 public class Order {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -995,7 +995,7 @@ public class Order {
 
 **권장 사항:**
 - ✅ `@Getter`: 사용 가능
-- ✅ `@NoArgsConstructor(access = AccessLevel.PROTECTED)`: JPA 필수
+- ✅ `@NoArgsConstructor`: JPA 필수
 - ⚠️ `@ToString`: 연관 엔티티 제외 (`@ToString(exclude = {"items"})`)
 - ❌ `@Data`: 절대 사용 금지
 - ❌ `@EqualsAndHashCode`: 신중히 사용 (PK만 포함 권장)

@@ -3,9 +3,12 @@ package io.hhplus.ecommerce.infrastructure.persistence.product;
 import io.hhplus.ecommerce.domain.product.Product;
 import io.hhplus.ecommerce.domain.product.ProductRepository;
 import io.hhplus.ecommerce.domain.product.TopProductProjection;
+import jakarta.persistence.LockModeType;
 import org.springframework.context.annotation.Primary;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -28,22 +31,37 @@ public interface JpaProductRepository extends JpaRepository<Product, Long>, Prod
     @Override
     Optional<Product> findByProductCode(String productCode);
 
+    /**
+     * Pessimistic Write Lock (SELECT FOR UPDATE)
+     * - 재고 차감 시 사용
+     * - 충돌이 빈번한 경우 Optimistic Lock보다 효율적
+     */
+    @Override
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT p FROM Product p WHERE p.id = :id")
+    Optional<Product> findByIdWithLock(@Param("id") Long id);
+
     // ============================================================
-    // Performance Optimization: Native Query for Top Products
+    // ⚠️ DEPRECATED: 실시간 집계 쿼리 (성능 이슈)
+    // ============================================================
+    // 문제점:
+    // 1. DATE_SUB(NOW(), INTERVAL 3 DAY) → 함수 사용으로 인덱스 미활용
+    // 2. GROUP BY로 매번 실시간 집계 → 데이터 증가 시 성능 저하
+    // 3. ORDER BY salesCount → 계산 컬럼이므로 인덱스 사용 불가
+    //
+    // 해결책:
+    // ProductSalesAggregate ROLLUP 테이블 사용 (JpaProductSalesAggregateRepository)
+    // - 사전 집계된 데이터 조회 → 빠른 응답
+    // - 인덱스 활용 가능한 쿼리 → idx_date_sales
+    // - 원본 테이블 부하 없음
+    //
+    // 대체 메서드:
+    // - JpaProductSalesAggregateRepository.findTopProductsByDate()
+    // - JpaProductSalesAggregateRepository.findTopProductsByDates()
+    // - JpaProductSalesAggregateRepository.findTopProductsByDateRange()
     // ============================================================
 
-    /**
-     * 인기 상품 조회 (최근 3일간 판매량 기준 Top 5)
-     *
-     * <p>최적화 전략:
-     * <ul>
-     *   <li>Native Query로 DB에서 집계 수행 (Java 필터링 제거)</li>
-     *   <li>Covering Index 사용: idx_status_paid_at, idx_order_product_covering</li>
-     *   <li>예상 성능: 2,543ms → 87ms (96.6% 개선)</li>
-     * </ul>
-     *
-     * @return Top 5 인기 상품 목록 (판매량 내림차순)
-     */
+    @Deprecated
     @Query(value = """
         SELECT
             oi.product_id AS productId,

@@ -3,9 +3,12 @@ package io.hhplus.ecommerce.application.usecase.cart;
 import io.hhplus.ecommerce.application.cart.dto.CartItemResponse;
 import io.hhplus.ecommerce.application.cart.dto.CartResponse;
 import io.hhplus.ecommerce.application.usecase.UseCase;
+import io.hhplus.ecommerce.domain.cart.Cart;
+import io.hhplus.ecommerce.domain.cart.CartItem;
 import io.hhplus.ecommerce.domain.cart.CartRepository;
-import io.hhplus.ecommerce.domain.cart.CartWithItemsProjection;
+import io.hhplus.ecommerce.domain.product.Product;
 import io.hhplus.ecommerce.domain.user.UserRepository;
+import io.hhplus.ecommerce.infrastructure.persistence.cart.JpaCartItemRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,48 +22,54 @@ import java.util.List;
 public class GetCartUseCase {
 
     private final CartRepository cartRepository;
+    private final JpaCartItemRepository cartItemRepository;  // Fetch Join 메서드 사용
     private final UserRepository userRepository;
 
-    /**
-     * 사용자 장바구니 조회 (상품 정보 포함)
-     * STEP 08 최적화:
-     * - 기존: findByUserId() + findByCartId() + N번 findById() (N+1 문제)
-     * - 개선: Native Query로 carts + cart_items + products JOIN 조회 (1 query)
-     * - 성능 향상: 예상 90%+ (N+1 queries → 1 query)
-     */
     public CartResponse execute(Long userId) {
-        log.info("Getting cart for user: {} using optimized Native Query", userId);
+        log.info("Getting cart for user: {} using Fetch Join", userId);
 
         // 1. 사용자 검증
         userRepository.findByIdOrThrow(userId);
 
-        // 2. Native Query로 장바구니 + 아이템 + 상품 조회 (Single Query)
-        List<CartWithItemsProjection> projectionsFromDb =
-            cartRepository.findCartWithItemsByUserId(userId);
+        // 2. Cart 조회
+        Cart cart = cartRepository.findByUserId(userId)
+            .orElseGet(() -> {
+                log.debug("No cart found for user: {}", userId);
+                return null;
+            });
 
-        if (projectionsFromDb.isEmpty()) {
-            log.debug("No cart found for user: {}", userId);
+        if (cart == null) {
             return CartResponse.of(userId, List.of());
         }
 
-        // 3. Projection → CartItemResponse 변환
-        List<CartItemResponse> itemResponses = projectionsFromDb.stream()
-            .map(proj -> {
-                Long subtotal = proj.getPrice() * proj.getQuantity();
-                Boolean stockAvailable = proj.getStock() >= proj.getQuantity();
+        // 3. Fetch Join으로 CartItem + Product 한 번에 조회
+        //    한 번의 JOIN 쿼리로 모든 데이터 로딩, N+1 문제 완전 해결
+        List<CartItem> cartItems = cartItemRepository.findByCartIdWithProduct(cart.getId());
+
+        if (cartItems.isEmpty()) {
+            log.debug("Empty cart for user: {}", userId);
+            return CartResponse.of(userId, List.of());
+        }
+
+        // 4. CartItem Entity → DTO 변환
+        List<CartItemResponse> itemResponses = cartItems.stream()
+            .map(item -> {
+                Product product = item.getProduct();  // Fetch Join으로 이미 로딩됨 (추가 쿼리 X)
+                Long subtotal = product.getPrice() * item.getQuantity();
+                Boolean stockAvailable = product.getStock() >= item.getQuantity();
 
                 return new CartItemResponse(
-                    proj.getProductId(),
-                    proj.getProductName(),
-                    proj.getPrice(),
-                    proj.getQuantity(),
+                    product.getId(),
+                    product.getName(),
+                    product.getPrice(),
+                    item.getQuantity(),
                     subtotal,
                     stockAvailable
                 );
             })
             .toList();
 
-        log.info("Found {} items in cart for user: {} using optimized query", itemResponses.size(), userId);
+        log.info("Found {} items in cart for user: {} using Fetch Join (single query)", itemResponses.size(), userId);
         return CartResponse.of(userId, itemResponses);
     }
 }

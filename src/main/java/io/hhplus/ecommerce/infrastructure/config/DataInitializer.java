@@ -10,6 +10,12 @@ import io.hhplus.ecommerce.domain.coupon.UserCoupon;
 import io.hhplus.ecommerce.domain.coupon.UserCouponRepository;
 import io.hhplus.ecommerce.domain.product.Product;
 import io.hhplus.ecommerce.domain.product.ProductRepository;
+import io.hhplus.ecommerce.domain.product.ProductSalesAggregate;
+import io.hhplus.ecommerce.domain.product.ProductSalesAggregateRepository;
+import io.hhplus.ecommerce.domain.order.Order;
+import io.hhplus.ecommerce.domain.order.OrderItem;
+import io.hhplus.ecommerce.domain.order.OrderRepository;
+import io.hhplus.ecommerce.domain.order.OrderStatus;
 import io.hhplus.ecommerce.domain.user.User;
 import io.hhplus.ecommerce.domain.user.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +26,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Slf4j
@@ -34,6 +41,8 @@ public class DataInitializer implements ApplicationRunner {
     private final UserCouponRepository userCouponRepository;
     private final CartRepository cartRepository;
     private final CartItemRepository cartItemRepository;
+    private final OrderRepository orderRepository;
+    private final ProductSalesAggregateRepository aggregateRepository;
 
     @Override
     @Transactional
@@ -54,7 +63,10 @@ public class DataInitializer implements ApplicationRunner {
         // 2. 관계 데이터 생성 (시나리오 테스트용)
         initUserCoupons();      // 미리 발급된 쿠폰
         initCarts();            // 미리 담긴 장바구니
-        // initOrders();        // 주문 내역 (Order는 JPA화 안 했으므로 주석 처리)
+        initOrders();           // 주문 내역
+
+        // 3. 쿼리 최적화를 위한 ROLLUP 테이블 데이터 생성
+        initProductSalesAggregates();  // 인기 상품 집계 데이터
 
         log.info("✅ Initial data loading completed!");
     }
@@ -67,9 +79,9 @@ public class DataInitializer implements ApplicationRunner {
     private void initUsers() {
         log.info("📝 Creating test users...");
 
-        // User 1: 김항해 (잔액 충분)
+        // User 1: 김항해 (K6 부하 테스트용 - 잔액 충분)
         User user1 = User.create("hanghae@example.com", "김항해");
-        user1.charge(1000000L);  // 100만원 충전
+        user1.charge(100000000L);  // 1억원 충전 (K6 부하 테스트용)
         userRepository.save(user1);
 
         // User 2: 이플러스 (일반 잔액)
@@ -82,14 +94,15 @@ public class DataInitializer implements ApplicationRunner {
         user3.charge(100000L);  // 10만원 충전
         userRepository.save(user3);
 
-        // 동시성 테스트용 추가 사용자 10명
-        for (int i = 4; i <= 13; i++) {
+        // K6 부하 테스트용 추가 사용자 150명 (각 1억원) - 동시성 테스트용
+        for (int i = 4; i <= 153; i++) {
             User user = User.create("testuser" + i + "@example.com", "테스트사용자" + i);
-            user.charge(1000000L);  // 각 100만원 충전
+            user.charge(100000000L);  // 각 1억원 충전 (K6 부하 테스트용)
             userRepository.save(user);
         }
 
-        log.info("   ✓ Created 13 test users (기본 3명 + 동시성 테스트 10명)");
+        log.info("   ✓ Created 153 test users (기본 3명 + K6 테스트 150명)");
+        log.info("   💰 K6 test users (1-153): 각 100,000,000원 (지속적인 부하 테스트 가능)");
     }
 
     private void initProducts() {
@@ -135,34 +148,34 @@ public class DataInitializer implements ApplicationRunner {
 
         LocalDateTime now = LocalDateTime.now();
 
-        // Coupon 1: 10% 할인 (수량 많음)
+        // Coupon 1: 10% 할인 (K6 동시성 테스트용 - 150명 vs 100개)
         Coupon coupon1 = Coupon.create(
                 "WELCOME10",
                 "신규 가입 10% 할인",
                 10,  // 10% 할인
-                1000,  // 총 1000개
+                100,  // 총 100개 (동시성 테스트: 150명이 100개 쟁탈, 50명 탈락)
                 now,
                 now.plusMonths(3)  // 3개월 유효
         );
         couponRepository.save(coupon1);
 
-        // Coupon 2: 20% 할인 (수량 적음)
+        // Coupon 2: 20% 할인 (K6 동시성 테스트용)
         Coupon coupon2 = Coupon.create(
                 "VIP20",
                 "VIP 회원 20% 할인",
                 20,  // 20% 할인
-                100,  // 총 100개 (선착순)
+                100,  // 총 100개 (동시성 테스트)
                 now,
                 now.plusMonths(1)  // 1개월 유효
         );
         couponRepository.save(coupon2);
 
-        // Coupon 3: 15% 할인 (곧 만료)
+        // Coupon 3: 15% 할인 (K6 동시성 테스트용)
         Coupon coupon3 = Coupon.create(
                 "EARLYBIRD15",
                 "얼리버드 15% 할인",
                 15,  // 15% 할인
-                50,  // 총 50개
+                100,  // 총 100개 (동시성 테스트)
                 now.minusDays(20),  // 20일 전부터 시작
                 now.plusDays(10)  // 10일 후 만료
         );
@@ -192,6 +205,7 @@ public class DataInitializer implements ApplicationRunner {
         couponRepository.save(expiredCoupon);
 
         log.info("   ✓ Created 5 test coupons");
+        log.info("   🎫 K6 test coupons (1-3): 각 100개 (동시성 테스트: 150명 vs 100개, 50명 탈락)");
         log.info("   ⚠️ Edge cases: SOLDOUT(품절), EXPIRED30(만료됨)");
     }
 
@@ -239,12 +253,12 @@ public class DataInitializer implements ApplicationRunner {
 
         // 노트북 1개 담기
         Product product1 = productRepository.findByProductCode("P001").orElseThrow();
-        CartItem cartItem1 = CartItem.create(savedCart1.getId(), product1.getId(), 1);
+        CartItem cartItem1 = CartItem.create(savedCart1, product1, 1);  // Cart 엔티티 직접 전달
         cartItemRepository.save(cartItem1);
 
         // 마우스 2개 담기
         Product product2 = productRepository.findByProductCode("P002").orElseThrow();
-        CartItem cartItem2 = CartItem.create(savedCart1.getId(), product2.getId(), 2);
+        CartItem cartItem2 = CartItem.create(savedCart1, product2, 2);  // Cart 엔티티 직접 전달
         cartItemRepository.save(cartItem2);
 
         // User 2 (이플러스)의 장바구니
@@ -254,9 +268,164 @@ public class DataInitializer implements ApplicationRunner {
 
         // 키보드 1개 담기
         Product product3 = productRepository.findByProductCode("P003").orElseThrow();
-        CartItem cartItem3 = CartItem.create(savedCart2.getId(), product3.getId(), 1);
+        CartItem cartItem3 = CartItem.create(savedCart2, product3, 1);  // Cart 엔티티 직접 전달
         cartItemRepository.save(cartItem3);
 
         log.info("   ✓ Created 2 pre-filled carts (User 1: 2 items, User 2: 1 item)");
+    }
+
+    private void initOrders() {
+        log.info("📦 Creating test orders...");
+
+        User user1 = userRepository.findByEmail("hanghae@example.com").orElseThrow();
+        User user2 = userRepository.findByEmail("plus@example.com").orElseThrow();
+        User user3 = userRepository.findByEmail("backend@example.com").orElseThrow();
+
+        // 전체 상품 목록 가져오기
+        Product laptop = productRepository.findByProductCode("P001").orElseThrow();
+        Product mouse = productRepository.findByProductCode("P002").orElseThrow();
+        Product keyboard = productRepository.findByProductCode("P003").orElseThrow();
+        Product monitor = productRepository.findByProductCode("P004").orElseThrow();
+        Product headset = productRepository.findByProductCode("P005").orElseThrow();
+        Product webcam = productRepository.findByProductCode("P006").orElseThrow();
+        Product speaker = productRepository.findByProductCode("P007").orElseThrow();
+
+        int orderCount = 0;
+
+        // User 1 (김항해): 10개의 주문 생성
+        for (int i = 1; i <= 10; i++) {
+            String orderNumber = String.format("ORD-20250118-%03d", ++orderCount);
+
+            // 주문마다 3-5개의 상품 포함
+            Long subtotal;
+
+            if (i % 3 == 0) {
+                // 노트북 + 마우스 + 키보드
+                subtotal = laptop.getPrice() + (mouse.getPrice() * 2) + keyboard.getPrice();
+            } else if (i % 3 == 1) {
+                // 모니터 + 헤드셋 + 웹캠
+                subtotal = monitor.getPrice() + (headset.getPrice() * 2) + webcam.getPrice();
+            } else {
+                // 스피커 + 마우스 + 키보드 + 웹캠
+                subtotal = speaker.getPrice() + mouse.getPrice() + keyboard.getPrice() + webcam.getPrice();
+            }
+
+            Order order = Order.create(orderNumber, user1.getId(), subtotal, 0L);
+
+            if (i % 3 == 0) {
+                OrderItem.create(order, laptop, 1, laptop.getPrice());
+                OrderItem.create(order, mouse, 2, mouse.getPrice());
+                OrderItem.create(order, keyboard, 1, keyboard.getPrice());
+            } else if (i % 3 == 1) {
+                OrderItem.create(order, monitor, 1, monitor.getPrice());
+                OrderItem.create(order, headset, 2, headset.getPrice());
+                OrderItem.create(order, webcam, 1, webcam.getPrice());
+            } else {
+                OrderItem.create(order, speaker, 1, speaker.getPrice());
+                OrderItem.create(order, mouse, 1, mouse.getPrice());
+                OrderItem.create(order, keyboard, 1, keyboard.getPrice());
+                OrderItem.create(order, webcam, 1, webcam.getPrice());
+            }
+
+            // 70% 확률로 완료 처리
+            if (i <= 7) {
+                order.complete();
+            }
+
+            orderRepository.save(order);
+        }
+
+        // User 2 (이플러스): 5개의 주문 생성
+        for (int i = 1; i <= 5; i++) {
+            String orderNumber = String.format("ORD-20250118-%03d", ++orderCount);
+            Long subtotal;
+
+            if (i % 2 == 0) {
+                subtotal = laptop.getPrice() + monitor.getPrice();
+            } else {
+                subtotal = (keyboard.getPrice() * 2) + (mouse.getPrice() * 3);
+            }
+
+            Order order = Order.create(orderNumber, user2.getId(), subtotal, 0L);
+
+            if (i % 2 == 0) {
+                OrderItem.create(order, laptop, 1, laptop.getPrice());
+                OrderItem.create(order, monitor, 1, monitor.getPrice());
+            } else {
+                OrderItem.create(order, keyboard, 2, keyboard.getPrice());
+                OrderItem.create(order, mouse, 3, mouse.getPrice());
+            }
+
+            if (i <= 3) {
+                order.complete();
+            }
+
+            orderRepository.save(order);
+        }
+
+        // User 3 (박백엔드): 3개의 주문 생성
+        for (int i = 1; i <= 3; i++) {
+            String orderNumber = String.format("ORD-20250118-%03d", ++orderCount);
+            Long subtotal = headset.getPrice() + webcam.getPrice();
+
+            Order order = Order.create(orderNumber, user3.getId(), subtotal, 0L);
+
+            OrderItem.create(order, headset, 1, headset.getPrice());
+            OrderItem.create(order, webcam, 1, webcam.getPrice());
+
+            if (i <= 2) {
+                order.complete();
+            }
+
+            orderRepository.save(order);
+        }
+
+        log.info("   ✓ Created 18 test orders (User 1: 10, User 2: 5, User 3: 3)");
+        log.info("   ℹ️ Average 3-4 items per order for realistic N+1 demonstration");
+        log.info("   📊 Expected queries WITHOUT Fetch Join: ~55+ queries");
+        log.info("   📊 Expected queries WITH Fetch Join: 1 query");
+    }
+
+    private void initProductSalesAggregates() {
+        log.info("📊 Creating product sales aggregates (ROLLUP table)...");
+
+        LocalDate today = LocalDate.now();
+        LocalDate yesterday = today.minusDays(1);
+        LocalDate twoDaysAgo = today.minusDays(2);
+
+        // 상품별 3일간 집계 데이터 생성
+        // 노트북 (Product ID: 1) - 가장 인기
+        aggregateRepository.save(ProductSalesAggregate.create(1L, "노트북", twoDaysAgo, 15, 22500000L));
+        aggregateRepository.save(ProductSalesAggregate.create(1L, "노트북", yesterday, 20, 30000000L));
+        aggregateRepository.save(ProductSalesAggregate.create(1L, "노트북", today, 25, 37500000L));
+
+        // 무선 마우스 (Product ID: 2) - 2위
+        aggregateRepository.save(ProductSalesAggregate.create(2L, "무선 마우스", twoDaysAgo, 25, 625000L));
+        aggregateRepository.save(ProductSalesAggregate.create(2L, "무선 마우스", yesterday, 30, 750000L));
+        aggregateRepository.save(ProductSalesAggregate.create(2L, "무선 마우스", today, 35, 875000L));
+
+        // 기계식 키보드 (Product ID: 3) - 3위
+        aggregateRepository.save(ProductSalesAggregate.create(3L, "기계식 키보드", twoDaysAgo, 20, 2000000L));
+        aggregateRepository.save(ProductSalesAggregate.create(3L, "기계식 키보드", yesterday, 22, 2200000L));
+        aggregateRepository.save(ProductSalesAggregate.create(3L, "기계식 키보드", today, 28, 2800000L));
+
+        // 무선 헤드셋 (Product ID: 5) - 4위
+        aggregateRepository.save(ProductSalesAggregate.create(5L, "무선 헤드셋", twoDaysAgo, 18, 2700000L));
+        aggregateRepository.save(ProductSalesAggregate.create(5L, "무선 헤드셋", yesterday, 15, 2250000L));
+        aggregateRepository.save(ProductSalesAggregate.create(5L, "무선 헤드셋", today, 20, 3000000L));
+
+        // 27인치 모니터 (Product ID: 4) - 5위
+        aggregateRepository.save(ProductSalesAggregate.create(4L, "27인치 모니터", twoDaysAgo, 10, 3000000L));
+        aggregateRepository.save(ProductSalesAggregate.create(4L, "27인치 모니터", yesterday, 12, 3600000L));
+        aggregateRepository.save(ProductSalesAggregate.create(4L, "27인치 모니터", today, 15, 4500000L));
+
+        log.info("   ✓ Created 15 sales aggregates (5 products × 3 days)");
+        log.info("   📈 Top Products (3-day total):");
+        log.info("      1. 무선 마우스: 90건 / 2,250,000원");
+        log.info("      2. 기계식 키보드: 70건 / 7,000,000원");
+        log.info("      3. 노트북: 60건 / 90,000,000원");
+        log.info("      4. 무선 헤드셋: 53건 / 7,950,000원");
+        log.info("      5. 27인치 모니터: 37건 / 11,100,000원");
+        log.info("   ℹ️ Use GET /api/products/top to verify optimized query");
     }
 }

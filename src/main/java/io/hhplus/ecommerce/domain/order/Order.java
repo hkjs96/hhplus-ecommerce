@@ -2,12 +2,15 @@ package io.hhplus.ecommerce.domain.order;
 
 import io.hhplus.ecommerce.common.exception.BusinessException;
 import io.hhplus.ecommerce.common.exception.ErrorCode;
+import io.hhplus.ecommerce.domain.common.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(
@@ -19,8 +22,8 @@ import java.time.LocalDateTime;
     }
 )
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Order {
+@NoArgsConstructor
+public class Order extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -31,6 +34,9 @@ public class Order {
 
     @Column(name = "user_id", nullable = false)
     private Long userId;  // FK to users
+
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<OrderItem> orderItems = new ArrayList<>();
 
     @Column(name = "subtotal_amount", nullable = false)
     private Long subtotalAmount;   // 소계 (할인 전 금액)
@@ -45,11 +51,16 @@ public class Order {
     @Column(nullable = false, length = 20)
     private OrderStatus status;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-
     @Column(name = "paid_at")
     private LocalDateTime paidAt;
+
+    /**
+     * Optimistic Lock (동시성 제어)
+     * - complete()와 cancel() 동시 호출 시 Lost Update 방지
+     * - 7명 합의: Optimistic Lock (충돌 빈도 낮음, 성능 우선)
+     */
+    @Version
+    private Long version;
 
     public static Order create(String orderNumber, Long userId, Long subtotalAmount, Long discountAmount) {
         validateOrderNumber(orderNumber);
@@ -65,17 +76,10 @@ public class Order {
         order.discountAmount = discountAmount;
         order.totalAmount = totalAmount;
         order.status = OrderStatus.PENDING;
-        order.createdAt = LocalDateTime.now();
         order.paidAt = null;  // 결제 완료 시 설정
+        // createdAt은 JPA Auditing이 자동 처리
 
         return order;
-    }
-
-    @PrePersist
-    protected void onCreate() {
-        if (this.createdAt == null) {
-            this.createdAt = LocalDateTime.now();
-        }
     }
 
     public void complete() {

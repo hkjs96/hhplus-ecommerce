@@ -16,10 +16,6 @@ public interface ProductRepository {
 
     Product save(Product product);
 
-    /**
-     * 인기 상품 조회 (최근 3일간 판매량 기준 Top 5)
-     * STEP 08 성능 최적화 Native Query
-     */
     List<TopProductProjection> findTopProductsByPeriod();
 
     default Product findByIdOrThrow(Long id) {
@@ -35,6 +31,21 @@ public interface ProductRepository {
             .orElseThrow(() -> new BusinessException(
                 ErrorCode.PRODUCT_NOT_FOUND,
                 "상품을 찾을 수 없습니다. productCode: " + productCode
+            ));
+    }
+
+    /**
+     * Pessimistic Lock을 사용한 상품 조회 (SELECT FOR UPDATE)
+     * - 동시성 제어: 재고 차감 시 사용
+     * - 충돌이 빈번한 Hot Spot 데이터에 적합
+     */
+    Optional<Product> findByIdWithLock(Long id);
+
+    default Product findByIdWithLockOrThrow(Long id) {
+        return findByIdWithLock(id)
+            .orElseThrow(() -> new BusinessException(
+                ErrorCode.PRODUCT_NOT_FOUND,
+                "상품을 찾을 수 없습니다. productId: " + id
             ));
     }
 }

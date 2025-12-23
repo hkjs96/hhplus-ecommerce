@@ -21,10 +21,9 @@ class CouponTest {
         Coupon coupon = Coupon.create("C001", "10% 할인", 10, 100, now, now.plusDays(7));
 
         // When
-        boolean result = coupon.tryIssue();
+        coupon.issue();
 
         // Then
-        assertThat(result).isTrue();
         assertThat(coupon.getIssuedQuantity()).isEqualTo(1);
         assertThat(coupon.getRemainingQuantity()).isEqualTo(99);
     }
@@ -37,13 +36,14 @@ class CouponTest {
         Coupon coupon = Coupon.create("C001", "10% 할인", 10, 3, now, now.plusDays(7));
 
         // When - 3개 모두 발급
-        coupon.tryIssue();
-        coupon.tryIssue();
-        coupon.tryIssue();
+        coupon.issue();
+        coupon.issue();
+        coupon.issue();
 
-        // Then - 4번째는 실패
-        boolean result = coupon.tryIssue();
-        assertThat(result).isFalse();
+        // Then - 4번째는 예외 발생
+        assertThatThrownBy(() -> coupon.issue())
+            .isInstanceOf(io.hhplus.ecommerce.common.exception.BusinessException.class)
+            .hasFieldOrPropertyWithValue("errorCode", io.hhplus.ecommerce.common.exception.ErrorCode.COUPON_SOLD_OUT);
         assertThat(coupon.getIssuedQuantity()).isEqualTo(3);
         assertThat(coupon.getRemainingQuantity()).isEqualTo(0);
     }
@@ -66,12 +66,11 @@ class CouponTest {
         for (int i = 0; i < threadCount; i++) {
             executorService.submit(() -> {
                 try {
-                    boolean result = coupon.tryIssue();
-                    if (result) {
-                        successCount.incrementAndGet();
-                    } else {
-                        failCount.incrementAndGet();
-                    }
+                    coupon.issue();
+                    successCount.incrementAndGet();
+                } catch (io.hhplus.ecommerce.common.exception.BusinessException e) {
+                    // 쿠폰 소진 예외 발생 시 실패 카운트
+                    failCount.incrementAndGet();
                 } finally {
                     latch.countDown();
                 }

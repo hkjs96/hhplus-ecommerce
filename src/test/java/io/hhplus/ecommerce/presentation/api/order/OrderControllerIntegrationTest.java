@@ -26,6 +26,7 @@ import org.springframework.test.web.servlet.MvcResult;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -264,7 +265,7 @@ class OrderControllerIntegrationTest {
                         .content(objectMapper.writeValueAsString(paymentRequest)))
                 .andExpect(status().isOk());
 
-        // When & Then - Second payment fails
+        // When & Then - Second payment fails (order already completed)
         mockMvc.perform(post("/api/orders/" + orderId + "/payment")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(paymentRequest)))
