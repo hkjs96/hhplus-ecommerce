@@ -108,39 +108,41 @@ public class DataInitializer implements ApplicationRunner {
     private void initProducts() {
         log.info("📦 Creating test products...");
 
+        // K6 부하 테스트용 재고 대폭 증가 (각 10,000개)
         // 전자제품 카테고리 (7개)
-        productRepository.save(Product.create("P001", "노트북", "고성능 게이밍 노트북", 1500000L, "전자제품", 50));
-        productRepository.save(Product.create("P002", "마우스", "무선 게이밍 마우스", 80000L, "전자제품", 100));
-        productRepository.save(Product.create("P003", "키보드", "기계식 키보드", 120000L, "전자제품", 75));
-        productRepository.save(Product.create("P004", "모니터", "27인치 4K 모니터", 500000L, "전자제품", 30));
-        productRepository.save(Product.create("P005", "헤드셋", "노이즈 캔슬링 헤드셋", 250000L, "전자제품", 60));
-        productRepository.save(Product.create("P011", "웹캠", "4K 화상 회의용 웹캠", 150000L, "전자제품", 45));
-        productRepository.save(Product.create("P012", "스피커", "블루투스 무선 스피커", 95000L, "전자제품", 80));
+        productRepository.save(Product.create("P001", "노트북", "고성능 게이밍 노트북", 1500000L, "전자제품", 10000));
+        productRepository.save(Product.create("P002", "마우스", "무선 게이밍 마우스", 80000L, "전자제품", 10000));
+        productRepository.save(Product.create("P003", "키보드", "기계식 키보드", 120000L, "전자제품", 10000));
+        productRepository.save(Product.create("P004", "모니터", "27인치 4K 모니터", 500000L, "전자제품", 10000));
+        productRepository.save(Product.create("P005", "헤드셋", "노이즈 캔슬링 헤드셋", 250000L, "전자제품", 10000));
+        productRepository.save(Product.create("P011", "웹캠", "4K 화상 회의용 웹캠", 150000L, "전자제품", 10000));
+        productRepository.save(Product.create("P012", "스피커", "블루투스 무선 스피커", 95000L, "전자제품", 10000));
         productRepository.save(Product.create("P013", "마이크", "USB 스트리밍 마이크", 180000L, "전자제품", 0));  // ⚠️ 품절 상품
 
         // 가구 카테고리 (3개)
-        productRepository.save(Product.create("P006", "의자", "게이밍 의자", 350000L, "가구", 20));
-        productRepository.save(Product.create("P007", "책상", "높이 조절 책상", 450000L, "가구", 15));
+        productRepository.save(Product.create("P006", "의자", "게이밍 의자", 350000L, "가구", 10000));
+        productRepository.save(Product.create("P007", "책상", "높이 조절 책상", 450000L, "가구", 10000));
         productRepository.save(Product.create("P014", "모니터암", "듀얼 모니터 거치대", 75000L, "가구", 2));  // ⚠️ 재고 적음 (선착순)
 
         // 도서 카테고리 (5개)
-        productRepository.save(Product.create("P008", "자바 프로그래밍", "Java 완벽 가이드", 45000L, "도서", 200));
-        productRepository.save(Product.create("P009", "스프링 부트", "Spring Boot 실전 가이드", 38000L, "도서", 150));
-        productRepository.save(Product.create("P010", "DDD", "도메인 주도 설계", 42000L, "도서", 100));
-        productRepository.save(Product.create("P015", "클린 아키텍처", "소프트웨어 설계 원칙", 35000L, "도서", 180));
-        productRepository.save(Product.create("P016", "리팩토링", "코드 품질 개선 가이드", 40000L, "도서", 120));
+        productRepository.save(Product.create("P008", "자바 프로그래밍", "Java 완벽 가이드", 45000L, "도서", 10000));
+        productRepository.save(Product.create("P009", "스프링 부트", "Spring Boot 실전 가이드", 38000L, "도서", 10000));
+        productRepository.save(Product.create("P010", "DDD", "도메인 주도 설계", 42000L, "도서", 10000));
+        productRepository.save(Product.create("P015", "클린 아키텍처", "소프트웨어 설계 원칙", 35000L, "도서", 10000));
+        productRepository.save(Product.create("P016", "리팩토링", "코드 품질 개선 가이드", 40000L, "도서", 10000));
 
         // 의류 카테고리 (3개) - 새로운 카테고리
-        productRepository.save(Product.create("P017", "프로그래머 티셔츠", "Hello World 디자인", 25000L, "의류", 300));
-        productRepository.save(Product.create("P018", "후드티", "개발자 전용 후드티", 55000L, "의류", 150));
-        productRepository.save(Product.create("P019", "코딩 양말", "이진수 패턴 양말", 12000L, "의류", 500));
+        productRepository.save(Product.create("P017", "프로그래머 티셔츠", "Hello World 디자인", 25000L, "의류", 10000));
+        productRepository.save(Product.create("P018", "후드티", "개발자 전용 후드티", 55000L, "의류", 10000));
+        productRepository.save(Product.create("P019", "코딩 양말", "이진수 패턴 양말", 12000L, "의류", 10000));
 
         // 극단 가격 상품 (Edge Case 테스트용)
-        productRepository.save(Product.create("P020", "개발자 스티커", "Git 명령어 스티커", 1000L, "잡화", 1000));  // ⚠️ 최저가
-        productRepository.save(Product.create("P021", "워크스테이션", "전문가용 고성능 워크스테이션", 15000000L, "전자제품", 3));  // ⚠️ 최고가
+        productRepository.save(Product.create("P020", "개발자 스티커", "Git 명령어 스티커", 1000L, "잡화", 10000));
+        productRepository.save(Product.create("P021", "워크스테이션", "전문가용 고성능 워크스테이션", 15000000L, "전자제품", 100));  // ⚠️ 최고가 (재고 100개)
 
         log.info("   ✓ Created 21 test products (전자제품: 9, 가구: 3, 도서: 5, 의류: 3, 잡화: 1)");
-        log.info("   ⚠️ Edge cases: P013(품절), P014(재고 2개), P020(최저가 1,000원), P021(최고가 15,000,000원)");
+        log.info("   📊 K6 Load Test Ready: 각 상품 10,000개 재고 (총 200,000개 이상)");
+        log.info("   ⚠️ Edge cases: P013(품절), P014(재고 2개), P021(최고가 15,000,000원)");
     }
 
     private void initCoupons() {
@@ -164,7 +166,7 @@ public class DataInitializer implements ApplicationRunner {
                 "VIP20",
                 "VIP 회원 20% 할인",
                 20,  // 20% 할인
-                100,  // 총 100개 (동시성 테스트)
+                50,  // 총 50개 (k6 선착순 100명 vs 50개 테스트)
                 now,
                 now.plusMonths(1)  // 1개월 유효
         );
@@ -225,10 +227,7 @@ public class DataInitializer implements ApplicationRunner {
         User user2 = userRepository.findByEmail("plus@example.com").orElseThrow();
         Coupon coupon2 = couponRepository.findByCouponCode("VIP20").orElseThrow();
 
-        UserCoupon userCoupon2 = UserCoupon.create(user2.getId(), coupon2.getId(), coupon2.getExpiresAt());
-        userCouponRepository.save(userCoupon2);
-        coupon2.issue();  // 수량 차감
-        couponRepository.save(coupon2);
+        // VIP20은 k6 동시성 테스트를 위해 재고를 그대로 유지한다 (사전 발급하지 않음)
 
         // User 3 (박백엔드)에게 EARLYBIRD15 쿠폰 발급 후 사용 처리 (Edge Case: 이미 사용됨)
         User user3 = userRepository.findByEmail("backend@example.com").orElseThrow();

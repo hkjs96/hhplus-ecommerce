@@ -1,5 +1,6 @@
 package io.hhplus.ecommerce.application.usecase.cart;
 
+import io.hhplus.ecommerce.application.cart.CartLockManager;
 import io.hhplus.ecommerce.application.cart.dto.CartItemResponse;
 import io.hhplus.ecommerce.application.cart.dto.UpdateCartItemRequest;
 import io.hhplus.ecommerce.application.usecase.UseCase;
@@ -14,6 +15,7 @@ import io.hhplus.ecommerce.domain.product.ProductRepository;
 import io.hhplus.ecommerce.domain.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
@@ -25,58 +27,69 @@ public class UpdateCartItemUseCase {
     private final CartItemRepository cartItemRepository;
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
+    private final CartLockManager cartLockManager;
 
+    /**
+     * 장바구니 아이템 수량 변경 (캐시 무효화)
+     *
+     * @CacheEvict: 장바구니 변경 시 캐시 무효화
+     * - value = "carts": 장바구니 캐시
+     * - key = "#request.userId()": 해당 사용자의 캐시만 삭제
+     */
     @Transactional
+    @CacheEvict(value = "carts", key = "#request.userId()")
     public CartItemResponse execute(UpdateCartItemRequest request) {
-        log.info("Updating cart item for user: {}, product: {}, new quantity: {}",
-            request.userId(), request.productId(), request.quantity());
+        return cartLockManager.withLock(request.userId(), () -> {
+            log.info("Updating cart item for user: {}, product: {}, new quantity: {}",
+                request.userId(), request.productId(), request.quantity());
 
-        // 1. 사용자 검증
-        userRepository.findByIdOrThrow(request.userId());
+            // 1. 사용자 검증
+            userRepository.findByIdOrThrow(request.userId());
 
-        // 2. 장바구니 조회
-        Cart cart = cartRepository.findByUserId(request.userId())
-            .orElseThrow(() -> new BusinessException(
-                ErrorCode.CART_NOT_FOUND,
-                "장바구니를 찾을 수 없습니다. userId: " + request.userId()
+            // 2. 장바구니 조회
+            Cart cart = cartRepository.findByUserIdForUpdate(request.userId())
+                .orElseThrow(() -> new BusinessException(
+                    ErrorCode.CART_NOT_FOUND,
+                    "장바구니를 찾을 수 없습니다. userId: " + request.userId()
+                ));
+
+            // 3. 장바구니 아이템 조회
+            CartItem cartItem = cartItemRepository.findByCartIdAndProductId(
+                cart.getId(),
+                request.productId()
+            ).orElseThrow(() -> new BusinessException(
+                ErrorCode.CART_ITEM_NOT_FOUND,
+                "장바구니에 해당 상품이 없습니다. productId: " + request.productId()
             ));
 
-        // 3. 장바구니 아이템 조회
-        CartItem cartItem = cartItemRepository.findByCartIdAndProductId(
-            cart.getId(),
-            request.productId()
-        ).orElseThrow(() -> new BusinessException(
-            ErrorCode.CART_ITEM_NOT_FOUND,
-            "장바구니에 해당 상품이 없습니다. productId: " + request.productId()
-        ));
+            // 4. 수량이 0 이하면 아이템 삭제
+            if (request.quantity() <= 0) {
+                cartItemRepository.delete(cartItem);
+                log.debug("Deleted cart item: {}", cartItem.getId());
+                return CartItemResponse.forUpdate(request.productId(), 0, 0L);
+            }
 
-        // 4. 수량이 0 이하면 아이템 삭제
-        if (request.quantity() <= 0) {
-            cartItemRepository.deleteById(cartItem.getId());
-            log.debug("Deleted cart item: {}", cartItem.getId());
-            return CartItemResponse.forUpdate(request.productId(), 0, 0L);
-        }
+            // 5. 상품 재고 확인
+            Product product = productRepository.findByIdOrThrow(request.productId());
 
-        // 5. 상품 재고 확인
-        Product product = productRepository.findByIdOrThrow(request.productId());
+            if (product.getStock() < request.quantity()) {
+                throw new BusinessException(
+                    ErrorCode.INSUFFICIENT_STOCK,
+                    String.format("재고가 부족합니다. 상품: %s (요청: %d개, 재고: %d개)",
+                        product.getName(), request.quantity(), product.getStock())
+                );
+            }
 
-        if (product.getStock() < request.quantity()) {
-            throw new BusinessException(
-                ErrorCode.INSUFFICIENT_STOCK,
-                String.format("재고가 부족합니다. 상품: %s (요청: %d개, 재고: %d개)",
-                    product.getName(), request.quantity(), product.getStock())
-            );
-        }
+            // 6. 수량 업데이트
+            cartItem.updateQuantity(request.quantity());
+            cartItemRepository.save(cartItem);
 
-        // 6. 수량 업데이트
-        cartItem.updateQuantity(request.quantity());
-        cartItemRepository.save(cartItem);
+            // 7. 장바구니 저장 (updatedAt은 JPA Auditing이 자동 처리)
+            cartRepository.save(cart);
 
-        // 7. 장바구니 저장 (updatedAt은 JPA Auditing이 자동 처리)
-        cartRepository.save(cart);
-
-        Long subtotal = product.getPrice() * request.quantity();
-        log.debug("Updated cart item: {}, quantity: {}, subtotal: {}", cartItem.getId(), request.quantity(), subtotal);
-        return CartItemResponse.forUpdate(request.productId(), request.quantity(), subtotal);
+            Long subtotal = product.getPrice() * request.quantity();
+            log.debug("Updated cart item: {}, quantity: {}, subtotal: {}", cartItem.getId(), request.quantity(), subtotal);
+            return CartItemResponse.forUpdate(request.productId(), request.quantity(), subtotal);
+        });
     }
 }

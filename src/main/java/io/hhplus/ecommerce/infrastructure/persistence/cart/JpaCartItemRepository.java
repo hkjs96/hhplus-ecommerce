@@ -5,11 +5,13 @@ import io.hhplus.ecommerce.domain.cart.CartItemRepository;
 import org.springframework.context.annotation.Primary;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import jakarta.persistence.LockModeType;
 
 @Repository
 @Primary
@@ -62,6 +64,7 @@ public interface JpaCartItemRepository extends JpaRepository<CartItem, Long>, Ca
     List<CartItem> findByCartIdWithCartAndProduct(@Param("cartId") Long cartId);
 
     @Override
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT ci FROM CartItem ci WHERE ci.cart.id = :cartId AND ci.product.id = :productId")
     Optional<CartItem> findByCartIdAndProductId(@Param("cartId") Long cartId, @Param("productId") Long productId);
 

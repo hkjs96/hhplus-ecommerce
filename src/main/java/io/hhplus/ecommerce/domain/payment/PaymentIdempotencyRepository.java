@@ -18,6 +18,13 @@ public interface PaymentIdempotencyRepository {
     Optional<PaymentIdempotency> findByIdempotencyKey(String idempotencyKey);
 
     /**
+     * 멱등성 키로 조회 with Pessimistic Lock (SELECT FOR UPDATE)
+     * <p>
+     * 동시 요청 시 첫 번째 요청이 완료될 때까지 대기
+     */
+    Optional<PaymentIdempotency> findByIdempotencyKeyWithLock(String idempotencyKey);
+
+    /**
      * 멱등성 키 저장
      * UNIQUE 제약 조건으로 중복 요청 시 DataIntegrityViolationException 발생
      */
@@ -33,4 +40,14 @@ public interface PaymentIdempotencyRepository {
                 "멱등성 키를 찾을 수 없습니다. idempotencyKey: " + idempotencyKey
             ));
     }
+
+    /**
+     * 멱등성 키 개수 조회 (테스트용)
+     */
+    long countByIdempotencyKey(String idempotencyKey);
+
+    /**
+     * 전체 멱등성 키 개수 조회 (테스트용)
+     */
+    long count();
 }

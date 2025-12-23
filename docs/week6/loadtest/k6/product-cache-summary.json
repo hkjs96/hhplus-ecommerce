@@ -1,0 +1,396 @@
+{
+  "options": {
+    "summaryTrendStats": [
+      "avg",
+      "min",
+      "med",
+      "max",
+      "p(90)",
+      "p(95)"
+    ],
+    "summaryTimeUnit": "",
+    "noColor": false
+  },
+  "state": {
+    "isStdOutTTY": true,
+    "isStdErrTTY": true,
+    "testRunDurationMs": 301102.978
+  },
+  "metrics": {
+    "http_req_duration": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "avg": 3.9000710298567443,
+        "min": 0.565,
+        "med": 3.052,
+        "max": 97.308,
+        "p(90)": 7.533,
+        "p(95)": 9.483099999999926
+      },
+      "thresholds": {
+        "p(95)<200": {
+          "ok": true
+        },
+        "p(99)<500": {
+          "ok": true
+        }
+      }
+    },
+    "http_req_blocked": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "avg": 0.008073829423847493,
+        "min": 0,
+        "med": 0.001,
+        "max": 73.38,
+        "p(90)": 0.003,
+        "p(95)": 0.004
+      }
+    },
+    "vus": {
+      "type": "gauge",
+      "contains": "default",
+      "values": {
+        "value": 2,
+        "min": 0,
+        "max": 200
+      }
+    },
+    "cache_hit_duration": {
+      "type": "trend",
+      "contains": "default",
+      "values": {
+        "avg": 3.9636022319018305,
+        "min": 0,
+        "med": 3,
+        "max": 49,
+        "p(90)": 8,
+        "p(95)": 10
+      },
+      "thresholds": {
+        "p(95)<50": {
+          "ok": true
+        }
+      }
+    },
+    "http_req_receiving": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "avg": 0.056158665752150866,
+        "min": 0.004,
+        "med": 0.011,
+        "max": 85.314,
+        "p(90)": 0.065,
+        "p(95)": 0.134
+      }
+    },
+    "vus_max": {
+      "contains": "default",
+      "values": {
+        "value": 200,
+        "min": 200,
+        "max": 200
+      },
+      "type": "gauge"
+    },
+    "group_duration": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "min": 0.630208,
+        "med": 3.231375,
+        "max": 99.651334,
+        "p(90)": 7.801229000000001,
+        "p(95)": 9.805198249999991,
+        "avg": 4.1007819725168275
+      }
+    },
+    "http_req_tls_handshaking": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "p(95)": 0,
+        "avg": 0,
+        "min": 0,
+        "med": 0,
+        "max": 0,
+        "p(90)": 0
+      }
+    },
+    "data_received": {
+      "contains": "data",
+      "values": {
+        "count": 2821312215,
+        "rate": 9369924.647507139
+      },
+      "type": "counter"
+    },
+    "checks": {
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "rate": 0.8181818181818182,
+        "passes": 3809511,
+        "fails": 846558
+      }
+    },
+    "http_req_failed": {
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "rate": 0,
+        "passes": 0,
+        "fails": 1693119
+      },
+      "thresholds": {
+        "rate<0.01": {
+          "ok": true
+        }
+      }
+    },
+    "http_reqs": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "count": 1693119,
+        "rate": 5623.0563086626125
+      }
+    },
+    "cache_errors": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "count": 846558,
+        "rate": 2811.523172646934
+      }
+    },
+    "http_req_waiting": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "min": 0.519,
+        "med": 3,
+        "max": 93.914,
+        "p(90)": 7.436,
+        "p(95)": 9.350099999999925,
+        "avg": 3.831107824671449
+      }
+    },
+    "iteration_duration": {
+      "values": {
+        "max": 312.741916,
+        "p(90)": 130.7694416,
+        "p(95)": 137.2512625,
+        "avg": 116.88017290009452,
+        "min": 103.245625,
+        "med": 114.224
+      },
+      "type": "trend",
+      "contains": "time"
+    },
+    "iterations": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "count": 423279,
+        "rate": 1405.761586323467
+      }
+    },
+    "cache_hit_rate": {
+      "thresholds": {
+        "rate>0.9": {
+          "ok": true
+        }
+      },
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "rate": 0.9998759683329436,
+        "passes": 846453,
+        "fails": 105
+      }
+    },
+    "cache_miss_duration": {
+      "values": {
+        "avg": 63.114285714285714,
+        "min": 50,
+        "med": 60,
+        "max": 99,
+        "p(90)": 79.60000000000001,
+        "p(95)": 83.6
+      },
+      "thresholds": {
+        "p(95)<300": {
+          "ok": true
+        }
+      },
+      "type": "trend",
+      "contains": "default"
+    },
+    "http_req_sending": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "p(90)": 0.01,
+        "p(95)": 0.017,
+        "avg": 0.01280453943312537,
+        "min": 0.001,
+        "med": 0.003,
+        "max": 51.41
+      }
+    },
+    "http_req_duration{expected_response:true}": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "avg": 3.9000710298567443,
+        "min": 0.565,
+        "med": 3.052,
+        "max": 97.308,
+        "p(90)": 7.533,
+        "p(95)": 9.483099999999926
+      }
+    },
+    "http_req_connecting": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "min": 0,
+        "med": 0,
+        "max": 31.072,
+        "p(90)": 0,
+        "p(95)": 0,
+        "avg": 0.005338281597454191
+      }
+    },
+    "data_sent": {
+      "type": "counter",
+      "contains": "data",
+      "values": {
+        "rate": 469665.28839844285,
+        "count": 141417617
+      }
+    }
+  },
+  "setup_data": {},
+  "root_group": {
+      "name": "",
+      "path": "",
+      "id": "d41d8cd98f00b204e9800998ecf8427e",
+      "groups": [
+        {
+          "checks": [
+            {
+              "id": "2508d291f3ebaa5abb138d6654b7ee01",
+              "passes": 423279,
+              "fails": 0,
+              "name": "product list: status 200",
+              "path": "::Product List Query (Cache: 1 hour)::product list: status 200"
+            },
+            {
+              "fails": 0,
+              "name": "product list: has products",
+              "path": "::Product List Query (Cache: 1 hour)::product list: has products",
+              "id": "9976526a1eea6fec6d18937ec98e8cc3",
+              "passes": 423279
+            },
+            {
+              "name": "product list: response under 200ms",
+              "path": "::Product List Query (Cache: 1 hour)::product list: response under 200ms",
+              "id": "e568a9c4d1e1af0c369732eab0170db8",
+              "passes": 423279,
+              "fails": 0
+            }
+          ],
+          "name": "Product List Query (Cache: 1 hour)",
+          "path": "::Product List Query (Cache: 1 hour)",
+          "id": "861c654d63c90dfce9331cc1bd7a7f93",
+          "groups": []
+        },
+        {
+          "name": "Product Detail Query (Cache: 1 hour)",
+          "path": "::Product Detail Query (Cache: 1 hour)",
+          "id": "7a506d0612989d8ed4862d89147b3659",
+          "groups": [],
+          "checks": [
+              {
+                "name": "product detail: status 200",
+                "path": "::Product Detail Query (Cache: 1 hour)::product detail: status 200",
+                "id": "07ac0bfc0b14c1d8a6ae1b9604dddde7",
+                "passes": 423279,
+                "fails": 0
+              },
+              {
+                "name": "product detail: has product data",
+                "path": "::Product Detail Query (Cache: 1 hour)::product detail: has product data",
+                "id": "bd8df17d21cb683c4e3befaf540512b5",
+                "passes": 0,
+                "fails": 423279
+              },
+              {
+                "name": "product detail: response under 200ms",
+                "path": "::Product Detail Query (Cache: 1 hour)::product detail: response under 200ms",
+                "id": "a3a9979b0f50890b77adb76ce6c1c706",
+                "passes": 423279,
+                "fails": 0
+              }
+            ]
+        },
+        {
+          "name": "Top Products Query (Cache: 5 minutes)",
+          "path": "::Top Products Query (Cache: 5 minutes)",
+          "id": "13ef693aea0063fabe1a632d1132f6d7",
+          "groups": [],
+          "checks": [
+              {
+                "name": "top products: status 200",
+                "path": "::Top Products Query (Cache: 5 minutes)::top products: status 200",
+                "id": "25362579ca3c614b3f9da07d4407d4f2",
+                "passes": 423279,
+                "fails": 0
+              },
+              {
+                "name": "top products: has products",
+                "path": "::Top Products Query (Cache: 5 minutes)::top products: has products",
+                "id": "d7dd46295b521d3c74df8cb3951bd223",
+                "passes": 423279,
+                "fails": 0
+              },
+              {
+                "name": "top products: response under 200ms",
+                "path": "::Top Products Query (Cache: 5 minutes)::top products: response under 200ms",
+                "id": "b6902d5011b2cc80b622b925f339a00d",
+                "passes": 423279,
+                "fails": 0
+              }
+            ]
+        },
+        {
+          "id": "d411b2e1ddb535ca1c145264b352f723",
+          "groups": [],
+          "checks": [
+              {
+                "name": "category filter: status 200",
+                "path": "::Category Filter Query (Cache: 1 hour)::category filter: status 200",
+                "id": "ccab85df3c921583fd031034a4c90a95",
+                "passes": 423279,
+                "fails": 0
+              },
+              {
+                "fails": 423279,
+                "name": "category filter: filtered correctly",
+                "path": "::Category Filter Query (Cache: 1 hour)::category filter: filtered correctly",
+                "id": "e345ee3b25ca857d76e59711d87fec3e",
+                "passes": 0
+              }
+            ],
+          "name": "Category Filter Query (Cache: 1 hour)",
+          "path": "::Category Filter Query (Cache: 1 hour)"
+        }
+      ],
+      "checks": []
+    }
+}

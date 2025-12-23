@@ -1,6 +1,7 @@
 package io.hhplus.ecommerce.application.order.dto;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 
@@ -14,5 +15,8 @@ public record CreateOrderRequest(
     @Valid
     List<OrderItemRequest> items,
 
-    Long couponId
+    Long couponId,
+
+    @NotBlank(message = "멱등성 키는 필수입니다")
+    String idempotencyKey
 ) {}

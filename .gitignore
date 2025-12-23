@@ -17,3 +17,11 @@ cart-implementation-gap-analysis.md
 PULL_REQUEST.md
 performance-test-output.log
 PR_STEP09-10.md
+*.hprof
+..bfg-report/
+/tmp/k6*.log
+.DS_Store
+
+# K6 Load Test Results (keep only committed baseline results)
+docs/week6/loadtest/k6/results/*-summary.json
+!docs/week6/loadtest/k6/results/.gitkeep

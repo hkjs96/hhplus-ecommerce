@@ -24,11 +24,13 @@ public class OrderFacade {
     public CompleteOrderResponse createAndPayOrder(CompleteOrderRequest request) {
         log.info("Facade: Create and pay order for user: {}", request.userId());
 
-        // 1. 주문 생성
+        // 1. 주문 생성 (idempotencyKey 생성)
+        String orderIdempotencyKey = "CREATE_ORDER_" + request.userId() + "_" + UUID.randomUUID().toString();
         CreateOrderRequest createRequest = new CreateOrderRequest(
                 request.userId(),
                 request.items(),
-                request.couponId()
+                request.couponId(),
+                orderIdempotencyKey
         );
 
         CreateOrderResponse order = createOrderUseCase.execute(createRequest);

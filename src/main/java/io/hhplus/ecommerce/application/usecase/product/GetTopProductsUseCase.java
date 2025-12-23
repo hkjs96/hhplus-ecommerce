@@ -6,6 +6,7 @@ import io.hhplus.ecommerce.application.usecase.UseCase;
 import io.hhplus.ecommerce.domain.product.ProductSalesAggregateRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
@@ -20,7 +21,17 @@ public class GetTopProductsUseCase {
     private final ProductSalesAggregateRepository aggregateRepository;
 
     /**
-     * 최근 3일간 인기 상품 TOP 5 조회
+     * 최근 3일간 인기 상품 TOP 5 조회 (캐시 적용)
+     * <p>
+     * 캐시 키: "topProducts"
+     * - 고정 키 (날짜별 조회가 아닌 항상 최근 3일)
+     * <p>
+     * TTL: 5분 (CacheConfig 설정)
+     * - 배치 집계 주기(5분)와 동일
+     * - 실시간성 불필요, 주기적 갱신으로 충분
+     * <p>
+     * sync=true: Thundering Herd 방지
+     * - 동시 요청 시 첫 요청만 DB 조회
      * <p>
      * 최적화 전략:
      * 1. ROLLUP 테이블 사용 (ProductSalesAggregate)
@@ -32,10 +43,11 @@ public class GetTopProductsUseCase {
      * - 테스트 복잡도 감소 (변환 로직 분리)
      * <p>
      * 성능:
-     * - 실행 시간: <1ms
+     * - 실행 시간: <1ms (캐시 미스), ~0ms (캐시 히트)
      * - 원본 테이블 부하: 없음
      * - 인덱스 활용: 100%
      */
+    @Cacheable(value = "topProducts", key = "'recent3days'", sync = true)
     public TopProductResponse execute() {
         log.info("Getting top products (last 3 days) using ROLLUP strategy");
 
