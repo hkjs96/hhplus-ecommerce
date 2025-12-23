@@ -2,7 +2,6 @@ package io.hhplus.ecommerce.domain.product;
 
 import io.hhplus.ecommerce.domain.common.BaseTimeEntity;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 

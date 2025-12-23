@@ -186,3 +186,180 @@ public void handlePaymentCompleted(PaymentCompletedEvent event) {
   - **대응**: 순서가 중요한 로직이라면, 이벤트를 체이닝(`A완료 이벤트` → `B로직 실행` → `B완료 이벤트` 발행)하거나, `@Async`를 사용하지 않고 동기적으로 처리해야 합니다.
 - **모니터링**: 비동기 로직은 흐름 추적이 어렵습니다.
   - **대응**: 각 리스너의 시작, 성공, 실패 시점에 명확한 로그를 남기고, 이벤트 ID를 통해 흐름을 추적할 수 있도록 합니다. 실패/재시도/DLQ 적재 시에는 별도의 모니터링 알림(e.g., Slack)을 구성합니다.
+
+---
+
+## 7. 구현 완료 현황
+
+### 7.1 구현된 이벤트 및 리스너
+
+**이벤트 클래스**:
+- `PaymentCompletedEvent` (record 타입, 불변 객체)
+  - 위치: `domain/event/PaymentCompletedEvent.java`
+
+**이벤트 리스너** (4개):
+1. **EventIdempotencyListener**
+   - 역할: 중복 이벤트 방지 (멱등성 보장)
+   - 위치: `application/product/listener/EventIdempotencyListener.java`
+   - 우선순위: `@Order(1)` (가장 먼저 실행)
+
+2. **RankingUpdateEventListener**
+   - 역할: Redis 랭킹 갱신
+   - 위치: `application/product/listener/RankingUpdateEventListener.java`
+   - 특징: `@Async`, `@Retryable` (3회 재시도, Exponential Backoff)
+
+3. **DataPlatformEventListener**
+   - 역할: 외부 데이터 플랫폼 전송
+   - 위치: `application/payment/listener/DataPlatformEventListener.java`
+   - 특징: `@Async` (비동기 처리)
+
+4. **PaymentNotificationListener**
+   - 역할: 사용자 알림 발송
+   - 위치: `application/payment/listener/PaymentNotificationListener.java`
+   - 특징: `@Async` (비동기 처리)
+
+### 7.2 트랜잭션 분리 구현 완료
+
+**결제 프로세스 트랜잭션**:
+- ✅ Transaction 1: `reservePayment()` (잔액/재고 차감)
+- ✅ Transaction 2: `updatePaymentSuccess()` (상태 업데이트 + 이벤트 발행)
+- ✅ Transaction 3: `compensatePayment()` (보상 트랜잭션)
+
+**이벤트 처리**:
+- ✅ `@TransactionalEventListener(phase = AFTER_COMMIT)` 사용
+- ✅ 트랜잭션 커밋 후 부가 로직 실행
+- ✅ 외부 시스템 장애가 결제에 영향 없음
+
+### 7.3 보상 트랜잭션 구현 완료
+
+**PG 실패 시 보상 로직**:
+```java
+@Transactional
+public void compensatePayment(Long orderId, Long userId) {
+    // 1. 재고 복구
+    restoreProductStock(orderId);
+
+    // 2. 잔액 복구
+    restoreUserBalance(userId, orderId);
+
+    // 3. 주문 상태 → FAILED
+    order.markAsFailed();
+}
+```
+
+**Redis 장애 시 재시도 + DLQ**:
+```java
+@Retryable(
+    retryFor = {RedisConnectionFailureException.class},
+    maxAttempts = 3,
+    backoff = @Backoff(delay = 1000, multiplier = 2)
+)
+public void updateRanking(PaymentCompletedEvent event) {
+    // 재시도 3회 실패 시 DLQ 저장
+}
+```
+
+### 7.4 멱등성 보장 구현 완료
+
+**ProcessedEvent 테이블**:
+```java
+@Entity
+public class ProcessedEvent {
+    @Id
+    private String eventId;  // orderId + timestamp
+
+    private String eventType;
+    private LocalDateTime processedAt;
+}
+```
+
+**멱등성 체크 로직**:
+```java
+@Order(1)
+@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+public void checkIdempotency(PaymentCompletedEvent event) {
+    String eventId = generateEventId(event);
+
+    if (processedEventRepository.exists(eventId)) {
+        throw new DuplicateEventException();
+    }
+
+    processedEventRepository.save(ProcessedEvent.create(eventId));
+}
+```
+
+### 7.5 검증 결과
+
+**테스트**:
+- 총 테스트: 282개
+- 성공: 282개 (100%)
+- 실패: 0개
+
+**커버리지**:
+- Instruction: 73% (목표 70% 이상 달성)
+- Line: 74%
+- Method: 80%
+
+**검증 명령**:
+```bash
+./gradlew test
+./gradlew test jacocoTestReport
+```
+
+**상세 리포트**: `build/test-coverage-summary.md`
+
+---
+
+## 8. 평가 기준 충족 여부
+
+### Step 16 설계 문서 체크리스트
+
+- [x] **현재 시스템의 트랜잭션 경계 분석** (섹션 1.1)
+  - 결제 프로세스 3단계 트랜잭션 분석 완료
+
+- [x] **문제점 식별** (섹션 1.2)
+  - 동기적 외부 호출로 인한 스레드 블로킹
+  - 부가 로직과 핵심 로직의 약한 결합
+
+- [x] **개선 방안 제시** (섹션 2)
+  - 이벤트 기반 분리 전략 (섹션 2.1)
+  - 비동기 처리 전략 (섹션 2.2)
+
+- [x] **트랜잭션 흐름도** (섹션 3)
+  - Before (현재) 시퀀스 다이어그램
+  - After (개선) 시퀀스 다이어그램
+  - Mermaid 형식으로 작성
+
+- [x] **보상 트랜잭션 설계** (섹션 4)
+  - 실패 시나리오 식별 (섹션 4.1)
+  - 보상 로직 설계 (섹션 4.2)
+  - 멱등성 보장 방안 (섹션 4.3)
+
+- [x] **Saga 패턴 선택 근거**
+  - Orchestration 방식 채택
+  - 중앙 관리자 (`ProcessPaymentUseCase`)가 제어 흐름 관리
+  - 명확한 디버깅과 제어 흐름이 목적
+
+- [x] **데이터 정합성 보장 방안**
+  - ProcessedEvent 테이블로 중복 이벤트 방지
+  - `@Order(1)` 우선순위로 멱등성 리스너 먼저 실행
+  - 보상 트랜잭션으로 데이터 원복
+
+### 구현 완료 체크리스트
+
+- [x] ApplicationEventPublisher 사용
+- [x] @TransactionalEventListener 사용 (4개 리스너)
+- [x] phase = AFTER_COMMIT 설정
+- [x] 비동기 처리 (@Async)
+- [x] 재시도 메커니즘 (@Retryable)
+- [x] DLQ (FailedEvent 테이블)
+- [x] 멱등성 보장 (ProcessedEvent 테이블)
+- [x] 보상 트랜잭션 (compensatePayment)
+- [x] 회귀 테스트 통과 (282/282)
+
+---
+
+**작성자**: Claude Code
+**최종 수정**: 2025-12-18
+**상태**: Step 16 설계 문서 완료 ✅
+**구현 상태**: Step 15 구현 완료 ✅

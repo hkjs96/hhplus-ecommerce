@@ -1,5 +1,9 @@
 package io.hhplus.ecommerce.domain.order;
 
+import io.hhplus.ecommerce.config.TestContainersConfig;
+import jakarta.persistence.EntityManager;
+import org.springframework.context.annotation.Import;
+
 import io.hhplus.ecommerce.domain.user.User;
 import io.hhplus.ecommerce.domain.user.UserRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -8,8 +12,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -17,9 +23,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@Import(TestContainersConfig.class)
 @SpringBootTest
 @ActiveProfiles("test")
-@org.springframework.test.annotation.DirtiesContext(classMode = org.springframework.test.annotation.DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
+@org.springframework.test.annotation.DirtiesContext(classMode = org.springframework.test.annotation.DirtiesContext.ClassMode.AFTER_CLASS)
 class OrderConcurrencyTest {
 
     @Autowired
@@ -28,15 +35,27 @@ class OrderConcurrencyTest {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private EntityManager entityManager;
+
+    @Autowired
+    private PlatformTransactionManager transactionManager;
+
     @Test
     @DisplayName("Order 상태 변경 동시성 테스트 - Optimistic Lock으로 Lost Update 방지")
     void testOrderStatusConcurrency_OptimisticLock() throws InterruptedException {
-        // Given: 사용자 및 주문 생성
-        User user = User.create("test@example.com", "테스트");
-        userRepository.save(user);
+        // Given: 사용자 및 주문 생성(커밋 보장)
+        TransactionTemplate template = new TransactionTemplate(transactionManager);
+        Order order = template.execute(status -> {
+            String uniqueEmail = "test-" + UUID.randomUUID().toString().substring(0, 8) + "@example.com";
+            User user = User.create(uniqueEmail, "테스트");
+            userRepository.save(user);
 
-        Order order = Order.create("ORDER-TEST-001", user.getId(), 10000L, 0L);
-        orderRepository.save(order);
+            Order created = Order.create("ORDER-TEST-001", user, 10000L, 0L);
+            orderRepository.save(created);
+            entityManager.flush();
+            return created;
+        });
 
         int threadCount = 10;
         ExecutorService executor = Executors.newFixedThreadPool(threadCount);
@@ -83,14 +102,19 @@ class OrderConcurrencyTest {
 
     @Test
     @DisplayName("Order complete와 cancel 동시 호출 - Optimistic Lock으로 한 가지만 성공")
-    @Transactional
     void testOrderCompleteAndCancel_OptimisticLock() throws InterruptedException {
-        // Given
-        User user = User.create("test2@example.com", "테스트2");
-        userRepository.save(user);
+        // Given: 데이터 생성 및 커밋
+        TransactionTemplate template = new TransactionTemplate(transactionManager);
+        Order order = template.execute(status -> {
+            String uniqueEmail = "test-" + UUID.randomUUID().toString().substring(0, 8) + "@example.com";
+            User user = User.create(uniqueEmail, "테스트2");
+            userRepository.save(user);
 
-        Order order = Order.create("ORDER-TEST-002", user.getId(), 10000L, 0L);
-        orderRepository.save(order);
+            Order created = Order.create("ORDER-TEST-002", user, 10000L, 0L);
+            orderRepository.save(created);
+            entityManager.flush();
+            return created;
+        });
 
         CountDownLatch latch = new CountDownLatch(2);
         AtomicInteger successCount = new AtomicInteger(0);

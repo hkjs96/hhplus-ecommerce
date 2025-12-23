@@ -204,7 +204,7 @@ agent_docs/                       # 구현 상세 가이드
 ## 🛠️ 기술 스택
 
 ### Backend
-- **Language**: Java 17
+- **Language**: Java 21
 - **Framework**: Spring Boot 3.5.7
 - **Build**: Gradle
 
@@ -212,7 +212,7 @@ agent_docs/                       # 구현 상세 가이드
 - **RDBMS**: MySQL 8.0
 - **ORM**: JPA (Hibernate)
 - **Direct Query**: JDBC Template (복잡한 쿼리용)
-- **Migration**: SQL Scripts (DDL)
+- **Migration**: (과제/학습용) Hibernate DDL + 선택적 SQL 스크립트
 
 ### Cache & Queue (Week 7 NEW)
 - **Cache/Ranking**: Redis 7.x
@@ -367,7 +367,7 @@ agent_docs/                       # 구현 상세 가이드
 ## 🚀 실행 방법
 
 ### 사전 요구사항
-- Java 17 이상
+- Java 21 이상
 - Docker & Docker Compose
 - Gradle 8.0 이상
 
@@ -377,14 +377,15 @@ agent_docs/                       # 구현 상세 가이드
 # Docker Compose로 MySQL 8.0 + Redis 7.x 실행
 docker-compose up -d
 
-# MySQL 데이터베이스 생성
-docker exec -it hhplus-mysql mysql -uroot -ppassword -e "CREATE DATABASE IF NOT EXISTS ecommerce;"
+# MySQL 데이터베이스 생성 (docker-compose.yml의 MYSQL_DATABASE로 기본 생성되지만, 안전하게 재확인)
+docker exec -it ecommerce-mysql mysql -uroot -ppassword -e "CREATE DATABASE IF NOT EXISTS ecommerce;"
 
-# DDL 실행 (스키마 생성)
-docker exec -i hhplus-mysql mysql -uroot -ppassword ecommerce < docs/sql/schema.sql
+# 스키마 생성
+# - 현재 프로젝트는 애플리케이션 기동 시 Hibernate가 스키마를 자동 생성합니다. (spring.jpa.hibernate.ddl-auto=create)
+# - 따라서 별도의 schema.sql 실행이 필요하지 않습니다.
 
 # Redis 연결 확인
-docker exec -it hhplus-redis redis-cli ping
+docker exec -it ecommerce-redis redis-cli ping
 # 응답: PONG
 ```
 
@@ -395,17 +396,26 @@ docker exec -it hhplus-redis redis-cli ping
 ./gradlew clean build
 
 # 애플리케이션 실행
+# 로컬 실행 시에는 프로필을 명시합니다. (예: --spring.profiles.active=local)
 ./gradlew bootRun
 
 # 또는 JAR 실행
 java -jar build/libs/ecommerce-0.0.1-SNAPSHOT.jar
 ```
 
+### 2-1. 프로필 사용 방법
+
+`application.yml` + `application-{profile}.yml` 조합으로 환경별 설정을 분리합니다.
+
+- 기본 실행: `application.yml`만 사용하며, 로컬 실행 시에는 `local` 프로필을 명시합니다.
+- 로컬 실행(명시): `./gradlew bootRun --args='--spring.profiles.active=local'`
+- 테스트 실행: 대부분 테스트가 `@ActiveProfiles("test")`를 사용하며, 설정은 `src/test/resources/application-test.yml`에 있습니다.
+
 ### 3. Redis 확인
 
 ```bash
 # Redis CLI 접속
-docker exec -it hhplus-redis redis-cli
+docker exec -it ecommerce-redis redis-cli
 
 # 랭킹 확인
 127.0.0.1:6379> ZREVRANGE ranking:product:orders:daily:20251202 0 9 WITHSCORES

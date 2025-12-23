@@ -1,5 +1,6 @@
 HELP.md
 .gradle
+.gradle-user-home/
 build/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/mainsrc/testsrc/mainsrc/testsrc/mainsrc/test/**/out/
@@ -26,3 +27,8 @@ PR_STEP09-10.md
 docs/week6/loadtest/k6/results/*-summary.json
 !docs/week6/loadtest/k6/results/.gitkeep
 *.pid
+
+# Local build/test logs
+*.log
+build-*.log
+build-*.txt

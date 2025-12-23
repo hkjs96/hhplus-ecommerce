@@ -94,14 +94,14 @@ public class ChargeBalanceIdempotency {
     /**
      * 멱등성 키 생성 (PROCESSING 상태로 시작)
      */
-    public static ChargeBalanceIdempotency create(String idempotencyKey, Long userId, Long amount) {
+    public static ChargeBalanceIdempotency create(String idempotencyKey, User user, Long amount) {
         validateIdempotencyKey(idempotencyKey);
-        validateUserId(userId);
+        validateUserId(user.getId());
         validateAmount(amount);
 
         ChargeBalanceIdempotency entity = new ChargeBalanceIdempotency();
         entity.idempotencyKey = idempotencyKey;
-        entity.userId = userId;
+        entity.userId = user.getId();
         entity.amount = amount;
         entity.status = IdempotencyStatus.PROCESSING;
         entity.createdAt = LocalDateTime.now();

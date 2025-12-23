@@ -68,9 +68,19 @@ public class ReserveCouponUseCase {
             Coupon coupon = couponRepository.findByIdOrThrow(couponId);
             coupon.validateIssuable();
 
-            // 3. 중복 예약 체크 (Redis Set)
+            // 3. 중복 예약 선점 (Redis SADD 결과로 원자적 제어)
             String reservationSetKey = buildReservationSetKey(couponId);
-            if (redisTemplate.opsForSet().isMember(reservationSetKey, String.valueOf(userId))) {
+            Long added = redisTemplate.opsForSet().add(reservationSetKey, String.valueOf(userId));
+            redisTemplate.expire(reservationSetKey, COUPON_RESERVATION_TTL);
+
+            if (added == null) {
+                throw new BusinessException(
+                    ErrorCode.INTERNAL_SERVER_ERROR,
+                    "Redis 예약 기록 실패"
+                );
+            }
+
+            if (added == 0L) {
                 throw new BusinessException(
                     ErrorCode.ALREADY_ISSUED_COUPON,
                     String.format("이미 예약한 쿠폰입니다. userId: %d, couponId: %d", userId, couponId)
@@ -102,6 +112,8 @@ public class ReserveCouponUseCase {
                 log.warn("[SOLD OUT] Coupon sold out: couponId={}, sequence={}, totalQuantity={}",
                     couponId, sequence, coupon.getTotalQuantity());
 
+                // 예약 선점 해제 (중복 차단 Set 복구)
+                redisTemplate.opsForSet().remove(reservationSetKey, String.valueOf(userId));
                 // 순번은 증가했지만 발급은 안되므로, 보상 트랜잭션으로 순번을 다시 감소시킬 수 있음 (선택적)
                 // redisTemplate.opsForValue().decrement(sequenceKey);
 
@@ -115,8 +127,6 @@ public class ReserveCouponUseCase {
                 sequence, coupon.getTotalQuantity());
 
             // 6. Redis Set에 예약 기록 (멱등성 보장)
-            redisTemplate.opsForSet().add(reservationSetKey, String.valueOf(userId));
-            redisTemplate.expire(reservationSetKey, COUPON_RESERVATION_TTL);
             redisTemplate.expire(sequenceKey, COUPON_RESERVATION_TTL);
 
             log.info("Coupon reserved in Redis: userId={}, couponId={}, sequence={}",

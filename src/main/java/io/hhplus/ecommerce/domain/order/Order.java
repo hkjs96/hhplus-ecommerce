@@ -3,8 +3,8 @@ package io.hhplus.ecommerce.domain.order;
 import io.hhplus.ecommerce.common.exception.BusinessException;
 import io.hhplus.ecommerce.common.exception.ErrorCode;
 import io.hhplus.ecommerce.domain.common.BaseEntity;
+import io.hhplus.ecommerce.domain.user.User;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -62,16 +62,16 @@ public class Order extends BaseEntity {
     @Version
     private Long version;
 
-    public static Order create(String orderNumber, Long userId, Long subtotalAmount, Long discountAmount) {
+    public static Order create(String orderNumber, User user, Long subtotalAmount, Long discountAmount) {
         validateOrderNumber(orderNumber);
-        validateUserId(userId);
+        validateUserId(user.getId());
         validateAmounts(subtotalAmount, discountAmount);
 
         Long totalAmount = subtotalAmount - discountAmount;
 
         Order order = new Order();
         order.orderNumber = orderNumber;
-        order.userId = userId;
+        order.userId = user.getId();
         order.subtotalAmount = subtotalAmount;
         order.discountAmount = discountAmount;
         order.totalAmount = totalAmount;

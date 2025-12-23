@@ -2,13 +2,20 @@ package io.hhplus.ecommerce.infrastructure.persistence.order;
 
 import io.hhplus.ecommerce.domain.order.Order;
 import io.hhplus.ecommerce.domain.order.OrderStatus;
+import io.hhplus.ecommerce.domain.user.User;
+import io.hhplus.ecommerce.domain.user.UserRepository;
+import io.hhplus.ecommerce.config.JpaAuditingConfig;
+import jakarta.persistence.EntityManager;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.transaction.annotation.Transactional;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -21,6 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DataJpaTest
 @Testcontainers
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@Import(JpaAuditingConfig.class)
 @DisplayName("JpaOrderRepository 통합 테스트 (MySQL Testcontainers)")
 class JpaOrderRepositoryTest {
 
@@ -41,6 +49,22 @@ class JpaOrderRepositoryTest {
 
     @Autowired
     private JpaOrderRepository orderRepository;
+    @Autowired
+    private UserRepository userRepository; // Added to save User
+    @Autowired
+    private EntityManager entityManager; // Added for flushing
+
+    private User testUser;
+
+	    @BeforeEach
+	    @Transactional
+	    void setUp() {
+	        String uniqueId = java.util.UUID.randomUUID().toString().substring(0, 8);
+	        testUser = User.create("test-" + uniqueId + "@example.com", "testuser");
+	        userRepository.save(testUser);
+	        entityManager.flush(); // Ensure ID is populated
+	        entityManager.clear(); // Detach user to avoid conflicts in subsequent operations
+	    }
 
     @Test
     @DisplayName("주문 저장 및 조회 성공")
@@ -48,7 +72,7 @@ class JpaOrderRepositoryTest {
         // Given: 주문 생성
         Order order = Order.create(
             "ORD-20250112-001",
-            1L,
+            testUser,
             100000L,
             10000L
         );
@@ -59,7 +83,7 @@ class JpaOrderRepositoryTest {
         // Then: 저장된 주문 검증
         assertThat(savedOrder.getId()).isNotNull();
         assertThat(savedOrder.getOrderNumber()).isEqualTo("ORD-20250112-001");
-        assertThat(savedOrder.getUserId()).isEqualTo(1L);
+        assertThat(savedOrder.getUserId()).isEqualTo(testUser.getId());
         assertThat(savedOrder.getSubtotalAmount()).isEqualTo(100000L);
         assertThat(savedOrder.getDiscountAmount()).isEqualTo(10000L);
         assertThat(savedOrder.getTotalAmount()).isEqualTo(90000L);
@@ -80,7 +104,7 @@ class JpaOrderRepositoryTest {
         // Given: 주문 저장
         Order order = Order.create(
             "ORD-20250112-002",
-            1L,
+            testUser,
             50000L,
             5000L
         );
@@ -91,7 +115,7 @@ class JpaOrderRepositoryTest {
 
         // Then: 조회 성공
         assertThat(foundOrder).isPresent();
-        assertThat(foundOrder.get().getUserId()).isEqualTo(1L);
+        assertThat(foundOrder.get().getUserId()).isEqualTo(testUser.getId());
         assertThat(foundOrder.get().getTotalAmount()).isEqualTo(45000L);
     }
 
@@ -99,11 +123,11 @@ class JpaOrderRepositoryTest {
     @DisplayName("사용자 ID로 주문 목록 조회 성공 (최신순 정렬)")
     void findByUserId() throws InterruptedException {
         // Given: 동일 사용자의 주문 3개 생성
-        Long userId = 1L;
-
-        Order order1 = Order.create("ORD-20250112-001", userId, 10000L, 1000L);
-        Order order2 = Order.create("ORD-20250112-002", userId, 20000L, 2000L);
-        Order order3 = Order.create("ORD-20250112-003", userId, 30000L, 3000L);
+        User user = userRepository.findById(testUser.getId()).orElseThrow(); // Re-fetch user in new session
+        
+        Order order1 = Order.create("ORD-20250112-001", user, 10000L, 1000L);
+        Order order2 = Order.create("ORD-20250112-002", user, 20000L, 2000L);
+        Order order3 = Order.create("ORD-20250112-003", user, 30000L, 3000L);
 
         orderRepository.save(order1);
         Thread.sleep(10); // 시간 차이를 두기 위해
@@ -112,7 +136,7 @@ class JpaOrderRepositoryTest {
         orderRepository.save(order3);
 
         // When: 사용자 ID로 조회
-        List<Order> orders = orderRepository.findByUserId(userId);
+        List<Order> orders = orderRepository.findByUserId(testUser.getId());
 
         // Then: 3개 조회, 최신순 정렬
         assertThat(orders).hasSize(3);
@@ -123,16 +147,21 @@ class JpaOrderRepositoryTest {
 
     @Test
     @DisplayName("다른 사용자의 주문은 조회되지 않음")
-    void findByUserId_DifferentUser() {
-        // Given: 서로 다른 사용자의 주문 생성
-        Order order1 = Order.create("ORD-20250112-001", 1L, 10000L, 1000L);
-        Order order2 = Order.create("ORD-20250112-002", 2L, 20000L, 2000L);
+	    void findByUserId_DifferentUser() {
+	        // Given: 서로 다른 사용자의 주문 생성
+	        String uniqueId = java.util.UUID.randomUUID().toString().substring(0, 8);
+	        User otherUser = User.create("other-" + uniqueId + "@example.com", "otheruser");
+	        userRepository.save(otherUser);
+	        entityManager.flush();
+
+        Order order1 = Order.create("ORD-20250112-001", testUser, 10000L, 1000L);
+        Order order2 = Order.create("ORD-20250112-002", otherUser, 20000L, 2000L);
 
         orderRepository.save(order1);
         orderRepository.save(order2);
 
         // When: 사용자 1의 주문 조회
-        List<Order> user1Orders = orderRepository.findByUserId(1L);
+        List<Order> user1Orders = orderRepository.findByUserId(testUser.getId());
 
         // Then: 사용자 1의 주문만 조회됨
         assertThat(user1Orders).hasSize(1);
@@ -145,7 +174,7 @@ class JpaOrderRepositoryTest {
         // Given: 주문 생성 및 저장
         Order order = Order.create(
             "ORD-20250112-001",
-            1L,
+            testUser,
             100000L,
             10000L
         );

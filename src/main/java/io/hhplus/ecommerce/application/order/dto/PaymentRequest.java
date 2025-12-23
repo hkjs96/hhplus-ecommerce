@@ -15,4 +15,10 @@ public record PaymentRequest(
     @NotNull(message = "멱등성 키는 필수입니다")
     String idempotencyKey
 ) {
+    /**
+     * PaymentRequest 생성 (Phase 3용)
+     */
+    public static PaymentRequest of(Long userId, String idempotencyKey) {
+        return new PaymentRequest(userId, idempotencyKey);
+    }
 }
