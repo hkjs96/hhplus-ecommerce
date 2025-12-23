@@ -1,14 +1,10 @@
 package io.hhplus.ecommerce.application.dto.product;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-
-@Getter
-@AllArgsConstructor
-public class PopularProductResponse {
-    private Integer rank;
-    private String productId;
-    private String name;
-    private Integer salesCount;
-    private Long revenue;
+public record PopularProductResponse(
+    Integer rank,
+    String productId,
+    String name,
+    Integer salesCount,
+    Long revenue
+) {
 }

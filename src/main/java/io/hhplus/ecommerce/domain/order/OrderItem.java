@@ -2,27 +2,58 @@ package io.hhplus.ecommerce.domain.order;
 
 import io.hhplus.ecommerce.common.exception.BusinessException;
 import io.hhplus.ecommerce.common.exception.ErrorCode;
-import lombok.AllArgsConstructor;
+import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
+@Entity
+@Table(
+    name = "order_items",
+    indexes = {
+        @Index(name = "idx_order_id", columnList = "order_id"),
+        @Index(name = "idx_product_id", columnList = "product_id")
+    }
+)
 @Getter
-@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class OrderItem {
 
-    private String id;
-    private String orderId;
-    private String productId;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name = "order_id", nullable = false)
+    private Long orderId;  // FK to orders
+
+    @Column(name = "product_id", nullable = false)
+    private Long productId;  // FK to products
+
+    @Column(nullable = false)
     private Integer quantity;     // 주문 수량
+
+    @Column(name = "unit_price", nullable = false)
     private Long unitPrice;       // 주문 시점 단가 (스냅샷)
+
+    @Column(nullable = false)
     private Long subtotal;        // 소계 (unitPrice * quantity)
 
-    public static OrderItem create(String id, String orderId, String productId, Integer quantity, Long unitPrice) {
+    public static OrderItem create(Long orderId, Long productId, Integer quantity, Long unitPrice) {
+        validateOrderId(orderId);
+        validateProductId(productId);
         validateQuantity(quantity);
         validateUnitPrice(unitPrice);
 
         Long subtotal = calculateSubtotal(unitPrice, quantity);
 
-        return new OrderItem(id, orderId, productId, quantity, unitPrice, subtotal);
+        OrderItem orderItem = new OrderItem();
+        orderItem.orderId = orderId;
+        orderItem.productId = productId;
+        orderItem.quantity = quantity;
+        orderItem.unitPrice = unitPrice;
+        orderItem.subtotal = subtotal;
+
+        return orderItem;
     }
 
     private static Long calculateSubtotal(Long unitPrice, Integer quantity) {
@@ -32,6 +63,24 @@ public class OrderItem {
     // ====================================
     // Validation Methods
     // ====================================
+
+    private static void validateOrderId(Long orderId) {
+        if (orderId == null) {
+            throw new BusinessException(
+                ErrorCode.INVALID_INPUT,
+                "주문 ID는 필수입니다"
+            );
+        }
+    }
+
+    private static void validateProductId(Long productId) {
+        if (productId == null) {
+            throw new BusinessException(
+                ErrorCode.INVALID_INPUT,
+                "상품 ID는 필수입니다"
+            );
+        }
+    }
 
     private static void validateQuantity(Integer quantity) {
         if (quantity == null || quantity <= 0) {

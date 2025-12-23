@@ -1,13 +1,11 @@
 package io.hhplus.ecommerce.presentation.api.order;
 
-import io.hhplus.ecommerce.application.order.OrderService;
-import io.hhplus.ecommerce.application.order.dto.CreateOrderRequest;
-import io.hhplus.ecommerce.application.order.dto.CreateOrderResponse;
-import io.hhplus.ecommerce.application.order.dto.OrderListResponse;
-import io.hhplus.ecommerce.application.order.dto.PaymentRequest;
-import io.hhplus.ecommerce.application.order.dto.PaymentResponse;
+import io.hhplus.ecommerce.application.facade.OrderFacade;
+import io.hhplus.ecommerce.application.order.dto.*;
+import io.hhplus.ecommerce.application.usecase.order.CreateOrderUseCase;
+import io.hhplus.ecommerce.application.usecase.order.GetOrdersUseCase;
+import io.hhplus.ecommerce.application.usecase.order.ProcessPaymentUseCase;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,29 +18,41 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class OrderController {
 
-    private final OrderService orderService;
+    // 단순 플로우: UseCase 직접 주입
+    private final CreateOrderUseCase createOrderUseCase;
+    private final ProcessPaymentUseCase processPaymentUseCase;
+    private final GetOrdersUseCase getOrdersUseCase;
+
+    // 복잡한 플로우: Facade 사용
+    private final OrderFacade orderFacade;
 
     @GetMapping
     public ResponseEntity<OrderListResponse> getOrders(
-            @NotBlank(message = "사용자 ID는 필수입니다") @RequestParam String userId,
+            @RequestParam Long userId,
             @RequestParam(required = false) String status
     ) {
-        OrderListResponse response = orderService.getOrders(userId, status);
+        OrderListResponse response = getOrdersUseCase.execute(userId, status);
         return ResponseEntity.ok(response);
     }
 
     @PostMapping
     public ResponseEntity<CreateOrderResponse> createOrder(@Valid @RequestBody CreateOrderRequest request) {
-        CreateOrderResponse response = orderService.createOrder(request);
+        CreateOrderResponse response = createOrderUseCase.execute(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PostMapping("/{orderId}/payment")
     public ResponseEntity<PaymentResponse> processPayment(
-            @NotBlank(message = "주문 ID는 필수입니다") @PathVariable String orderId,
+            @PathVariable Long orderId,
             @Valid @RequestBody PaymentRequest request
     ) {
-        PaymentResponse response = orderService.processPayment(orderId, request);
+        PaymentResponse response = processPaymentUseCase.execute(orderId, request);
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/complete")
+    public ResponseEntity<CompleteOrderResponse> completeOrder(@Valid @RequestBody CompleteOrderRequest request) {
+        CompleteOrderResponse response = orderFacade.createAndPayOrder(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 }

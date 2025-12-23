@@ -1,23 +1,34 @@
 package io.hhplus.ecommerce.domain.cart;
 
+import io.hhplus.ecommerce.common.exception.BusinessException;
+import io.hhplus.ecommerce.common.exception.ErrorCode;
+
 import java.util.List;
 import java.util.Optional;
 
 public interface CartItemRepository {
 
-    Optional<CartItem> findById(String id);
+    Optional<CartItem> findById(Long id);
 
-    List<CartItem> findByCartId(String cartId);
+    List<CartItem> findByCartId(Long cartId);
 
-    Optional<CartItem> findByCartIdAndProductId(String cartId, String productId);
+    Optional<CartItem> findByCartIdAndProductId(Long cartId, Long productId);
 
     List<CartItem> findAll();
 
     CartItem save(CartItem cartItem);
 
-    void deleteById(String id);
+    void deleteById(Long id);
 
-    void deleteByCartId(String cartId);
+    void deleteByCartId(Long cartId);
 
-    boolean existsById(String id);
+    boolean existsById(Long id);
+
+    default CartItem findByIdOrThrow(Long id) {
+        return findById(id)
+            .orElseThrow(() -> new BusinessException(
+                ErrorCode.CART_ITEM_NOT_FOUND,
+                "장바구니 아이템을 찾을 수 없습니다. cartItemId: " + id
+            ));
+    }
 }

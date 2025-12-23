@@ -13,17 +13,16 @@ class CartItemTest {
     @DisplayName("장바구니 항목 생성 - 성공")
     void create_성공() {
         // Given
-        String itemId = "ITEM-001";
-        String cartId = "CART-U001";
-        String productId = "P001";
+        Long cartId = 1L;
+        Long productId = 2L;
         Integer quantity = 5;
 
         // When
-        CartItem cartItem = CartItem.create(itemId, cartId, productId, quantity);
+        CartItem cartItem = CartItem.create(cartId, productId, quantity);
 
         // Then
         assertThat(cartItem).isNotNull();
-        assertThat(cartItem.getId()).isEqualTo(itemId);
+        assertThat(cartItem.getId()).isNull(); // ID는 JPA에 의해 자동 생성됨
         assertThat(cartItem.getCartId()).isEqualTo(cartId);
         assertThat(cartItem.getProductId()).isEqualTo(productId);
         assertThat(cartItem.getQuantity()).isEqualTo(quantity);
@@ -34,7 +33,7 @@ class CartItemTest {
     @DisplayName("장바구니 항목 생성 - cartId null")
     void create_실패_cartId_null() {
         // When & Then
-        assertThatThrownBy(() -> CartItem.create("ITEM-001", null, "P001", 5))
+        assertThatThrownBy(() -> CartItem.create(null, 2L, 5))
             .isInstanceOf(BusinessException.class)
             .hasMessageContaining("장바구니 ID는 필수입니다")
             .extracting("errorCode")
@@ -45,7 +44,7 @@ class CartItemTest {
     @DisplayName("장바구니 항목 생성 - productId null")
     void create_실패_productId_null() {
         // When & Then
-        assertThatThrownBy(() -> CartItem.create("ITEM-001", "CART-U001", null, 5))
+        assertThatThrownBy(() -> CartItem.create(1L, null, 5))
             .isInstanceOf(BusinessException.class)
             .hasMessageContaining("상품 ID는 필수입니다")
             .extracting("errorCode")
@@ -56,7 +55,7 @@ class CartItemTest {
     @DisplayName("장바구니 항목 생성 - quantity null")
     void create_실패_quantity_null() {
         // When & Then
-        assertThatThrownBy(() -> CartItem.create("ITEM-001", "CART-U001", "P001", null))
+        assertThatThrownBy(() -> CartItem.create(1L, 2L, null))
             .isInstanceOf(BusinessException.class)
             .extracting("errorCode")
             .isEqualTo(ErrorCode.INVALID_QUANTITY);
@@ -66,7 +65,7 @@ class CartItemTest {
     @DisplayName("장바구니 항목 생성 - quantity 0")
     void create_실패_quantity_0() {
         // When & Then
-        assertThatThrownBy(() -> CartItem.create("ITEM-001", "CART-U001", "P001", 0))
+        assertThatThrownBy(() -> CartItem.create(1L, 2L, 0))
             .isInstanceOf(BusinessException.class)
             .extracting("errorCode")
             .isEqualTo(ErrorCode.INVALID_QUANTITY);
@@ -76,7 +75,7 @@ class CartItemTest {
     @DisplayName("장바구니 항목 생성 - quantity 음수")
     void create_실패_quantity_음수() {
         // When & Then
-        assertThatThrownBy(() -> CartItem.create("ITEM-001", "CART-U001", "P001", -1))
+        assertThatThrownBy(() -> CartItem.create(1L, 2L, -1))
             .isInstanceOf(BusinessException.class)
             .extracting("errorCode")
             .isEqualTo(ErrorCode.INVALID_QUANTITY);
@@ -86,7 +85,7 @@ class CartItemTest {
     @DisplayName("수량 변경 - 성공")
     void updateQuantity_성공() {
         // Given
-        CartItem cartItem = CartItem.create("ITEM-001", "CART-U001", "P001", 5);
+        CartItem cartItem = CartItem.create(1L, 2L, 5);
 
         // When
         cartItem.updateQuantity(10);
@@ -99,7 +98,7 @@ class CartItemTest {
     @DisplayName("수량 변경 - quantity 0")
     void updateQuantity_실패_quantity_0() {
         // Given
-        CartItem cartItem = CartItem.create("ITEM-001", "CART-U001", "P001", 5);
+        CartItem cartItem = CartItem.create(1L, 2L, 5);
 
         // When & Then
         assertThatThrownBy(() -> cartItem.updateQuantity(0))
@@ -112,7 +111,7 @@ class CartItemTest {
     @DisplayName("수량 변경 - quantity 음수")
     void updateQuantity_실패_quantity_음수() {
         // Given
-        CartItem cartItem = CartItem.create("ITEM-001", "CART-U001", "P001", 5);
+        CartItem cartItem = CartItem.create(1L, 2L, 5);
 
         // When & Then
         assertThatThrownBy(() -> cartItem.updateQuantity(-5))
@@ -125,7 +124,7 @@ class CartItemTest {
     @DisplayName("수량 증가 - 성공")
     void increaseQuantity_성공() {
         // Given
-        CartItem cartItem = CartItem.create("ITEM-001", "CART-U001", "P001", 5);
+        CartItem cartItem = CartItem.create(1L, 2L, 5);
 
         // When
         cartItem.increaseQuantity(3);
@@ -138,7 +137,7 @@ class CartItemTest {
     @DisplayName("수량 증가 - quantity 0")
     void increaseQuantity_실패_quantity_0() {
         // Given
-        CartItem cartItem = CartItem.create("ITEM-001", "CART-U001", "P001", 5);
+        CartItem cartItem = CartItem.create(1L, 2L, 5);
 
         // When & Then
         assertThatThrownBy(() -> cartItem.increaseQuantity(0))
@@ -151,7 +150,7 @@ class CartItemTest {
     @DisplayName("수량 증가 - quantity 음수")
     void increaseQuantity_실패_quantity_음수() {
         // Given
-        CartItem cartItem = CartItem.create("ITEM-001", "CART-U001", "P001", 5);
+        CartItem cartItem = CartItem.create(1L, 2L, 5);
 
         // When & Then
         assertThatThrownBy(() -> cartItem.increaseQuantity(-3))

@@ -154,6 +154,167 @@ class ProductUseCaseTest {
 
 ---
 
+## 🔧 실전 패턴: findByIdOrThrow() ⭐
+
+### 문제 상황: 반복되는 코드 패턴
+
+**코치 피드백:**
+> 반복되는 코드는 공통 메서드로 추출하세요. Repository 레이어에 구현하여 재사용하면 코드 중복을 줄일 수 있습니다.
+
+**반복되는 패턴:**
+```java
+// CouponService
+Coupon coupon = couponRepository.findById(couponId)
+    .orElseThrow(() -> new BusinessException(ErrorCode.COUPON_NOT_FOUND));
+
+// CartService
+Cart cart = cartRepository.findById(cartId)
+    .orElseThrow(() -> new BusinessException(ErrorCode.CART_NOT_FOUND));
+
+// PointService
+User user = userRepository.findById(userId)
+    .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+```
+
+**문제점:**
+- ❌ 모든 서비스에서 동일한 패턴 반복
+- ❌ 코드 중복 (같은 로직을 여러 곳에 작성)
+- ❌ 유지보수 어려움 (ErrorCode 변경 시 모든 곳 수정 필요)
+
+---
+
+### 해결 방법 3가지
+
+#### ✅ Option 1: Repository Custom Method (가장 추천)
+
+**장점:**
+- ✅ 각 Repository에 적절한 ErrorCode 내장
+- ✅ 가장 간결한 사용법
+- ✅ 타입 안전성
+- ✅ IDE 자동완성 지원
+
+```java
+// Domain Repository Interface
+public interface CouponRepository extends JpaRepository<Coupon, Long> {
+
+    // Custom method 추가
+    default Coupon findByIdOrThrow(Long id) {
+        return findById(id)
+            .orElseThrow(() -> new BusinessException(
+                ErrorCode.COUPON_NOT_FOUND,
+                "Coupon not found. couponId: " + id
+            ));
+    }
+}
+
+// 사용
+Coupon coupon = couponRepository.findByIdOrThrow(couponId);  // 간결!
+```
+
+**적용 예시:**
+```java
+// ProductRepository
+public interface ProductRepository {
+    Optional<Product> findById(String id);
+
+    default Product findByIdOrThrow(String id) {
+        return findById(id)
+            .orElseThrow(() -> new BusinessException(
+                ErrorCode.PRODUCT_NOT_FOUND,
+                "Product not found. productId: " + id
+            ));
+    }
+}
+
+// OrderRepository
+public interface OrderRepository {
+    Optional<Order> findById(String id);
+
+    default Order findByIdOrThrow(String id) {
+        return findById(id)
+            .orElseThrow(() -> new BusinessException(
+                ErrorCode.ORDER_NOT_FOUND,
+                "Order not found. orderId: " + id
+            ));
+    }
+}
+```
+
+---
+
+#### Option 2: Common Utility Method
+
+**장점:**
+- ✅ 중앙 집중식 관리
+- ❌ 사용할 때마다 3개 인자 전달 필요
+
+```java
+// Common Utility Class
+public class RepositoryUtils {
+
+    public static <T, ID> T findByIdOrThrow(
+        JpaRepository<T, ID> repository,
+        ID id,
+        ErrorCode errorCode
+    ) {
+        return repository.findById(id)
+            .orElseThrow(() -> new BusinessException(errorCode));
+    }
+}
+
+// 사용
+Coupon coupon = RepositoryUtils.findByIdOrThrow(
+    couponRepository,
+    couponId,
+    ErrorCode.COUPON_NOT_FOUND
+);
+```
+
+---
+
+#### Option 3: Base Repository Interface (고급)
+
+**장점:**
+- ✅ 모든 Repository가 공통 기능 상속
+- ❌ 설계 복잡도 증가
+
+```java
+// Base Repository Interface
+public interface BaseRepository<T, ID> extends JpaRepository<T, ID> {
+
+    default T findByIdOrThrow(ID id, ErrorCode errorCode) {
+        return findById(id)
+            .orElseThrow(() -> new BusinessException(errorCode));
+    }
+}
+
+// 각 Repository가 상속
+public interface CouponRepository extends BaseRepository<Coupon, Long> {
+    // 추가 메서드만 정의
+}
+
+// 사용
+Coupon coupon = couponRepository.findByIdOrThrow(couponId, ErrorCode.COUPON_NOT_FOUND);
+```
+
+---
+
+### 권장: Option 1 선택 이유
+
+1. **간결성**: 메서드 호출이 가장 짧음
+2. **타입 안전성**: 각 Repository에 맞는 Entity 타입 보장
+3. **ErrorCode 내장**: 각 도메인에 적합한 에러 코드 자동 적용
+4. **IDE 지원**: 자동완성으로 쉽게 발견 가능
+
+**적용 대상:**
+- [ ] ProductRepository
+- [ ] UserRepository
+- [ ] OrderRepository
+- [ ] CartRepository
+- [ ] CouponRepository
+
+---
+
 ## 📋 Repository vs DAO
 
 ### 비교
