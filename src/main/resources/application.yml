@@ -6,7 +6,7 @@ spring:
   jpa:
     open-in-view: false
     hibernate:
-      ddl-auto: create  # 개발 시 create (테스트 데이터 재생성용), 프로덕션에서는 none
+      ddl-auto: validate
     properties:
       hibernate:
         format_sql: true
@@ -19,11 +19,13 @@ spring:
   # MySQL 데이터소스 설정
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/ecommerce?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul
-    username: root
-    password: password
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DB:ecommerce}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul
+    username: ${MYSQL_USER:ecommerce_user}
+    password: ${MYSQL_PASSWORD:ecommerce_pass}
     hikari:
-      maximum-pool-size: 200     # 50 → 200 (K6 350 VUs 대응)
+      # K6 테스트(최대 350 VUs)를 기반으로 200으로 설정했으나, 실제 모니터링 후 튜닝 필요
+      # 우선 100으로 조정
+      maximum-pool-size: 100
       minimum-idle: 50           # 10 → 50 (최소 유휴 커넥션 증가)
       connection-timeout: 10000  # 30초 → 10초 (빠른 실패)
       idle-timeout: 600000       # 10분 (유휴 커넥션 유지 시간)
@@ -41,6 +43,12 @@ spring:
           max-active: 10
           max-idle: 10
           min-idle: 2
+
+# Batch Scheduling
+ranking:
+  backup:
+    schedule:
+      rate: 600000 # 10 minutes
 
 # SpringDoc OpenAPI 설정
 springdoc:

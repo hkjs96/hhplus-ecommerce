@@ -3,7 +3,6 @@ package io.hhplus.ecommerce.domain.coupon;
 import io.hhplus.ecommerce.common.exception.BusinessException;
 import io.hhplus.ecommerce.common.exception.ErrorCode;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 

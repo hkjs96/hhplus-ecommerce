@@ -1,0 +1,22 @@
+
+         /\      Grafana   /‾‾/  
+    /\  /  \     |\  __   /  /   
+   /  \/    \    | |/ /  /   ‾‾\ 
+  /          \   |   (  |  (‾)  |
+ / __________ \  |_|\_\  \_____/ 
+
+     execution: local
+        script: ./docs/week7/loadtest/k6/load-test.js
+        output: -
+
+     scenarios: (100.00%) 1 scenario, 100 max VUs, 4m10s max duration (incl. graceful stop):
+              * default: Up to 100 looping VUs for 3m40s over 6 stages (gracefulRampDown: 30s, gracefulStop: 30s)
+
+time="2025-12-10T07:00:31+09:00" level=info msg="=== Load Test Setup ===" source=console
+time="2025-12-10T07:00:31+09:00" level=info msg="Base URL: http://localhost:8080" source=console
+time="2025-12-10T07:00:31+09:00" level=info msg="Test will run with 6 stages" source=console
+time="2025-12-10T07:00:31+09:00" level=info msg="Application health check passed" source=console
+
+running (3m41.5s), 000/100 VUs, 10495 complete and 0 interrupted iterations
+default ✓ [ 100% ] 000/100 VUs  3m40s
+time="2025-12-10T07:04:13+09:00" level=error msg="thresholds on metrics 'errors, http_req_failed' have been crossed"

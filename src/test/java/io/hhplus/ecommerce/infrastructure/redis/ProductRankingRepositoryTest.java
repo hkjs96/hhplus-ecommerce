@@ -9,9 +9,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -27,6 +29,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * - 동시성 테스트
  */
 @SpringBootTest
+@ActiveProfiles("test")
 @Import(TestContainersConfig.class)
 class ProductRankingRepositoryTest {
 
@@ -39,7 +42,7 @@ class ProductRankingRepositoryTest {
     @BeforeEach
     void setUp() {
         // Redis 전체 데이터 삭제
-        redisTemplate.getConnectionFactory().getConnection().flushAll();
+        Objects.requireNonNull(redisTemplate.getConnectionFactory()).getConnection().serverCommands().flushAll();
     }
 
     @Test

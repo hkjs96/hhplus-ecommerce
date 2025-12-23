@@ -4,6 +4,8 @@ import io.hhplus.ecommerce.application.product.dto.RankingItem;
 import io.hhplus.ecommerce.application.product.dto.RankingResponse;
 import io.hhplus.ecommerce.domain.product.Product;
 import io.hhplus.ecommerce.domain.product.ProductRanking;
+import io.hhplus.ecommerce.domain.product.ProductRankingBackup;
+import io.hhplus.ecommerce.domain.product.ProductRankingBackupRepository;
 import io.hhplus.ecommerce.domain.product.ProductRepository;
 import io.hhplus.ecommerce.infrastructure.redis.ProductRankingRepository;
 import lombok.RequiredArgsConstructor;
@@ -22,19 +24,17 @@ import java.util.stream.Collectors;
  *
  * 책임:
  * - Redis에서 랭킹 조회
+ * - Redis 장애 시 DB 백업 조회 (Fallback)
  * - DB에서 상품 정보 조회
  * - 랭킹 + 상품 정보 병합
- *
- * 특징:
- * - Redis 장애 시 빈 목록 반환 (서비스 정상 동작)
- * - Batch 조회로 N+1 방지
  */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class ProductRankingUseCase {
 
-    private final ProductRankingRepository rankingRepository;
+    private final ProductRankingRepository redisRankingRepository;
+    private final ProductRankingBackupRepository dbRankingRepository;
     private final ProductRepository productRepository;
 
     /**
@@ -49,12 +49,13 @@ public class ProductRankingUseCase {
         LocalDate targetDate = date != null ? date : LocalDate.now();
 
         try {
-            // 1. Redis에서 Top N 조회
-            List<ProductRanking> rankings = rankingRepository.getTopN(targetDate, limit);
+            // 1. Redis에서 Top N 조회 시도
+            log.debug("Redis에서 상위 {}개 상품 랭킹 조회를 시도합니다. (날짜: {})", limit, targetDate);
+            List<ProductRanking> rankings = redisRankingRepository.getTopN(targetDate, limit);
 
             if (rankings.isEmpty()) {
-                log.debug("랭킹 데이터 없음: date={}, limit={}", targetDate, limit);
-                return RankingResponse.of(targetDate, List.of());
+                log.info("Redis에서 랭킹 데이터가 없습니다. DB 백업 데이터로 대체 시도합니다.");
+                return getTopProductsFromDb(targetDate, limit);
             }
 
             // 2. 상품 ID 목록 추출
@@ -82,15 +83,43 @@ public class ProductRankingUseCase {
                 })
                 .collect(Collectors.toList());
 
-            log.info("랭킹 조회 완료: date={}, count={}", targetDate, items.size());
+            log.info("Redis에서 상위 {}개 랭킹을 성공적으로 조회했습니다. (조회된 항목 수: {}, 날짜: {})", limit, items.size(), targetDate);
             return RankingResponse.of(targetDate, items);
 
         } catch (Exception e) {
-            log.error("랭킹 조회 실패: date={}, limit={}", targetDate, limit, e);
-            // Redis 장애 시에도 서비스 정상 동작 (빈 목록 반환)
-            return RankingResponse.of(targetDate, List.of());
+            log.error("Redis에서 랭킹 조회에 실패했습니다. (날짜: {}, 조회 개수: {}) DB 백업 데이터로 대체 시도합니다.", targetDate, limit, e);
+            return getTopProductsFromDb(targetDate, limit);
         }
     }
+
+    private RankingResponse getTopProductsFromDb(LocalDate date, int limit) {
+        try {
+            log.debug("DB 백업에서 상위 {}개 상품 랭킹 조회를 시도합니다. (날짜: {})", limit, date);
+            List<ProductRankingBackup> backupRankings = dbRankingRepository.findByAggregatedDate(date);
+
+            if (backupRankings.isEmpty()) {
+                log.warn("DB 백업에서도 랭킹 데이터가 없습니다. (날짜: {})", date);
+                return RankingResponse.of(date, List.of());
+            }
+
+            List<RankingItem> items = backupRankings.stream()
+                .limit(limit)
+                .map(backup -> RankingItem.of(
+                        backup.getRanking(),
+                        backup.getProductId(),
+                        backup.getProductName(),
+                        backup.getSalesCount()
+                ))
+                .collect(Collectors.toList());
+
+            log.warn("DB 백업에서 랭킹을 성공적으로 조회했습니다. (조회된 항목 수: {}, 날짜: {})", items.size(), date);
+            return RankingResponse.of(date, items);
+        } catch (Exception dbError) {
+            log.error("CRITICAL: Redis와 DB 백업 모두에서 랭킹 조회에 실패했습니다. (날짜: {})", date, dbError);
+            return RankingResponse.of(date, List.of());
+        }
+    }
+
 
     /**
      * 특정 상품의 순위 조회
@@ -101,6 +130,6 @@ public class ProductRankingUseCase {
      */
     public int getProductRank(LocalDate date, Long productId) {
         LocalDate targetDate = date != null ? date : LocalDate.now();
-        return rankingRepository.getRank(targetDate, productId.toString());
+        return redisRankingRepository.getRank(targetDate, productId.toString());
     }
 }

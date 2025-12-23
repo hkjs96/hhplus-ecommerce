@@ -26,7 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
  * - COACH_QNA_SUMMARY.md:96
  *
  * 중요:
- * - 선착순 자격은 이미 CouponReservation에서 확정됨 (뒤집히지 않는 사실)
+ * - 선착순 자격은 ReserveCouponUseCase의 Redis 예약 단계에서 확정됨 (뒤집히지 않는 사실)
  * - 이 서비스는 "발급 처리"만 담당
  * - 실패 시 EventListener에서 Redis 원복 처리
  */

@@ -3,8 +3,8 @@ package io.hhplus.ecommerce.domain.cart;
 import io.hhplus.ecommerce.common.exception.BusinessException;
 import io.hhplus.ecommerce.common.exception.ErrorCode;
 import io.hhplus.ecommerce.domain.common.BaseTimeEntity;
+import io.hhplus.ecommerce.domain.user.User;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -47,11 +47,11 @@ public class Cart extends BaseTimeEntity {
     @OneToMany(mappedBy = "cart", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<CartItem> cartItems = new ArrayList<>();
 
-    public static Cart create(Long userId) {
-        validateUserId(userId);
+    public static Cart create(User user) {
+        validateUserId(user.getId());
 
         Cart cart = new Cart();
-        cart.userId = userId;
+        cart.userId = user.getId();
         // createdAt, updatedAt은 JPA Auditing이 자동 처리
 
         return cart;

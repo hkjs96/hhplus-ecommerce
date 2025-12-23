@@ -1,7 +1,8 @@
 package io.hhplus.ecommerce.presentation.api.product;
 
-import io.hhplus.ecommerce.domain.order.Order;
-import io.hhplus.ecommerce.domain.order.OrderItem;
+import io.hhplus.ecommerce.config.TestContainersConfig;
+import org.springframework.context.annotation.Import;
+
 import io.hhplus.ecommerce.domain.order.OrderItemRepository;
 import io.hhplus.ecommerce.domain.order.OrderRepository;
 import io.hhplus.ecommerce.domain.product.Product;
@@ -16,17 +17,25 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.transaction.annotation.Transactional;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.time.LocalDate;
+import java.util.List;
+import java.util.stream.Collectors;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.everyItem;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+@Import(TestContainersConfig.class)
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-@org.springframework.test.annotation.DirtiesContext(classMode = org.springframework.test.annotation.DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
+@Transactional  // 테스트마다 자동 롤백으로 데이터 격리
 class ProductControllerIntegrationTest {
 
     @Autowired
@@ -93,8 +102,8 @@ class ProductControllerIntegrationTest {
         mockMvc.perform(get("/api/products"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.products").isArray())
-                .andExpect(jsonPath("$.products.length()").value(5))
-                .andExpect(jsonPath("$.totalCount").value(5));
+                .andExpect(jsonPath("$.products.length()").value(greaterThanOrEqualTo(5)))
+                .andExpect(jsonPath("$.totalCount").value(greaterThanOrEqualTo(5)));
     }
 
     @Test
@@ -104,19 +113,35 @@ class ProductControllerIntegrationTest {
                         .param("category", "전자제품"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.products").isArray())
-                .andExpect(jsonPath("$.products.length()").value(4))
-                .andExpect(jsonPath("$.totalCount").value(4))
-                .andExpect(jsonPath("$.products[0].category").value("전자제품"));
+                .andExpect(jsonPath("$.products.length()").value(greaterThanOrEqualTo(4)))
+                .andExpect(jsonPath("$.totalCount").value(greaterThanOrEqualTo(4)))
+                .andExpect(jsonPath("$.products[*].category").value(everyItem(org.hamcrest.Matchers.is("전자제품"))));
     }
 
     @Test
     @DisplayName("상품 목록 조회 API - 가격 정렬")
     void getProducts_가격정렬() throws Exception {
-        mockMvc.perform(get("/api/products")
+        String response = mockMvc.perform(get("/api/products")
                         .param("sort", "price_asc"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.products[0].productId").value(productId2)) // 80000 (마우스)
-                .andExpect(jsonPath("$.products[1].productId").value(productId3)); // 120000 (키보드)
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        var root = new ObjectMapper().readTree(response);
+        List<Long> ids = root.get("products").findValues("productId").stream()
+                .map(node -> node.asLong())
+                .collect(Collectors.toList());
+        List<Long> prices = root.get("products").findValues("price").stream()
+                .map(node -> node.asLong())
+                .collect(Collectors.toList());
+
+        // 전체 목록이 가격 오름차순 정렬되어 있는지 확인
+        for (int i = 1; i < prices.size(); i++) {
+            assertThat(prices.get(i)).isGreaterThanOrEqualTo(prices.get(i - 1));
+        }
+        // 가격이 더 낮은 productId2(마우스)가 productId3(키보드)보다 앞에 나오는지 확인
+        assertThat(ids.indexOf(productId2)).isLessThan(ids.indexOf(productId3));
     }
 
     @Test

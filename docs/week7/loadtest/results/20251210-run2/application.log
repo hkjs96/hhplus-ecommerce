@@ -1,0 +1,89 @@
+
+> Task :redisUp
+time="2025-12-10T06:57:09+09:00" level=warning msg="/Users/jsb/hanghe-plus/ecommerce/docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion"
+ Container ecommerce-redis  Running
+
+> Task :redisFlush
+time="2025-12-10T06:57:09+09:00" level=warning msg="/Users/jsb/hanghe-plus/ecommerce/docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion"
+OK
+
+> Task :compileJava
+Note: Some input files use unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+
+> Task :processResources
+> Task :classes
+> Task :resolveMainClassName
+
+> Task :bootRun
+
+  .   ____          _            __ _ _
+ /\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\[__] | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v3.5.7) 
+
+2025-12-10 06:57:13 [restartedMain] INFO  i.h.ecommerce.EcommerceApplication - Starting EcommerceApplication using Java 21.0.7 with PID 15208 (/Users/jsb/hanghe-plus/ecommerce/build/classes/java/main started by jsb in /Users/jsb/hanghe-plus/ecommerce)
+2025-12-10 06:57:13 [restartedMain] DEBUG i.h.ecommerce.EcommerceApplication - Running with Spring Boot v3.5.7, Spring v6.2.12
+2025-12-10 06:57:13 [restartedMain] INFO  i.h.ecommerce.EcommerceApplication - No active profile set, falling back to 1 default profile: "default"
+2025-12-10 06:57:13 [restartedMain] INFO  o.s.b.d.e.DevToolsPropertyDefaultsPostProcessor - Devtools property defaults active! Set 'spring.devtools.add-properties' to 'false' to disable
+2025-12-10 06:57:13 [restartedMain] INFO  o.s.b.d.e.DevToolsPropertyDefaultsPostProcessor - For additional web related logging consider setting the 'logging.level.web' property to 'DEBUG'
+2025-12-10 06:57:14 [restartedMain] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode
+2025-12-10 06:57:14 [restartedMain] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2025-12-10 06:57:14 [restartedMain] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 160 ms. Found 13 JPA repository interfaces.
+2025-12-10 06:57:14 [restartedMain] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode
+2025-12-10 06:57:14 [restartedMain] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data Redis repositories in DEFAULT mode.
+2025-12-10 06:57:14 [restartedMain] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data Redis - Could not safely identify store assignment for repository candidate interface io.hhplus.ecommerce.infrastructure.persistence.cart.JpaCartItemRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2025-12-10 06:57:14 [restartedMain] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data Redis - Could not safely identify store assignment for repository candidate interface io.hhplus.ecommerce.infrastructure.persistence.cart.JpaCartRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2025-12-10 06:57:14 [restartedMain] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data Redis - Could not safely identify store assignment for repository candidate interface io.hhplus.ecommerce.infrastructure.persistence.coupon.JpaCouponRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2025-12-10 06:57:14 [restartedMain] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data Redis - Could not safely identify store assignment for repository candidate interface io.hhplus.ecommerce.infrastructure.persistence.coupon.JpaUserCouponRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2025-12-10 06:57:14 [restartedMain] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data Redis - Could not safely identify store assignment for repository candidate interface io.hhplus.ecommerce.infrastructure.persistence.order.JpaOrderIdempotencyRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2025-12-10 06:57:14 [restartedMain] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data Redis - Could not safely identify store assignment for repository candidate interface io.hhplus.ecommerce.infrastructure.persistence.order.JpaOrderItemRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2025-12-10 06:57:14 [restartedMain] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data Redis - Could not safely identify store assignment for repository candidate interface io.hhplus.ecommerce.infrastructure.persistence.order.JpaOrderRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2025-12-10 06:57:14 [restartedMain] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data Redis - Could not safely identify store assignment for repository candidate interface io.hhplus.ecommerce.infrastructure.persistence.payment.JpaPaymentIdempotencyRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2025-12-10 06:57:14 [restartedMain] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data Redis - Could not safely identify store assignment for repository candidate interface io.hhplus.ecommerce.infrastructure.persistence.product.JpaProductRankingBackupRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2025-12-10 06:57:14 [restartedMain] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data Redis - Could not safely identify store assignment for repository candidate interface io.hhplus.ecommerce.infrastructure.persistence.product.JpaProductRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2025-12-10 06:57:14 [restartedMain] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data Redis - Could not safely identify store assignment for repository candidate interface io.hhplus.ecommerce.infrastructure.persistence.product.JpaProductSalesAggregateRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2025-12-10 06:57:14 [restartedMain] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data Redis - Could not safely identify store assignment for repository candidate interface io.hhplus.ecommerce.infrastructure.persistence.user.JpaChargeBalanceIdempotencyRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2025-12-10 06:57:14 [restartedMain] INFO  o.s.d.r.c.RepositoryConfigurationExtensionSupport - Spring Data Redis - Could not safely identify store assignment for repository candidate interface io.hhplus.ecommerce.infrastructure.persistence.user.JpaUserRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2025-12-10 06:57:14 [restartedMain] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 9 ms. Found 0 Redis repository interfaces.
+2025-12-10 06:57:15 [restartedMain] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+2025-12-10 06:57:15 [restartedMain] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2025-12-10 06:57:15 [restartedMain] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.48]
+2025-12-10 06:57:15 [restartedMain] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2025-12-10 06:57:15 [restartedMain] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 1275 ms
+2025-12-10 06:57:15 [restartedMain] INFO  o.h.jpa.internal.util.LogHelper - HHH000204: Processing PersistenceUnitInfo [name: default]
+2025-12-10 06:57:15 [restartedMain] INFO  org.hibernate.Version - HHH000412: Hibernate ORM core version 6.6.33.Final
+2025-12-10 06:57:15 [restartedMain] INFO  o.h.c.i.RegionFactoryInitiator - HHH000026: Second-level cache disabled
+2025-12-10 06:57:15 [restartedMain] INFO  o.s.o.j.p.SpringPersistenceUnitInfo - No LoadTimeWeaver setup: ignoring JPA class transformer
+2025-12-10 06:57:15 [restartedMain] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
+2025-12-10 06:57:15 [restartedMain] INFO  com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@7d82426
+2025-12-10 06:57:15 [restartedMain] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
+2025-12-10 06:57:15 [restartedMain] WARN  org.hibernate.orm.deprecation - HHH90000025: MySQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2025-12-10 06:57:19 [restartedMain] INFO  i.h.e.i.config.DataInitializer -    ✓ Created 15 sales aggregates (5 products × 3 days)
+2025-12-10 06:57:19 [restartedMain] INFO  i.h.e.i.config.DataInitializer -    📈 Top Products (3-day total):
+2025-12-10 06:57:19 [restartedMain] INFO  i.h.e.i.config.DataInitializer -       1. 무선 마우스: 90건 / 2,250,000원
+2025-12-10 06:57:19 [restartedMain] INFO  i.h.e.i.config.DataInitializer -       2. 기계식 키보드: 70건 / 7,000,000원
+2025-12-10 06:57:19 [restartedMain] INFO  i.h.e.i.config.DataInitializer -       3. 노트북: 60건 / 90,000,000원
+2025-12-10 06:57:19 [restartedMain] INFO  i.h.e.i.config.DataInitializer -       4. 무선 헤드셋: 53건 / 7,950,000원
+2025-12-10 06:57:19 [restartedMain] INFO  i.h.e.i.config.DataInitializer -       5. 27인치 모니터: 37건 / 11,100,000원
+2025-12-10 06:57:19 [restartedMain] INFO  i.h.e.i.config.DataInitializer -    ℹ️ Use GET /api/products/top to verify optimized query
+2025-12-10 06:57:19 [restartedMain] INFO  i.h.e.i.config.DataInitializer - ✅ Initial data loading completed!
+2025-12-10 07:04:10 [http-nio-8080-exec-2] INFO  i.h.e.i.external.MockPGServiceImpl - Idempotency Key: test-1765317850821-0.9348402577510598
+2025-12-10 07:04:10 [http-nio-8080-exec-2] INFO  i.h.e.i.external.MockPGServiceImpl - Mock PG: Approval SUCCESS - txId=MOCK_TX_02467BBA
+2025-12-10 07:04:10 [http-nio-8080-exec-2] INFO  i.h.e.i.external.MockPGServiceImpl - === Mock PG Service: Charge Response ===
+2025-12-10 07:04:10 [http-nio-8080-exec-2] DEBUG i.h.e.a.u.o.PaymentTransactionService - Updating payment success. orderId: 2736, txId: MOCK_TX_02467BBA
+2025-12-10 07:04:10 [http-nio-8080-exec-2] INFO  i.h.e.a.u.o.PaymentTransactionService - Payment status updated to COMPLETED. orderId: 2736, txId: MOCK_TX_02467BBA
+2025-12-10 07:04:10 [http-nio-8080-exec-2] DEBUG i.h.e.a.u.o.PaymentTransactionService - PaymentCompletedEvent published for orderId: 2736
+2025-12-10 07:04:10 [http-nio-8080-exec-2] DEBUG i.h.e.i.r.ProductRankingRepository - 랭킹 갱신 성공: key=ranking:product:orders:daily:20251210, productId=9, quantity=3
+2025-12-10 07:04:10 [http-nio-8080-exec-2] DEBUG i.h.e.a.p.l.RankingEventListener - 랭킹 갱신: orderId=2736, productId=9, quantity=3
+2025-12-10 07:04:10 [http-nio-8080-exec-2] INFO  i.h.e.a.p.l.RankingEventListener - 랭킹 갱신 완료: orderId=2736, itemCount=1
+2025-12-10 07:04:10 [http-nio-8080-exec-2] INFO  i.h.e.a.u.o.ProcessPaymentUseCase - Payment completed successfully. orderId: 2736, txId: MOCK_TX_02467BBA
+2025-12-10T08:25:37 [SpringApplicationShutdownHook] INFO  o.s.b.w.e.tomcat.GracefulShutdown - Commencing graceful shutdown. Waiting for active requests to complete
+2025-12-10T08:25:37 [tomcat-shutdown] INFO  o.s.b.w.e.tomcat.GracefulShutdown - Graceful shutdown complete
+2025-12-10T08:25:37 [SpringApplicationShutdownHook] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Closing JPA EntityManagerFactory for persistence unit 'default'
+2025-12-10T08:25:37 [SpringApplicationShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown initiated...
+2025-12-10T08:25:37 [SpringApplicationShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown completed.

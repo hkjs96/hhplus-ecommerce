@@ -21,6 +21,7 @@ public interface JpaUserRepository extends JpaRepository<User, Long>, UserReposi
     Optional<User> findById(Long id);
 
     @Override
+    @SuppressWarnings("unchecked")
     User save(User user);
 
     @Override
@@ -36,3 +37,4 @@ public interface JpaUserRepository extends JpaRepository<User, Long>, UserReposi
     @Query("SELECT u FROM User u WHERE u.id = :id")
     Optional<User> findByIdWithLock(@Param("id") Long id);
 }
+

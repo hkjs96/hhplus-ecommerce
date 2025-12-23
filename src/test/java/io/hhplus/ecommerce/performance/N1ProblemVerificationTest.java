@@ -1,5 +1,8 @@
 package io.hhplus.ecommerce.performance;
 
+import io.hhplus.ecommerce.config.TestContainersConfig;
+import org.springframework.context.annotation.Import;
+
 import io.hhplus.ecommerce.domain.order.Order;
 import io.hhplus.ecommerce.domain.order.OrderItem;
 import io.hhplus.ecommerce.domain.order.OrderRepository;
@@ -16,6 +19,8 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+
+@Import(TestContainersConfig.class)
 
 @SpringBootTest
 @ActiveProfiles("test")

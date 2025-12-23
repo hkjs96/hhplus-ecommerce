@@ -27,7 +27,6 @@ import io.hhplus.ecommerce.infrastructure.metrics.MetricsCollector;
 import io.hhplus.ecommerce.infrastructure.redis.DistributedLock;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
@@ -76,6 +75,7 @@ public class CreateOrderUseCase {
     private final OrderIdempotencyRepository idempotencyRepository;
     private final MetricsCollector metricsCollector;
     private final IdempotencySaveService idempotencySaveService;
+    private final org.springframework.context.ApplicationEventPublisher eventPublisher;
 
     /**
      * 주문 생성 (멱등성 보장)
@@ -139,11 +139,12 @@ public class CreateOrderUseCase {
             // 4. 주문 생성 처리
             CreateOrderResponse response = createOrderInternal(request, preparationContext, startTime);
 
-            // 5. 완료 처리 (응답 캐싱) - 별도 트랜잭션으로 저장
-            idempotencySaveService.saveCompletedIdempotency(
+            // 5. 이벤트 발행 (Phase 2: 멱등성 완료 처리를 이벤트로 분리)
+            eventPublisher.publishEvent(
+                new io.hhplus.ecommerce.domain.order.OrderCreatedEvent(
                     request.idempotencyKey(),
-                    response.orderId(),
-                    serializeResponse(response)
+                    response
+                )
             );
 
             log.info("Order created successfully. orderId: {}, idempotencyKey: {}",
@@ -222,7 +223,7 @@ public class CreateOrderUseCase {
 
             // 5. 주문 생성
             String orderNumber = "ORDER-" + UUID.randomUUID().toString().substring(0, 8);
-            Order order = Order.create(orderNumber, user.getId(), subtotalAmount, discountAmount);
+            Order order = Order.create(orderNumber, user, subtotalAmount, discountAmount);
             orderRepository.save(order);
 
             // 6. 주문 아이템 생성 (재고는 결제 시 감소)

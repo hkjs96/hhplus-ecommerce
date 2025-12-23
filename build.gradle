@@ -33,11 +33,15 @@ dependencies {
 
 	// Database
 	runtimeOnly 'com.mysql:mysql-connector-j'
-	testRuntimeOnly 'com.h2database:h2'
+	// H2 제거 - 모든 테스트는 Testcontainers MySQL 사용
 
 	// Redis & Distributed Lock
 	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 	implementation 'org.redisson:redisson-spring-boot-starter:3.23.5'
+
+	// Retry mechanism
+	implementation 'org.springframework.retry:spring-retry'
+	implementation 'org.springframework:spring-aspects'
 
 	// OpenAPI Documentation (Swagger)
 	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.7.0'
@@ -56,6 +60,7 @@ dependencies {
 
 	// Test
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testImplementation 'org.springframework.boot:spring-boot-testcontainers'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
 	// Testcontainers
@@ -63,11 +68,24 @@ dependencies {
 	testImplementation 'org.testcontainers:junit-jupiter:1.19.3'
 	testImplementation 'org.testcontainers:mysql:1.19.3'
 	testImplementation 'com.redis.testcontainers:testcontainers-redis:1.6.4'
+
+	// Awaitility (비동기 테스트)
+	testImplementation 'org.awaitility:awaitility:4.2.0'
 }
 
 tasks.named('test') {
 	useJUnitPlatform()
 	finalizedBy jacocoTestReport
+
+	// Testcontainers 리소스 관리를 위한 순차 실행 설정
+	maxParallelForks = 1  // 테스트를 순차적으로 실행 (MySQL/Redis 컨테이너 연결 고갈 방지)
+
+	// 테스트별 타임아웃 설정 (Testcontainers 시작 시간 고려)
+	testLogging {
+		events "passed", "skipped", "failed"
+		exceptionFormat "full"
+		showStandardStreams = true  // 임시로 디버깅을 위해 활성화
+	}
 }
 
 jacoco {
@@ -82,11 +100,16 @@ jacocoTestReport {
 		csv.required = true
 	}
 
+	def jacocoExcludes = [
+		'**/EcommerceApplication.class',
+		'**/infrastructure/config/**',
+		'**/infrastructure/init/**'
+	]
+
 	afterEvaluate {
 		classDirectories.setFrom(files(classDirectories.files.collect {
 			fileTree(dir: it, exclude: [
-				'**/EcommerceApplication.class',
-				'**/configdtoexception/**'
+				*jacocoExcludes
 			])
 		}))
 	}
@@ -99,6 +122,20 @@ jacocoTestCoverageVerification {
 				minimum = 0.70
 			}
 		}
+	}
+
+	afterEvaluate {
+		def jacocoExcludes = [
+			'**/EcommerceApplication.class',
+			'**/infrastructure/config/**',
+			'**/infrastructure/init/**'
+		]
+
+		classDirectories.setFrom(files(classDirectories.files.collect {
+			fileTree(dir: it, exclude: [
+				*jacocoExcludes
+			])
+		}))
 	}
 }
 

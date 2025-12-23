@@ -12,18 +12,15 @@ import lombok.Getter;
 @Getter
 public class CouponReservedEvent {
 
-    private final Long reservationId;
     private final Long couponId;
     private final Long userId;
     private final Long sequenceNumber;
 
     public CouponReservedEvent(
-        Long reservationId,
         Long couponId,
         Long userId,
         Long sequenceNumber
     ) {
-        this.reservationId = reservationId;
         this.couponId = couponId;
         this.userId = userId;
         this.sequenceNumber = sequenceNumber;

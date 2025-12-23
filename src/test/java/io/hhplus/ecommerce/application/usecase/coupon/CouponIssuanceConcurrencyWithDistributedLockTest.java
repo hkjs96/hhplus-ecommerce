@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -24,13 +25,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * 쿠폰 발급 동시성 테스트 (분산락 적용)
- *
- * 선착순 100명 쿠폰을 1000명이 동시에 발급 요청할 때
- * 분산락이 정확히 100개만 발급하는지 검증합니다.
- */
 @SpringBootTest
+@ActiveProfiles("test")
 @Import(TestContainersConfig.class)
 class CouponIssuanceConcurrencyWithDistributedLockTest {
 
