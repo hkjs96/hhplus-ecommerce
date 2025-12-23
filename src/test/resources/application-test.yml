@@ -27,6 +27,11 @@ spring:
   cache:
     type: none
 
+  data:
+    redis:
+      repositories:
+        enabled: false
+
   kafka:
     listener:
       auto-startup: false  # 테스트에서는 Kafka 브로커 연결/리스닝 비활성화

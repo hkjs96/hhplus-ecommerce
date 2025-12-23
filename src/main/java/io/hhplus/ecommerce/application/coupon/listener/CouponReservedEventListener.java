@@ -9,8 +9,6 @@ import io.hhplus.ecommerce.infrastructure.redis.CouponIssueReservationStore;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
@@ -39,7 +37,6 @@ public class CouponReservedEventListener {
      *
      * @param event CouponReservedEvent (쿠폰 ID, 사용자 ID, 순번 포함)
      */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleCouponReserved(CouponReservedEvent event) {
         log.info("Processing CouponReservedEvent: couponId={}, userId={}, sequence={}",
@@ -85,6 +82,14 @@ public class CouponReservedEventListener {
                 // 실제 재고 소진은 remaining을 복구하지 않음
                 couponIssueReservationStore.cancelReservation(couponId, userId);
                 log.warn("Redis reservation cancelled without restock: couponId={}, userId={}", couponId, userId);
+                return;
+            }
+
+            if (cause instanceof BusinessException businessException
+                && businessException.getErrorCode() == ErrorCode.ALREADY_ISSUED_COUPON) {
+                // 멱등 케이스: 이미 발급된 경우 issued 확정 처리
+                couponIssueReservationStore.confirmIssued(couponId, userId, ISSUED_TTL);
+                log.warn("Redis reservation confirmed for idempotent issue: couponId={}, userId={}", couponId, userId);
                 return;
             }
 

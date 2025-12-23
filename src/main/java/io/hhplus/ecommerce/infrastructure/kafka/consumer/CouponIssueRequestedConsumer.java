@@ -52,7 +52,8 @@ public class CouponIssueRequestedConsumer {
                 return;
             }
             if (e.getErrorCode() == ErrorCode.ALREADY_ISSUED_COUPON) {
-                couponIssueReservationStore.compensateReservation(message.couponId(), message.userId());
+                // 멱등 케이스: 이미 발급된 경우 remaining을 복구하면 중복 보상이 될 수 있으므로 issued 확정 처리
+                couponIssueReservationStore.confirmIssued(message.couponId(), message.userId(), ISSUED_TTL);
                 ack.acknowledge();
                 return;
             }
@@ -62,4 +63,3 @@ public class CouponIssueRequestedConsumer {
         }
     }
 }
-
