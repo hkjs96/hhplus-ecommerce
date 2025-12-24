@@ -7,6 +7,7 @@
 ## 문서 링크
 - STEP19 계획서: `docs/week10/step19-load-test-plan.md`
 - STEP20 보고서/장애 대응 문서: `docs/week10/step20-incident-report.md`
+- 모니터링 항목 정리: `docs/week10/monitoring-metrics.md`
 
 ## 환경
 - 부하 발생기: `k6` (정확도 우선: 호스트 실행 권장)
