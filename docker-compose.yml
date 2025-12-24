@@ -53,6 +53,7 @@ services:
     volumes:
       - grafana-data:/var/lib/grafana
       - ./observability/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
     networks:
       - ecommerce-network
 

@@ -19,6 +19,9 @@
 - 접속:
   - Prometheus: `http://localhost:9090`
   - Grafana: `http://localhost:3000` (id/pw: `admin` / `admin`)
+- 대시보드:
+  - Folder: `Week10`
+  - Dashboard: `Week10 - Overview (RED + JVM + DB)`
 - 주의:
   - Prometheus는 `host.docker.internal:8080/actuator/prometheus`를 스크레이프합니다.
   - 따라서 앱은 호스트에서 `8080`으로 실행되어 있어야 합니다.
