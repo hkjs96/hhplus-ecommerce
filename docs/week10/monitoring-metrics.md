@@ -139,15 +139,23 @@ PromQL 예시:
 
 ## 7) “우리 프로젝트”에서 지금 당장 수집 가능한 것 / 추가가 필요한 것
 
-### 바로 가능(Actuator + Micrometer Prometheus)
+### 바로 가능(현재 구성: Actuator + Micrometer Prometheus)
 - `http_server_requests_seconds_*` (API RED)
 - `jvm_*` (heap/GC/threads)
 - `hikaricp_*` (DB pool)
 
+#### 확인 방법(추천)
+> “있는 메트릭만 문서/대시보드에 올린다”가 실무에서 가장 안전하다.
+- 앱 실행(호스트): `http://localhost:8080/actuator/prometheus`
+- 메트릭 이름 빠르게 확인:
+  - `curl -fsS http://localhost:8080/actuator/prometheus | rg -n \"^(http_server_requests|jvm_|hikaricp_)\" | head`
+- Prometheus 타겟 확인(구성 시):
+  - `http://localhost:9090/targets`
+
 ### 추가 구성이 필요한 것(선택)
-- Redis: exporter 또는 lettuce/command latency 메트릭 활성화
-- MySQL: mysqld_exporter 등으로 DB 내부 지표 수집
-- Kafka: JMX exporter 또는 broker/consumer 메트릭 수집 구성
+- Redis: 서버 지표(메모리/eviction/latency/QPS)를 보려면 exporter가 필요함 (앱 메트릭만으로는 한계)
+- MySQL: mysqld_exporter 등으로 DB 내부 지표(QPS/threads/innodb lock/slow query) 수집
+- Kafka: “진짜 consumer lag(그룹 기준)”은 broker/consumer 그룹 지표가 필요(클라이언트 메트릭만으로는 제한)
 - 도메인 KPI: 주문/결제/쿠폰 등 **커스텀 Micrometer 메트릭** 정의
 
 ---
@@ -165,4 +173,3 @@ PromQL 예시:
 - 4xx 급증(클라이언트/정책/배포 영향 가능)
 - GC pause 증가(장기적으로 지연 유발)
 - Redis eviction 증가(캐시 효율 저하 → DB 부하 증가 가능)
-
