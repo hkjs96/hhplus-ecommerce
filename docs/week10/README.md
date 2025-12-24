@@ -12,6 +12,16 @@
 - 부하 발생기: `k6` (정확도 우선: 호스트 실행 권장)
 - SUT(시스템): `docker compose` 기반 실행(앱/DB/Redis/Kafka)
 
+## 모니터링(로컬)
+- 실행:
+  - `docker compose up -d prometheus grafana`
+- 접속:
+  - Prometheus: `http://localhost:9090`
+  - Grafana: `http://localhost:3000` (id/pw: `admin` / `admin`)
+- 주의:
+  - Prometheus는 `host.docker.internal:8080/actuator/prometheus`를 스크레이프합니다.
+  - 따라서 앱은 호스트에서 `8080`으로 실행되어 있어야 합니다.
+
 ## 실행 커맨드(예시)
 - k6 실행(호스트):
   - `k6 run -e BASE_URL=http://localhost:8080 <k6-script.js>`
@@ -22,4 +32,3 @@
 - 핵심 결과(p95/p99, error rate):
 - 발견된 병목/장애 징후:
 - 개선 및 재측정 결과(또는 개선 가설):
-

@@ -20,6 +20,42 @@ services:
     networks:
       - ecommerce-network
 
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    container_name: ecommerce-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./observability/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=7d
+    networks:
+      - ecommerce-network
+
+  grafana:
+    image: grafana/grafana:11.4.0
+    container_name: ecommerce-grafana
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./observability/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+    networks:
+      - ecommerce-network
+
   redis:
     image: redis:7-alpine
     container_name: ecommerce-redis
@@ -73,6 +109,10 @@ volumes:
   redis-data:
     driver: local
   kafka-data:
+    driver: local
+  prometheus-data:
+    driver: local
+  grafana-data:
     driver: local
 
 networks:
