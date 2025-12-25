@@ -15,7 +15,7 @@
 
 ## 모니터링(로컬)
 - 실행:
-  - `docker compose up -d prometheus grafana`
+  - `docker compose up -d app prometheus grafana`
 - 접속:
   - Prometheus: `http://localhost:9090`
   - Grafana: `http://localhost:3000` (id/pw: `admin` / `admin`)
@@ -23,15 +23,14 @@
   - Folder: `Week10`
   - Dashboard: `Week10 - Overview (RED + JVM + DB)`
 - 주의:
-  - Prometheus는 `host.docker.internal:8080/actuator/prometheus`를 스크레이프합니다.
-  - 따라서 앱은 호스트에서 `8080`으로 실행되어 있어야 합니다.
+  - Prometheus는 docker 네트워크의 `app:8080/actuator/prometheus`를 스크레이프합니다.
 
 ### 트러블슈팅(대시보드에 데이터가 안 보일 때)
 - 앱이 떠있는지 확인:
   - `curl -fsS http://localhost:8080/actuator/prometheus | head`
 - Prometheus 타겟 확인:
   - `http://localhost:9090/targets` 에서 `ecommerce-app`가 `UP`인지 확인
-  - 또는 `curl -sG --data-urlencode 'query=up{job="ecommerce-app"}' http://localhost:9090/api/v1/query`
+  - 또는 `curl -sG --data-urlencode 'query=up{job="ecommerce-app",instance="app:8080"}' http://localhost:9090/api/v1/query`
 
 ## 실행 커맨드(예시)
 - k6 실행(호스트):

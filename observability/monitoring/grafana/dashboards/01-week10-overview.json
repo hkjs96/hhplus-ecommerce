@@ -49,7 +49,7 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(http_server_requests_seconds_count[1m]))",
+          "expr": "sum(rate(http_server_requests_seconds_count[1m])) or vector(0)",
           "legendFormat": "all",
           "refId": "A"
         }
@@ -87,7 +87,7 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(http_server_requests_seconds_count{outcome=\"SERVER_ERROR\"}[1m])) / sum(rate(http_server_requests_seconds_count[1m]))",
+          "expr": "(sum(rate(http_server_requests_seconds_count{outcome=\"SERVER_ERROR\"}[1m])) / clamp_min(sum(rate(http_server_requests_seconds_count[1m])), 1e-9)) or vector(0)",
           "legendFormat": "5xx rate",
           "refId": "A"
         }
@@ -123,12 +123,12 @@
       },
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum by (le)(rate(http_server_requests_seconds_bucket[5m])))",
+          "expr": "histogram_quantile(0.95, sum by (le)(rate(http_server_requests_seconds_bucket[5m]))) or vector(0)",
           "legendFormat": "p95",
           "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.99, sum by (le)(rate(http_server_requests_seconds_bucket[5m])))",
+          "expr": "histogram_quantile(0.99, sum by (le)(rate(http_server_requests_seconds_bucket[5m]))) or vector(0)",
           "legendFormat": "p99",
           "refId": "B"
         }
@@ -232,4 +232,3 @@
   "version": 1,
   "weekStart": ""
 }
-
