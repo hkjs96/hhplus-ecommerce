@@ -8,20 +8,30 @@
 - STEP19 계획서: `docs/week10/step19-load-test-plan.md`
 - STEP20 보고서/장애 대응 문서: `docs/week10/step20-incident-report.md`
 - 모니터링 항목 정리: `docs/week10/monitoring-metrics.md`
+- 학습 정리: `docs/week10/LEARNING_SUMMARY.md`
+- 제출/학습 가이드(루브릭 기반): `docs/week10/SUBMISSION_GUIDE.md`
+- SRE 기본 지침: `docs/week10/SRE_GUIDELINES.md`
+- Runbook(장애 대응): `docs/week10/RUNBOOK.md`
+- SLO/SLI/Alerting 가이드: `docs/week10/SLO_SLI_ALERTING.md`
 
 ## 환경
 - 부하 발생기: `k6` (정확도 우선: 호스트 실행 권장)
 - SUT(시스템): `docker compose` 기반 실행(앱/DB/Redis/Kafka)
+- Kafka 접속
+  - 컨테이너 내부: `kafka:29092`
+  - 호스트(로컬): `localhost:9092`
 
 ## 모니터링(로컬)
 - 실행:
-  - `docker compose up -d app prometheus grafana`
+  - `docker compose up -d app mysql redis zookeeper kafka prometheus grafana`
 - 접속:
   - Prometheus: `http://localhost:9090`
   - Grafana: `http://localhost:3000` (id/pw: `admin` / `admin`)
 - 대시보드:
   - Folder: `Week10`
   - Dashboard: `Week10 - Overview (RED + JVM + DB)`
+  - Dashboard: `Week10 - API RED (Endpoint View)`
+    - 상단 변수로 `method`, `uri`를 선택해서 엔드포인트 단위로 드릴다운 가능
 - 주의:
   - Prometheus는 docker 네트워크의 `app:8080/actuator/prometheus`를 스크레이프합니다.
 
@@ -34,7 +44,9 @@
 
 ## 실행 커맨드(예시)
 - k6 실행(호스트):
-  - `k6 run -e BASE_URL=http://localhost:8080 <k6-script.js>`
+  - `k6 run -e BASE_URL=http://localhost:8080 loadtest/k6/step19-all-apis.js`
+- k6 실행(docker):
+  - `docker run --rm --network ecommerce_ecommerce-network -e BASE_URL=http://app:8080 -v "$PWD/loadtest/k6:/scripts" grafana/k6:latest run /scripts/step19-all-apis.js`
 
 ## 결론 요약(작성)
 - 테스트 대상:
