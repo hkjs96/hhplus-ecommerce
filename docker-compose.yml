@@ -6,6 +6,11 @@ services:
     image: ecommerce-app:step19-20
     container_name: ecommerce-app
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     depends_on:
       - mysql
       - redis
@@ -18,7 +23,7 @@ services:
       SPRING_DATASOURCE_PASSWORD: ecommerce_pass
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       SERVER_PORT: 8080
     networks:
@@ -28,6 +33,11 @@ services:
     image: mysql:8.0
     container_name: ecommerce-mysql
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     environment:
       MYSQL_ROOT_PASSWORD: password
       MYSQL_DATABASE: ecommerce
@@ -42,6 +52,8 @@ services:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
       - --default-time-zone=+09:00
+      - --binlog-expire-logs-seconds=604800
+      - --max-binlog-size=100M
     networks:
       - ecommerce-network
 
@@ -49,6 +61,11 @@ services:
     image: prom/prometheus:v2.55.1
     container_name: ecommerce-prometheus
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     ports:
       - "9090:9090"
     volumes:
@@ -58,6 +75,7 @@ services:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.path=/prometheus
       - --storage.tsdb.retention.time=7d
+      - --storage.tsdb.retention.size=2GB
     networks:
       - ecommerce-network
 
@@ -65,6 +83,11 @@ services:
     image: grafana/grafana:11.4.0
     container_name: ecommerce-grafana
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     depends_on:
       - prometheus
     ports:
@@ -84,6 +107,11 @@ services:
     image: redis:7-alpine
     container_name: ecommerce-redis
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     ports:
       - "6379:6379"
     command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
@@ -96,6 +124,11 @@ services:
     image: confluentinc/cp-zookeeper:7.5.3
     container_name: ecommerce-zookeeper
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
@@ -108,6 +141,11 @@ services:
     image: confluentinc/cp-kafka:7.5.3
     container_name: ecommerce-kafka
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     depends_on:
       - zookeeper
     ports:
@@ -115,11 +153,17 @@ services:
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_LOG_RETENTION_HOURS: 168
+      KAFKA_LOG_RETENTION_BYTES: 268435456
+      KAFKA_LOG_SEGMENT_BYTES: 134217728
     mem_limit: 1GB
     cpus: 1.0
     volumes:
