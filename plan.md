@@ -45,7 +45,7 @@
 | GC 알고리즘 이해 | ⚠️ | Week10 모니터링 관점으로 언급: `docs/week10/monitoring-metrics.md` |
 | Spring Triangle(PSA 포함), DispatcherServlet, Filter/Interceptor | ✅ | `docs/learning-points/14-spring-web-core-dispatcher-filter-interceptor-aop-psa.md` |
 | Spring AOP/내부참조 이슈, Transaction 동작/전파 | ⚠️ | AOP 이슈/사례는 Week6에 강함: `docs/week6/README.md`, 트랜잭션 동작 정리는 일부: `docs/learning-points/11-jpa-transaction-management.md` |
-| LazyConnectionDataSourceProxy, ConfigurationProperties | ❌ | (레포에서 “학습 정리” 형태로는 부족) |
+| LazyConnectionDataSourceProxy, ConfigurationProperties | ✅ | `docs/learning-points/16-spring-configurationproperties-and-lazyconnection.md` |
 
 ---
 
@@ -119,4 +119,10 @@
 
 우선순위는 “체크리스트에 명시되어 있고, 리뷰어가 바로 확인하는 항목” 위주로 잡습니다.
 
-1) 3주차: LazyConnectionDataSourceProxy, ConfigurationProperties 정리 (❌)
+남은 갭(⚠️) 후보
+
+1) 1주차: TDD 이해/적용 가능 여부(정리 강화) (⚠️)
+2) 2주차: Swagger/OpenAPI 문서화 방법(실행/운영 기준 정리) (⚠️)
+3) 3주차: Transaction 동작/전파(정리 강화) (⚠️)
+4) 6주차: 캐시 직렬화 도구 비교/선택 가이드 (⚠️)
+5) 10주차: Tomcat 스레드 상태 변화 별도 정리 (⚠️)

@@ -101,6 +101,10 @@
 - TaskDecorator로 MDC 전파하는 패턴
 - 레포 적용 포인트(AsyncConfig)와 주의사항
 
+### 1️⃣6️⃣ [Spring 설정 & 커넥션 지연](./16-spring-configurationproperties-and-lazyconnection.md)
+- `@ConfigurationProperties`로 타입 안전한 설정 바인딩
+- `LazyConnectionDataSourceProxy`로 커넥션 획득 지연
+
 ---
 
 ## 🎯 학습 목표
