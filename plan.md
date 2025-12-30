@@ -1,50 +1,125 @@
-# Week 10: 장애 대응 & 성능 테스트 계획
+# 항해플러스 백엔드 학습 체크리스트 점검 계획
 
-> **작성일**: 2025-12-23  
-> **프로젝트**: 항해플러스 이커머스 백엔드  
-> **현재 단계**: Week 10 (STEP 19-20)  
-> **브랜치**: `step19-20`
+이 문서는 “주차별 학습 체크리스트”를 **레포 문서/코드 증빙과 연결**하기 위한 인덱스입니다.  
+체크 상태는 아래 의미로 사용합니다.
 
----
-
-## 목표
-- **STEP19**: 부하 테스트 대상/목표/시나리오/측정 지표를 계획하고, k6 스크립트로 실행
-- **STEP20**: 결과 분석(p95/p99, error rate, 리소스) → 병목/장애 시나리오 도출 → 개선/재검증(또는 개선 가설) → 포스트모템 문서화
+- ✅ 충분: 문서가 있고, 설명/예시/실행(또는 검증)까지 연결됨
+- ⚠️ 부분: 언급/예시는 있으나, 정리 문서가 얇거나 실행/검증까지 연결이 약함
+- ❌ 없음: 레포에서 해당 주제를 직접 다룬 정리/증빙을 찾기 어려움
 
 ---
 
-## 진행 원칙
-- **정확한 성능 측정 우선**
-  - 부하 발생기(`k6`)는 **호스트(로컬)** 에서 실행
-  - SUT(앱/DB/Redis/Kafka)는 `docker compose`로 실행하여 환경 고정/재현성 확보
-- **장애 대응 관점**
-  - “고치기”보다 먼저 “탐지/공유/복구”의 흐름이 문서에 드러나야 함
-- **Do not blame**
-  - 포스트모템은 변명/비난 대신 “배운 점 + 바꿀 점 + 액션아이템” 중심
+## 1주차: 테스트 + TDD
+
+| 항목 | 상태 | 근거(문서) |
+|------|------|------------|
+| 테스트 대역(Mock/Stub/Fake/Spy) 이해 | ✅ | `docs/archive/week3/learning-points/06-testing-strategy.md` |
+| 단위 테스트 vs 통합 테스트(차이/장단점/언제 작성) | ✅ | `docs/INTEGRATION_TEST_STRATEGY.md`, `docs/archive/week3/learning-points/06-testing-strategy.md` |
+| 좋은 테스트 코드/강결합 테스트 취약점 | ✅ | `docs/archive/week3/learning-points/06-testing-strategy.md` |
+| TDD 이해/적용 가능 여부 | ⚠️ | `docs/archive/week3/commands/week3-faq.md` (Q&A 형태) |
+| 런던파 vs 고전파 이해 + 본인 견해 | ❌ | (레포 내 키워드/정리 문서 없음) |
 
 ---
 
-## 산출물
-- `docs/week10/README.md`
-- `docs/week10/step19-load-test-plan.md`
-- `docs/week10/step20-incident-report.md`
+## 2주차: 설계
+
+| 항목 | 상태 | 근거(문서/증빙) |
+|------|------|------------------|
+| 설계 문서(시퀀스/ERD/API 스펙 등) 이해 | ✅ | `docs/api/`, `docs/diagrams/` |
+| Swagger 등 도구 기반 문서화 | ⚠️ | `README.md` (링크/언급 수준) |
+| Mock API 제공 필요성 | ✅ | `docs/api/scope-clarification.md`, `docs/archive/week3/commands/week3-faq.md` |
+| RESTful API 설계 | ✅ | `docs/api/api-specification.md`, `docs/api/requirements.md` |
 
 ---
 
-## STEP19 체크리스트
-- [ ] 모든 API 범위 확정: `/api/**` 전체(운영/문서 엔드포인트 제외)
-- [ ] 테스트 데이터 시드/초기화 전략 확정(상태 의존 API 포함)
-- [ ] 부하 모델 확정: **가벼운 기본 + 점진 증가(stress)**
-- [ ] 지표 수집 방식 정리(API/JVM/DB/Redis)
-- [ ] 실행 스크립트/명령어 문서화(재현 가능하게)
+## 3주차: 아키텍처 패턴 및 구현
+
+| 항목 | 상태 | 근거(문서) |
+|------|------|------------|
+| 아키텍처 패턴(장단점/이상적 구조) | ✅ | `docs/learning-points/01-layered-architecture.md`, `docs/learning-points/02-usecase-pattern.md` |
+| DIP/의존성 방향/역전 | ✅ | `docs/learning-points/01-layered-architecture.md` |
+| 입력 유효성 vs 비즈니스 유효성 | ✅ | `docs/learning-points/02-usecase-pattern.md` |
+| OCP/역할과 책임/객체 생성 패턴 | ✅ | `docs/learning-points/03-domain-modeling.md` |
+| Optional API 올바른 사용/안티패턴 | ⚠️ | `docs/learning-points/02-usecase-pattern.md` (안티패턴), 관련 언급 산발적 |
+| 스레드/ThreadLocal/MDC, 자바 동시성 도구 | ⚠️ | `docs/learning-points/08-discussion-topics.md`, `docs/archive/week3/learning-points/09-concurrent-collections.md` |
+| GC 알고리즘 이해 | ⚠️ | Week10 모니터링 관점으로 언급: `docs/week10/monitoring-metrics.md` |
+| Spring Triangle(PSA 포함), DispatcherServlet, Filter/Interceptor | ❌ | (레포에서 “학습 정리” 형태로는 부족) |
+| Spring AOP/내부참조 이슈, Transaction 동작/전파 | ⚠️ | AOP 이슈/사례는 Week6에 강함: `docs/week6/README.md`, 트랜잭션 동작 정리는 일부: `docs/learning-points/11-jpa-transaction-management.md` |
+| LazyConnectionDataSourceProxy, ConfigurationProperties | ❌ | (레포에서 “학습 정리” 형태로는 부족) |
 
 ---
 
-## STEP20 체크리스트
-- [ ] Baseline 결과 요약(p95/p99, error rate, RPS/TPS)
-- [ ] Hot endpoint(지연/에러 상위) 선정 근거 작성
-- [ ] 병목 가설 수립 → 근거 수집(로그/쿼리/메트릭) → 결론
-- [ ] 개선/대응안 작성(Short/Mid/Long-term)
-- [ ] 재측정(전/후 비교) 또는 개선 가설 정리
-- [ ] 포스트모템(타임라인/영향/5-whys/액션아이템)
+## 4~5주차: 데이터베이스
 
+| 항목 | 상태 | 근거(문서) |
+|------|------|------------|
+| 트랜잭션/ACID/격리 수준/MVCC | ✅ | `docs/week5/TRANSACTION_FUNDAMENTALS.md` |
+| 실행 계획/EXPLAIN(ANALYZE) | ✅ | `docs/week4/verification/EXPLAIN_ANALYZE_GUIDE.md`, `docs/week4/verification/QUERY_OPTIMIZATION_SUMMARY.md` |
+| 낙관적 락 vs 비관적 락 | ✅ | `docs/week5/OVERVIEW.md`, `docs/week5/CONCURRENCY_ANALYSIS.md` |
+| 자연키 vs 대체키 | ❌ | (키워드 기준 정리 문서 없음) |
+| MySQL PK/인덱스 차이, 클러스터링 인덱스, 인덱스/락 동작 방식 | ⚠️ | 쿼리 최적화/EXPLAIN 관점은 강하나 “개념 정리”로 모은 문서는 약함 |
+
+---
+
+## 6주차: 분산락과 캐싱
+
+| 항목 | 상태 | 근거(문서) |
+|------|------|------------|
+| 분산락 개념/구현 방식/한계 | ✅ | `docs/week6/CREATE_ORDER_DISTRIBUTED_LOCK.md`, `docs/week6/DB_LOCK_TO_REDIS_LOCK_ANALYSIS.md` |
+| 캐시 필요성/전략/로컬 vs 분산 캐시 | ✅ | `docs/week6/WEEK6_COMPLETE_SUMMARY.md` |
+| Spring Cache API(@Cacheable/@CacheEvict 등) | ✅ | `docs/week6/WEEK6_COMPLETE_SUMMARY.md` |
+| 캐시 직렬화 도구(Serializer) 정리 | ⚠️ | 설정/예시 중심(비교/선택 가이드로는 얇음) |
+
+---
+
+## 7주차: Redis
+
+| 항목 | 상태 | 근거(문서) |
+|------|------|------------|
+| Redis 내부 구조(싱글 스레드), 빠른 이유 | ✅ | `docs/week7/REDIS_BASICS.md`, `docs/week7/COACH_QNA_SUMMARY.md` |
+| 자료구조(Sorted Set 등), TTL | ✅ | `docs/week7/REDIS_BASICS.md` |
+| RedisTemplate 활용 | ✅ | `docs/week7/REDIS_BASICS.md` |
+
+---
+
+## 8주차: 이벤트 기반 트랜잭션 분리
+
+| 항목 | 상태 | 근거(문서) |
+|------|------|------------|
+| Application Event/Publisher | ✅ | `docs/week8/README.md`, `docs/week8/QUICK_START.md` |
+| @TransactionalEventListener/AFTER_COMMIT | ✅ | `docs/week8/TRANSACTION_SEPARATION_DESIGN.md`, `docs/week8/COMMON_PITFALLS.md` |
+| @Async 동작/스레드풀 설정 | ✅ | `docs/week8/COMMON_PITFALLS.md` |
+| Async MDC 설정 | ⚠️ | 필요/이슈는 언급되나 “구현 가이드”로는 약함: `docs/week8/ARCHITECTURE_DIAGNOSIS.md` |
+
+---
+
+## 9주차: Kafka
+
+| 항목 | 상태 | 근거(문서) |
+|------|------|------------|
+| 구조/토픽·파티션·오프셋·컨슈머그룹 | ✅ | `docs/week9/kafka-basics.md` |
+| 리밸런싱, auto commit, heartbeat/timeouts, fetch 설정 | ✅ | `docs/week9/kafka-basics.md`, `docs/week9/kafka-spring-integration.md` |
+| auto.offset.reset=earliest 주의점 | ✅ | `docs/week9/kafka-basics.md` |
+
+---
+
+## 10주차: 장애 대응(SRE)
+
+| 항목 | 상태 | 근거(문서/산출물) |
+|------|------|------------------|
+| 모니터링(메트릭/로그/APM), 핵심 지표(RED/Golden Signals) | ✅ | `docs/week10/monitoring-metrics.md`, `docs/week10/SRE_GUIDELINES.md` |
+| 부하 시스템 이해/진행(k6) | ✅ | `docs/week10/step19-load-test-plan.md`, `loadtest/k6/step19-all-apis.js` |
+| 장애 대응 프로세스/문화/런북 | ✅ | `docs/week10/step20-incident-report.md`, `docs/week10/RUNBOOK.md` |
+| 로그 레벨 | ✅ | `docs/week10/RUNBOOK.md` (대응 루틴 포함) |
+| 부하로 인한 Tomcat 스레드 상태 변화 | ⚠️ | 스레드/풀/리소스 신호 관점 언급은 있으나 “Tomcat thread state 변화”를 별도 정리한 섹션은 약함 |
+
+---
+
+## 개선 후보(TODO)
+
+우선순위는 “체크리스트에 명시되어 있고, 리뷰어가 바로 확인하는 항목” 위주로 잡습니다.
+
+1) 1주차: 런던파/고전파 비교 + 본인 견해 (❌)
+2) 4~5주차: 자연키 vs 대체키 + MySQL clustered index/PK vs secondary index 개념 정리 (⚠️/❌)
+3) 3주차: DispatcherServlet/Filter/Interceptor/Triangle(PSA 포함) 1페이지 정리 (❌)
+4) 8주차: Async MDC 전파(Decorator) “왜/어떻게” 정리 + 적용 포인트 (⚠️)
