@@ -91,6 +91,11 @@
 - InnoDB PK(클러스터드) vs Secondary Index 구조
 - 인덱스 설계 기본 규칙(복합 인덱스, 커버링 등)
 
+### 1️⃣4️⃣ [Spring Web 핵심](./14-spring-web-core-dispatcher-filter-interceptor-aop-psa.md)
+- DispatcherServlet 요청 처리 흐름
+- Filter vs Interceptor 선택 기준
+- Spring Triangle(AOP/DI/PSA) 요약
+
 ---
 
 ## 🎯 학습 목표

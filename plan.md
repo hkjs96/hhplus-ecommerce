@@ -43,7 +43,7 @@
 | Optional API 올바른 사용/안티패턴 | ⚠️ | `docs/learning-points/02-usecase-pattern.md` (안티패턴), 관련 언급 산발적 |
 | 스레드/ThreadLocal/MDC, 자바 동시성 도구 | ⚠️ | `docs/learning-points/08-discussion-topics.md`, `docs/archive/week3/learning-points/09-concurrent-collections.md` |
 | GC 알고리즘 이해 | ⚠️ | Week10 모니터링 관점으로 언급: `docs/week10/monitoring-metrics.md` |
-| Spring Triangle(PSA 포함), DispatcherServlet, Filter/Interceptor | ❌ | (레포에서 “학습 정리” 형태로는 부족) |
+| Spring Triangle(PSA 포함), DispatcherServlet, Filter/Interceptor | ✅ | `docs/learning-points/14-spring-web-core-dispatcher-filter-interceptor-aop-psa.md` |
 | Spring AOP/내부참조 이슈, Transaction 동작/전파 | ⚠️ | AOP 이슈/사례는 Week6에 강함: `docs/week6/README.md`, 트랜잭션 동작 정리는 일부: `docs/learning-points/11-jpa-transaction-management.md` |
 | LazyConnectionDataSourceProxy, ConfigurationProperties | ❌ | (레포에서 “학습 정리” 형태로는 부족) |
 
@@ -119,5 +119,4 @@
 
 우선순위는 “체크리스트에 명시되어 있고, 리뷰어가 바로 확인하는 항목” 위주로 잡습니다.
 
-1) 3주차: DispatcherServlet/Filter/Interceptor/Triangle(PSA 포함) 1페이지 정리 (❌)
-2) 8주차: Async MDC 전파(Decorator) “왜/어떻게” 정리 + 적용 포인트 (⚠️)
+1) 8주차: Async MDC 전파(Decorator) “왜/어떻게” 정리 + 적용 포인트 (⚠️)
