@@ -184,6 +184,7 @@ Week 3+ 이후의 구현/검증/운영 관점 문서는 각 주차 폴더(`docs/
 
 **예시**:
 ```mermaid
+sequenceDiagram
 API->>Service: 주문 정보 조회 요청
 Service->>MySQL: 주문 레코드 조회
 MySQL-->>Service: 주문 정보 반환 (상태=PENDING)
@@ -218,12 +219,14 @@ MySQL-->>Service: 주문 정보 반환 (상태=PENDING)
 
 **Before (잘못된 방식)**:
 ```mermaid
+sequenceDiagram
 Service->>MySQL: SELECT * FROM orders WHERE id = 'ORD-001'
 Service->>MySQL: UPDATE users SET balance = 500000 WHERE id = 'U001'
 ```
 
 **After (올바른 방식)**:
 ```mermaid
+sequenceDiagram
 Service->>MySQL: 주문 레코드 조회
 Service->>MySQL: 사용자 잔액 업데이트 (잔액 차감, 업데이트 시각 기록)
 ```
