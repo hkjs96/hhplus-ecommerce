@@ -131,6 +131,9 @@ docs/
 아래 섹션은 `docs/api/`, `docs/diagrams/` 중심의 **Week 2 설계 문서 작성 기준/의사결정**을 정리한 내용입니다.  
 Week 3+ 이후의 구현/검증/운영 관점 문서는 각 주차 폴더(`docs/week*/`)를 우선 참고하세요.
 
+<details>
+<summary>Week 2 설계 문서(작성 원칙/의사결정) 펼치기</summary>
+
 ## 🎯 문서 작성 원칙
 
 ### 1. **명확성 (Clarity)**
@@ -337,6 +340,8 @@ CREATE UNIQUE INDEX uidx_user_coupons_user_coupon ON user_coupons(user_id, coupo
 3. 예시 코드 업데이트
 
 ---
+
+</details>
 
 ## 🔗 관련 링크
 
