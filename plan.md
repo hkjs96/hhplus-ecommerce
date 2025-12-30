@@ -56,8 +56,8 @@
 | 트랜잭션/ACID/격리 수준/MVCC | ✅ | `docs/week5/TRANSACTION_FUNDAMENTALS.md` |
 | 실행 계획/EXPLAIN(ANALYZE) | ✅ | `docs/week4/verification/EXPLAIN_ANALYZE_GUIDE.md`, `docs/week4/verification/QUERY_OPTIMIZATION_SUMMARY.md` |
 | 낙관적 락 vs 비관적 락 | ✅ | `docs/week5/OVERVIEW.md`, `docs/week5/CONCURRENCY_ANALYSIS.md` |
-| 자연키 vs 대체키 | ❌ | (키워드 기준 정리 문서 없음) |
-| MySQL PK/인덱스 차이, 클러스터링 인덱스, 인덱스/락 동작 방식 | ⚠️ | 쿼리 최적화/EXPLAIN 관점은 강하나 “개념 정리”로 모은 문서는 약함 |
+| 자연키 vs 대체키 | ✅ | `docs/learning-points/13-mysql-keys-and-indexes.md` |
+| MySQL PK/인덱스 차이, 클러스터링 인덱스, 인덱스/락 동작 방식 | ✅ | `docs/learning-points/13-mysql-keys-and-indexes.md` |
 
 ---
 
@@ -119,6 +119,5 @@
 
 우선순위는 “체크리스트에 명시되어 있고, 리뷰어가 바로 확인하는 항목” 위주로 잡습니다.
 
-1) 4~5주차: 자연키 vs 대체키 + MySQL clustered index/PK vs secondary index 개념 정리 (⚠️/❌)
-2) 3주차: DispatcherServlet/Filter/Interceptor/Triangle(PSA 포함) 1페이지 정리 (❌)
-3) 8주차: Async MDC 전파(Decorator) “왜/어떻게” 정리 + 적용 포인트 (⚠️)
+1) 3주차: DispatcherServlet/Filter/Interceptor/Triangle(PSA 포함) 1페이지 정리 (❌)
+2) 8주차: Async MDC 전파(Decorator) “왜/어떻게” 정리 + 적용 포인트 (⚠️)
