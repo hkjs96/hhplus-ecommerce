@@ -89,7 +89,7 @@
 | Application Event/Publisher | ✅ | `docs/week8/README.md`, `docs/week8/QUICK_START.md` |
 | @TransactionalEventListener/AFTER_COMMIT | ✅ | `docs/week8/TRANSACTION_SEPARATION_DESIGN.md`, `docs/week8/COMMON_PITFALLS.md` |
 | @Async 동작/스레드풀 설정 | ✅ | `docs/week8/COMMON_PITFALLS.md` |
-| Async MDC 설정 | ⚠️ | 필요/이슈는 언급되나 “구현 가이드”로는 약함: `docs/week8/ARCHITECTURE_DIAGNOSIS.md` |
+| Async MDC 설정 | ✅ | `docs/learning-points/15-async-mdc-propagation.md` |
 
 ---
 
@@ -119,4 +119,4 @@
 
 우선순위는 “체크리스트에 명시되어 있고, 리뷰어가 바로 확인하는 항목” 위주로 잡습니다.
 
-1) 8주차: Async MDC 전파(Decorator) “왜/어떻게” 정리 + 적용 포인트 (⚠️)
+1) 3주차: LazyConnectionDataSourceProxy, ConfigurationProperties 정리 (❌)

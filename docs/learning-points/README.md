@@ -96,6 +96,11 @@
 - Filter vs Interceptor 선택 기준
 - Spring Triangle(AOP/DI/PSA) 요약
 
+### 1️⃣5️⃣ [@Async MDC 전파](./15-async-mdc-propagation.md)
+- MDC가 비동기에서 깨지는 이유(ThreadLocal)
+- TaskDecorator로 MDC 전파하는 패턴
+- 레포 적용 포인트(AsyncConfig)와 주의사항
+
 ---
 
 ## 🎯 학습 목표
