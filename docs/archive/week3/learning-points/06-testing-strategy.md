@@ -799,4 +799,4 @@ void decreaseStockTest() { }
 ---
 
 **이전 학습**: [05. 동시성 제어](./05-concurrency-control.md)
-**다음 학습**: [07. DTO 설계 전략](./07-dto-design.md)
+**다음 학습**: [07. DTO 설계 전략](../../../learning-points/07-dto-design.md)

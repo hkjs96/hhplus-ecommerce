@@ -947,13 +947,13 @@ Optional<PaymentIdempotency> findByIdempotencyKeyWithLock(...);
 ## 📚 관련 문서
 
 ### 구현 코드
-- [`PaymentIdempotencyService.java`](../../src/main/java/io/hhplus/ecommerce/application/usecase/order/PaymentIdempotencyService.java)
-- [`User.java`](../../src/main/java/io/hhplus/ecommerce/domain/user/User.java)
-- [`JpaPaymentIdempotencyRepository.java`](../../src/main/java/io/hhplus/ecommerce/infrastructure/persistence/payment/JpaPaymentIdempotencyRepository.java)
+- [`PaymentIdempotencyService.java`](../../../src/main/java/io/hhplus/ecommerce/application/usecase/order/PaymentIdempotencyService.java)
+- [`User.java`](../../../src/main/java/io/hhplus/ecommerce/domain/user/User.java)
+- [`JpaPaymentIdempotencyRepository.java`](../../../src/main/java/io/hhplus/ecommerce/infrastructure/persistence/payment/JpaPaymentIdempotencyRepository.java)
 
 ### 테스트 코드
-- [`PaymentIdempotencyConcurrencyTest.java`](../../src/test/java/io/hhplus/ecommerce/application/usecase/order/PaymentIdempotencyConcurrencyTest.java)
-- [`UserBalanceOptimisticLockConcurrencyTest.java`](../../src/test/java/io/hhplus/ecommerce/domain/user/UserBalanceOptimisticLockConcurrencyTest.java)
+- [`PaymentIdempotencyConcurrencyTest.java.skip`](../../../src/test/java/io/hhplus/ecommerce/application/usecase/order/PaymentIdempotencyConcurrencyTest.java.skip)
+- [`UserBalanceOptimisticLock_ConcurrencyTest.java`](../../../src/test/java/io/hhplus/ecommerce/domain/user/UserBalanceOptimisticLock_ConcurrencyTest.java)
 
 ### K6 테스트
 - [`payment-process.js`](./k6/scripts/payment-process.js)

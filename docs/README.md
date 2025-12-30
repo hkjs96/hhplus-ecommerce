@@ -1,14 +1,36 @@
 # 📚 이커머스 프로젝트 문서
 
-항해플러스 백엔드 Week 2 - API 설계 및 시스템 아키텍처
+항해플러스 백엔드 이커머스 과제 진행 과정에서 작성된 문서를 모아둔 디렉토리입니다.  
+Week 2(설계)부터 Week 10(SRE/부하테스트/장애대응)까지, **주차별로 요구사항과 난이도가 단계적으로 올라가며** 문서가 축적됩니다.
 
 ---
 
 ## 📋 문서 개요
 
-이 폴더에는 이커머스 시스템의 **완전한 설계 문서**가 포함되어 있습니다.
+이 폴더에는 아래 성격의 문서가 섞여 있습니다.
 
-**핵심 목표**: 애플리케이션 레벨에서 가용성을 보장하는 이커머스 시스템 설계
+- **설계/요구사항**: API/데이터모델/가용성 패턴, 다이어그램(Week 2 중심)
+- **학습/정리**: 주차별 학습 로드맵/회고/코치 Q&A 요약
+- **검증/증빙**: 성능 측정, 부하 테스트 결과, 장애 분석/대응, 최적화 보고서
+
+문서가 많아 보이는 이유는 “중복”이라기보다, **같은 주제가 주차가 올라가며 더 높은 단계(검증/운영/증빙)로 확장**되기 때문입니다.
+
+---
+
+## 🧭 주제별 심화 로드맵(왜 문서가 여러 개인가?)
+
+아래 표는 “비슷한 내용의 문서가 왜 여러 개인지”를 설명하기 위한 요약입니다.  
+각 주제는 주차가 올라가면서 **(개념) → (구현/검증) → (운영 관점/증빙)**로 심화됩니다.
+
+| 주제 | 기초(설계/개념) | 구현/검증 심화 | 운영/증빙 심화 |
+|------|----------------|----------------|----------------|
+| API/도메인 설계 | `docs/api/`, `docs/diagrams/` | - | - |
+| JPA/DB 성능 | - | `docs/week4/`, `docs/week4/verification/` | `docs/week5/` (측정/최적화 관점 확장) |
+| 동시성/락/멱등성 | - | `docs/week5/` (동시성/테스트/락 비교) | `docs/week6/` (분산락/재시도/캐시 등 확장) |
+| Redis/랭킹/쿠폰 | - | `docs/week6/`, `docs/week7/` | `docs/week7/loadtest/` (부하/수치 기반 검증) |
+| 트랜잭션 분리/이벤트 | - | `docs/week8/` (이벤트 기반, 트랜잭션 분리, 보상 트랜잭션) | - |
+| Kafka/비동기 | - | `docs/week9/` (설치/개념/스프링 연동) | `docs/week9/` (use case 설계, best practices) |
+| 관측/부하테스트/장애대응(SRE) | - | `docs/week10/step19-load-test-plan.md` | `docs/week10/step20-incident-report.md`, `docs/week10/RUNBOOK.md`, `docs/week10/SLO_SLI_ALERTING.md` |
 
 ---
 
@@ -31,6 +53,16 @@ docs/
 │   ├── sequence-diagrams.md      # 시퀀스 다이어그램 (8개) ⭐
 │   └── flowcharts.md             # 플로우차트 (5개) ⭐
 │
+├── week4/                        # JPA 전환 & DB 최적화(주차 산출물)
+├── week5/                        # 동시성/성능 측정/최적화(주차 산출물)
+├── week6/                        # 분산락/멱등성/캐시/부하(주차 산출물)
+├── week7/                        # Redis/쿠폰/랭킹 + 부하테스트(주차 산출물)
+├── week8/                        # 트랜잭션 분리 & 이벤트 기반 설계/구현(주차 산출물)
+├── week9/                        # Kafka(개념/설치/연동/설계)(주차 산출물)
+├── week10/                       # SRE(관측/부하/장애 대응)(주차 산출물)
+│
+├── learning-points/              # 학습 포인트 요약(인덱스)
+├── feedback/                     # 코치 피드백/개선 정리
 └── PROJECT_STRUCTURE.md          # 프로젝트 구조 가이드
 ```
 
@@ -51,6 +83,39 @@ docs/
 | **가용성 패턴** | Timeout, Retry, Fallback, Async 설계 | [availability-patterns.md](api/availability-patterns.md) |
 | **에러 코드** | 표준 에러 코드 체계 | [error-codes.md](api/error-codes.md) |
 
+### 주차별(산출물) 인덱스
+
+- Week 4: `docs/week4/README.md`
+- Week 5: `docs/week5/OVERVIEW.md`
+- Week 6: `docs/week6/README.md`
+- Week 7: `docs/week7/README.md`
+- Week 8: `docs/week8/README.md`
+- Week 9: `docs/week9/README.md`
+- Week 10: `docs/week10/README.md`
+
+### docs/ 루트 문서(주차 밖)
+
+주차 산출물(`docs/week*/`)과 별개로, `docs/` 바로 아래에는 “전역 레퍼런스”와 “특정 이슈 대응 기록(시점 의존)” 문서가 함께 있습니다.
+
+**전역 레퍼런스(여러 주차에서 재사용)**
+- `docs/PROJECT_STRUCTURE.md` (프로젝트 구조/패키지 안내)
+- `docs/INTEGRATION_TEST_STRATEGY.md` (통합 테스트 전략)
+
+**작업/이슈 기록(시점 의존, 과거 기록일 수 있음)**
+- `docs/N1_DB_LEVEL_VERIFICATION.md` (N+1/DB 레벨 검증 기록)
+- `docs/EVENT_IDEMPOTENCY_AND_RETRY_IMPLEMENTATION.md` (멱등성/재시도 구현 기록)
+- `docs/TEST_ANALYSIS_SUMMARY.md`
+- `docs/TEST_DESIGN_BY_USECASE.md`
+- `docs/TEST_FAILURE_ROOT_CAUSE_ANALYSIS.md`
+- `docs/TEST_FAILURE_ROOT_CAUSE_FIX.md`
+- `docs/TEST_FIX_SUMMARY.md`
+- `docs/TEST_REFACTORING_COMPLETE.md`
+- `docs/TEST_STRATEGY_REDESIGN.md`
+
+**도구/흐름 가이드(사용 목적이 명확한 메타 문서)**
+- `docs/CODE_REVERSE_ENGINEERING_PLAN.md` (코드 분석/리버스 엔지니어링 계획)
+- `docs/CODEX_GUIDE.md` (Codex/에이전트 협업 가이드)
+
 ### 다이어그램
 
 | 문서 | 설명 | 개수 | 링크 |
@@ -60,6 +125,11 @@ docs/
 | **플로우차트** | 비즈니스 로직 흐름 | 5개 플로우 | [flowcharts.md](diagrams/flowcharts.md) |
 
 ---
+
+## 🧩 Week 2 설계 문서(참고)
+
+아래 섹션은 `docs/api/`, `docs/diagrams/` 중심의 **Week 2 설계 문서 작성 기준/의사결정**을 정리한 내용입니다.  
+Week 3+ 이후의 구현/검증/운영 관점 문서는 각 주차 폴더(`docs/week*/`)를 우선 참고하세요.
 
 ## 🎯 문서 작성 원칙
 
@@ -273,4 +343,4 @@ CREATE UNIQUE INDEX uidx_user_coupons_user_coupon ON user_coupons(user_id, coupo
 
 ---
 
-**항해플러스 백엔드 커리큘럼 Week 2** - 완전한 시스템 설계 문서 ✅
+이 문서는 “문서 인덱스 + Week 2 설계 문서 참고” 성격을 함께 가집니다.

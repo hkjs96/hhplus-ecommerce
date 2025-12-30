@@ -29,6 +29,14 @@
     - 추세 관측이 필요하면 “누적 상태에서 실행”
 
 ## 4) 목표치(SLO 가정)
+## 4-1) SLI 정의(측정 방법)
+- **SLI는 “측정값”**이고, **SLO는 그 SLI의 “목표치”**다. (예: “30일 5xx < 1%”는 SLO, “최근 5분 5xx 비율”은 SLI)
+- 본 과제에서는 “고객에게 제공하는 서비스 수준 약속 문서(SLA)”를 작성하지 않고, **SLI/SLO를 정의하고 측정/판정**하는 수준까지 다룬다.
+- SLI(서버 측, 사용자 경로 기준 `/api/**`)
+  - **가용성(성공률):** `/api/**` 5xx rate(최근 5분/30분 등 윈도우 명시)
+  - **지연시간:** `/api/**` latency p95/p99 (Prometheus `http_server_requests_seconds_*` 기반)
+- 보조 지표(k6)
+  - `http_req_failed`는 4xx까지 포함될 수 있어 “서버 장애(5xx)”와 분리해 해석한다.
 - 기준(실측 기반 보정)
   - STEP20 재측정(동일 스크립트/스테이지, 5 VUs / 3분)에서 `http_req_failed=0.82%`, `http_req_duration p95=7.94ms`(k6)이 관측됨.
   - 추가 재측정(동일 스크립트/스테이지, 5 VUs / 3분)에서 `http_req_failed=0.61%`, `http_req_duration p95=8.22ms`(k6)이 관측됨.

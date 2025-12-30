@@ -624,4 +624,4 @@ class CouponServiceTest {
 ---
 
 **이전 학습**: [09. Thread-Safe 컬렉션](./09-concurrent-collections.md)
-**다음 학습**: [README](./README.md)
+**다음 학습**: [README](../README.md)

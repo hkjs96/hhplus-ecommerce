@@ -5,6 +5,11 @@
 - 핵심 결과(재측정, 5 VUs / 3분):
   - `http_req_failed`: `0.82%`
   - `http_req_duration p95`: `7.94ms` (k6 기준)
+- SLI/SLO 판정(서버 측, `/api/**` 기준)
+  - SLI: 5xx rate / latency(p95, p99)
+  - SLO(가정, STEP19): 5xx rate < 1%(5m), p95 < 300ms, p99 < 800ms
+  - 본 문서에서는 Prometheus 쿼리로 SLI를 확인하고, SLO 충족 여부를 “판정” 기준으로 사용한다.
+- SLA는 고객에게 제공하는 서비스 수준 약속 문서(측정/예외/보상 포함)이며, 본 과제 범위에서는 SLA 작성 대신 SLI/SLO 정의·측정에 집중한다.
 - 발견된 병목/장애 징후
   - (주요) Docker 환경에서 Kafka 브로커가 “컨테이너 내부 접근 경로”를 잘못 광고(advertise)하여, 앱 컨테이너가 `localhost:9092`로 접속을 시도 → 연결 실패/재시도/타임아웃
   - (추가 관측) `POST /api/cart/items`가 동시 요청에서 간헐적으로 `500(COMMON001)`을 반환 (재현: `CART_WRITE_PROB=1` + 5 VUs)

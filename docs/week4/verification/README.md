@@ -221,8 +221,8 @@ List<Order> findByUserId(Long userId);
 
 ### 내부 문서
 - [`/docs/week4/README.md`](../README.md) - Week 4 전체 가이드
-- [`/.claude/commands/architecture.md`](../../.claude/commands/architecture.md) - 아키텍처 설명
-- [`/.claude/commands/testing.md`](../../.claude/commands/testing.md) - 테스트 전략
+- [`/.claude/commands/architecture.md`](../../../.claude/commands/architecture.md) - 아키텍처 설명
+- [`/.claude/commands/testing.md`](../../../.claude/commands/testing.md) - 테스트 전략
 
 ### 외부 자료
 - [Hibernate N+1 문제](https://www.baeldung.com/hibernate-n-plus-1-problem)

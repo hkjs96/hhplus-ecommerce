@@ -560,5 +560,5 @@ class OrderIntegrationTest {
 
 ---
 
-**이전 학습**: [10. 테스트 전략 (Week 3)](./10-testing-strategies-week3.md)
+**이전 학습**: [10. 테스트 전략 (Week 3)](../archive/week3/learning-points/10-testing-strategies-week3.md)
 **다음 학습**: Week 5 - 외부 API 연동 & 비동기 처리

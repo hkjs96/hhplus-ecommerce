@@ -24,19 +24,19 @@
 - 도메인 규칙 캡슐화
 - 객체의 능동성
 
-### 4️⃣ [Repository 패턴](./04-repository-pattern.md)
+### 4️⃣ [Repository 패턴](../archive/week3/learning-points/04-repository-pattern.md)
 - Repository 인터페이스와 구현체 분리
 - In-Memory Repository 구현
 - ConcurrentHashMap 활용
 - 테스트 용이성
 
-### 5️⃣ [동시성 제어](./05-concurrency-control.md)
+### 5️⃣ [동시성 제어](../archive/week3/learning-points/05-concurrency-control.md)
 - Race Condition이란?
 - 4가지 동시성 제어 방식 (synchronized, ReentrantLock, AtomicInteger, Queue)
 - Step 5 vs Step 6 차이점
 - 통합 테스트 작성 방법
 
-### 6️⃣ [테스트 전략](./06-testing-strategy.md)
+### 6️⃣ [테스트 전략](../archive/week3/learning-points/06-testing-strategy.md)
 - 테스트 커버리지의 실용적 접근
 - 핵심 비즈니스 로직 vs 일반 서비스 코드
 - 단위 테스트 vs 통합 테스트
@@ -58,7 +58,7 @@
 - Testing (Q13-Q14)
 - 면접/코드리뷰 준비 자료
 
-### 9️⃣ [Thread-Safe 컬렉션 (ConcurrentHashMap)](./09-concurrent-collections.md) ⭐
+### 9️⃣ [Thread-Safe 컬렉션 (ConcurrentHashMap)](../archive/week3/learning-points/09-concurrent-collections.md) ⭐
 - ConcurrentHashMap vs HashMap/Hashtable/synchronizedMap
 - 내부 동작 원리 (Java 7 Segment vs Java 8+ Node)
 - Lock-free 읽기와 Lock Striping
@@ -67,7 +67,7 @@
 - 복합 인덱스 설계
 - 동시성 테스트 작성법
 
-### 🔟 [테스트 전략 (Week 3)](./10-testing-strategies-week3.md)
+### 🔟 [테스트 전략 (Week 3)](../archive/week3/learning-points/10-testing-strategies-week3.md)
 - Week 3 테스트 전략 상세 가이드
 - F.I.R.S.T 원칙 적용
 - 테스트 격리 및 데이터 초기화

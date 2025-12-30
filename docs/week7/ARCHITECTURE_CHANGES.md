@@ -361,7 +361,7 @@ scenarios: {
 - **상세 문서:** [FEEDBACK_IMPROVEMENTS.md](./FEEDBACK_IMPROVEMENTS.md) - 각 항목별 상세 분석 (500줄)
 - **설계 문서:** [COUPON_RESERVATION_DESIGN.md](./COUPON_RESERVATION_DESIGN.md) - Redis Only 구조
 - **테스트 문서:** [K6_LOAD_TEST_PLAN.md](./K6_LOAD_TEST_PLAN.md) - Ramp-up 시나리오
-- **성능 문서:** [PERFORMANCE_IMPROVEMENTS.md](../loadtest/PERFORMANCE_IMPROVEMENTS.md) - 개선 내역
+- **성능 문서:** [PERFORMANCE_IMPROVEMENTS.md](./loadtest/PERFORMANCE_IMPROVEMENTS.md) - 개선 내역
 
 ---
 

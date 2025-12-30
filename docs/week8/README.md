@@ -45,11 +45,11 @@
 ### 구현 가이드
 - [**STEP15_IMPLEMENTATION.md**](./STEP15_IMPLEMENTATION.md) - Application Event 구현 가이드
 - [**STEP16_DESIGN.md**](./STEP16_DESIGN.md) - 트랜잭션 분리 설계 가이드
-- [**EVENT_PATTERNS.md**](./EVENT_PATTERNS.md) - 이벤트 패턴 및 Best Practices
+- [**EVENT_BASED_REFACTORING.md**](./EVENT_BASED_REFACTORING.md) - 이벤트 패턴 및 Best Practices
 
 ### 참고 자료
-- [**TRANSACTION_BOUNDARIES.md**](./TRANSACTION_BOUNDARIES.md) - 트랜잭션 경계 설정 가이드
-- [**SAGA_PATTERN.md**](./SAGA_PATTERN.md) - Saga 패턴 상세 설명
+- [**TRANSACTION_SEPARATION_DESIGN.md**](./TRANSACTION_SEPARATION_DESIGN.md) - 트랜잭션 경계 설정 가이드
+- [**QNA_SUMMARY.md**](./QNA_SUMMARY.md#3-%EB%B3%B4%EC%83%81-%ED%8A%B8%EB%9E%9C%EC%9E%AD%EC%85%98--saga-pattern) - Saga 패턴 상세 설명
 - [**COMMON_PITFALLS.md**](./COMMON_PITFALLS.md) - 자주 하는 실수 및 해결책
 
 ---
