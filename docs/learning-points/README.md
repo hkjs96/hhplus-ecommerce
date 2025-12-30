@@ -105,6 +105,27 @@
 - `@ConfigurationProperties`로 타입 안전한 설정 바인딩
 - `LazyConnectionDataSourceProxy`로 커넥션 획득 지연
 
+### 1️⃣7️⃣ [TDD 정리](./17-tdd-basics-and-when-to-use.md)
+- RED/GREEN/REFACTOR 루프
+- 언제 효과적이고, 언제 비용이 큰가
+- 본 레포에서의 혼합 전략
+
+### 1️⃣8️⃣ [Swagger/OpenAPI 실무](./18-swagger-openapi-practical.md)
+- `/v3/api-docs`, Swagger UI로 문서 확인
+- “문서가 신뢰할 수 있는 조건” 정리
+
+### 1️⃣9️⃣ [Spring 트랜잭션 전파/함정](./19-spring-transaction-propagation-and-pitfalls.md)
+- propagation(REQUIRED/REQUIRES_NEW 등) 핵심
+- rollback 기준, self-invocation 함정
+
+### 2️⃣0️⃣ [캐시 직렬화 선택 가이드](./20-spring-cache-serialization-guide.md)
+- JSON vs JDK 직렬화 감각
+- Spring Cache에서 Key/Value serializer를 의식적으로 선택하기
+
+### 2️⃣1️⃣ [Tomcat 스레드/풀과 부하](./21-tomcat-thread-pool-under-load.md)
+- 부하에서 Tomcat 스레드 풀이 포화되는 흐름
+- 스레드 상태 변화가 의미하는 것(신호 vs 원인)
+
 ---
 
 ## 🎯 학습 목표

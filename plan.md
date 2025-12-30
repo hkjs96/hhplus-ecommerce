@@ -16,7 +16,7 @@
 | 테스트 대역(Mock/Stub/Fake/Spy) 이해 | ✅ | `docs/archive/week3/learning-points/06-testing-strategy.md` |
 | 단위 테스트 vs 통합 테스트(차이/장단점/언제 작성) | ✅ | `docs/INTEGRATION_TEST_STRATEGY.md`, `docs/archive/week3/learning-points/06-testing-strategy.md` |
 | 좋은 테스트 코드/강결합 테스트 취약점 | ✅ | `docs/archive/week3/learning-points/06-testing-strategy.md` |
-| TDD 이해/적용 가능 여부 | ⚠️ | `docs/archive/week3/commands/week3-faq.md` (Q&A 형태) |
+| TDD 이해/적용 가능 여부 | ✅ | `docs/learning-points/17-tdd-basics-and-when-to-use.md` |
 | 런던파 vs 고전파 이해 + 본인 견해 | ✅ | `docs/learning-points/12-testing-schools-london-vs-classical.md` |
 
 ---
@@ -26,7 +26,7 @@
 | 항목 | 상태 | 근거(문서/증빙) |
 |------|------|------------------|
 | 설계 문서(시퀀스/ERD/API 스펙 등) 이해 | ✅ | `docs/api/`, `docs/diagrams/` |
-| Swagger 등 도구 기반 문서화 | ⚠️ | `README.md` (링크/언급 수준) |
+| Swagger 등 도구 기반 문서화 | ✅ | `docs/learning-points/18-swagger-openapi-practical.md` |
 | Mock API 제공 필요성 | ✅ | `docs/api/scope-clarification.md`, `docs/archive/week3/commands/week3-faq.md` |
 | RESTful API 설계 | ✅ | `docs/api/api-specification.md`, `docs/api/requirements.md` |
 
@@ -44,7 +44,7 @@
 | 스레드/ThreadLocal/MDC, 자바 동시성 도구 | ⚠️ | `docs/learning-points/08-discussion-topics.md`, `docs/archive/week3/learning-points/09-concurrent-collections.md` |
 | GC 알고리즘 이해 | ⚠️ | Week10 모니터링 관점으로 언급: `docs/week10/monitoring-metrics.md` |
 | Spring Triangle(PSA 포함), DispatcherServlet, Filter/Interceptor | ✅ | `docs/learning-points/14-spring-web-core-dispatcher-filter-interceptor-aop-psa.md` |
-| Spring AOP/내부참조 이슈, Transaction 동작/전파 | ⚠️ | AOP 이슈/사례는 Week6에 강함: `docs/week6/README.md`, 트랜잭션 동작 정리는 일부: `docs/learning-points/11-jpa-transaction-management.md` |
+| Spring AOP/내부참조 이슈, Transaction 동작/전파 | ✅ | `docs/learning-points/19-spring-transaction-propagation-and-pitfalls.md` |
 | LazyConnectionDataSourceProxy, ConfigurationProperties | ✅ | `docs/learning-points/16-spring-configurationproperties-and-lazyconnection.md` |
 
 ---
@@ -68,7 +68,7 @@
 | 분산락 개념/구현 방식/한계 | ✅ | `docs/week6/CREATE_ORDER_DISTRIBUTED_LOCK.md`, `docs/week6/DB_LOCK_TO_REDIS_LOCK_ANALYSIS.md` |
 | 캐시 필요성/전략/로컬 vs 분산 캐시 | ✅ | `docs/week6/WEEK6_COMPLETE_SUMMARY.md` |
 | Spring Cache API(@Cacheable/@CacheEvict 등) | ✅ | `docs/week6/WEEK6_COMPLETE_SUMMARY.md` |
-| 캐시 직렬화 도구(Serializer) 정리 | ⚠️ | 설정/예시 중심(비교/선택 가이드로는 얇음) |
+| 캐시 직렬화 도구(Serializer) 정리 | ✅ | `docs/learning-points/20-spring-cache-serialization-guide.md` |
 
 ---
 
@@ -111,7 +111,7 @@
 | 부하 시스템 이해/진행(k6) | ✅ | `docs/week10/step19-load-test-plan.md`, `loadtest/k6/step19-all-apis.js` |
 | 장애 대응 프로세스/문화/런북 | ✅ | `docs/week10/step20-incident-report.md`, `docs/week10/RUNBOOK.md` |
 | 로그 레벨 | ✅ | `docs/week10/RUNBOOK.md` (대응 루틴 포함) |
-| 부하로 인한 Tomcat 스레드 상태 변화 | ⚠️ | 스레드/풀/리소스 신호 관점 언급은 있으나 “Tomcat thread state 변화”를 별도 정리한 섹션은 약함 |
+| 부하로 인한 Tomcat 스레드 상태 변화 | ✅ | `docs/learning-points/21-tomcat-thread-pool-under-load.md` |
 
 ---
 
@@ -121,8 +121,6 @@
 
 남은 갭(⚠️) 후보
 
-1) 1주차: TDD 이해/적용 가능 여부(정리 강화) (⚠️)
-2) 2주차: Swagger/OpenAPI 문서화 방법(실행/운영 기준 정리) (⚠️)
-3) 3주차: Transaction 동작/전파(정리 강화) (⚠️)
-4) 6주차: 캐시 직렬화 도구 비교/선택 가이드 (⚠️)
-5) 10주차: Tomcat 스레드 상태 변화 별도 정리 (⚠️)
+1) 3주차: Optional 올바른 사용(정리 강화) (⚠️)
+2) 3주차: ThreadLocal/MDC/자바 동시성 도구(요약 정리 강화) (⚠️)
+3) 3주차: GC 알고리즘 이해(정리 강화) (⚠️)
