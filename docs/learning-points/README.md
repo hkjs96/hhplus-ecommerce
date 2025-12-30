@@ -130,6 +130,10 @@
 - Optional의 목적과 사용 위치
 - 흔한 안티패턴(필드/파라미터/get)
 
+### 2️⃣3️⃣ [ThreadLocal/MDC/동시성 도구](./23-threadlocal-mdc-and-concurrency-toolkit.md)
+- ThreadLocal/MDC 기본과 함정
+- 동시성 처리 vs 동시성 제어 구분
+
 ---
 
 ## 🎯 학습 목표
