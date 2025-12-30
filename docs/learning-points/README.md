@@ -134,6 +134,10 @@
 - ThreadLocal/MDC 기본과 함정
 - 동시성 처리 vs 동시성 제어 구분
 
+### 2️⃣4️⃣ [JVM GC 알고리즘 & 관측](./24-jvm-gc-algorithms-and-what-to-watch.md)
+- GC 알고리즘의 성격(throughput vs latency)
+- 운영에서 보는 지표/해석(지연과 연결)
+
 ---
 
 ## 🎯 학습 목표

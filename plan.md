@@ -42,7 +42,7 @@
 | OCP/역할과 책임/객체 생성 패턴 | ✅ | `docs/learning-points/03-domain-modeling.md` |
 | Optional API 올바른 사용/안티패턴 | ✅ | `docs/learning-points/22-optional-guidelines-and-antipatterns.md` |
 | 스레드/ThreadLocal/MDC, 자바 동시성 도구 | ✅ | `docs/learning-points/23-threadlocal-mdc-and-concurrency-toolkit.md` |
-| GC 알고리즘 이해 | ⚠️ | Week10 모니터링 관점으로 언급: `docs/week10/monitoring-metrics.md` |
+| GC 알고리즘 이해 | ✅ | `docs/learning-points/24-jvm-gc-algorithms-and-what-to-watch.md` |
 | Spring Triangle(PSA 포함), DispatcherServlet, Filter/Interceptor | ✅ | `docs/learning-points/14-spring-web-core-dispatcher-filter-interceptor-aop-psa.md` |
 | Spring AOP/내부참조 이슈, Transaction 동작/전파 | ✅ | `docs/learning-points/19-spring-transaction-propagation-and-pitfalls.md` |
 | LazyConnectionDataSourceProxy, ConfigurationProperties | ✅ | `docs/learning-points/16-spring-configurationproperties-and-lazyconnection.md` |
