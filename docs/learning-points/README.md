@@ -82,6 +82,10 @@
 - Database 설정 (MySQL)
 - JPA 테스트 전략 (@DataJpaTest)
 
+### 1️⃣2️⃣ [테스트 스타일: 런던파 vs 고전파](./12-testing-schools-london-vs-classical.md)
+- Mock을 어디까지 사용할지에 대한 2가지 관점 비교
+- 본 프로젝트에서의 현실적인 혼합 전략
+
 ---
 
 ## 🎯 학습 목표

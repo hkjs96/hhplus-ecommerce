@@ -17,7 +17,7 @@
 | 단위 테스트 vs 통합 테스트(차이/장단점/언제 작성) | ✅ | `docs/INTEGRATION_TEST_STRATEGY.md`, `docs/archive/week3/learning-points/06-testing-strategy.md` |
 | 좋은 테스트 코드/강결합 테스트 취약점 | ✅ | `docs/archive/week3/learning-points/06-testing-strategy.md` |
 | TDD 이해/적용 가능 여부 | ⚠️ | `docs/archive/week3/commands/week3-faq.md` (Q&A 형태) |
-| 런던파 vs 고전파 이해 + 본인 견해 | ❌ | (레포 내 키워드/정리 문서 없음) |
+| 런던파 vs 고전파 이해 + 본인 견해 | ✅ | `docs/learning-points/12-testing-schools-london-vs-classical.md` |
 
 ---
 
@@ -119,7 +119,6 @@
 
 우선순위는 “체크리스트에 명시되어 있고, 리뷰어가 바로 확인하는 항목” 위주로 잡습니다.
 
-1) 1주차: 런던파/고전파 비교 + 본인 견해 (❌)
-2) 4~5주차: 자연키 vs 대체키 + MySQL clustered index/PK vs secondary index 개념 정리 (⚠️/❌)
-3) 3주차: DispatcherServlet/Filter/Interceptor/Triangle(PSA 포함) 1페이지 정리 (❌)
-4) 8주차: Async MDC 전파(Decorator) “왜/어떻게” 정리 + 적용 포인트 (⚠️)
+1) 4~5주차: 자연키 vs 대체키 + MySQL clustered index/PK vs secondary index 개념 정리 (⚠️/❌)
+2) 3주차: DispatcherServlet/Filter/Interceptor/Triangle(PSA 포함) 1페이지 정리 (❌)
+3) 8주차: Async MDC 전파(Decorator) “왜/어떻게” 정리 + 적용 포인트 (⚠️)
