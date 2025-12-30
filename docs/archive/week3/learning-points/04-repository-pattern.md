@@ -489,5 +489,5 @@ public class InMemoryProductRepository implements ProductRepository {
 
 ---
 
-**이전 학습**: [03. 도메인 모델링](./03-domain-modeling.md)
+**이전 학습**: [03. 도메인 모델링](../../../learning-points/03-domain-modeling.md)
 **다음 학습**: [05. 동시성 제어](./05-concurrency-control.md)

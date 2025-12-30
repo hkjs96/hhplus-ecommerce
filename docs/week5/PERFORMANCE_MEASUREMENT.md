@@ -559,9 +559,9 @@ diff before.txt after.txt
 - [HikariCP 설정 가이드](https://github.com/brettwooldridge/HikariCP#configuration-knobs-baby)
 
 ### 내부 문서
-- [LOAD_TEST_README.md](../../LOAD_TEST_README.md) - K6 실행 가이드
+- [K6_LOAD_TEST_GUIDE.md](./verification/K6_LOAD_TEST_GUIDE.md) - K6 실행 가이드
 - [PERFORMANCE_OPTIMIZATION.md](./PERFORMANCE_OPTIMIZATION.md) - 최적화 전략 (기존)
-- [DATABASE_PERFORMANCE_ANALYSIS.md](../week4/verification/DATABASE_PERFORMANCE_ANALYSIS.md) - 쿼리 최적화
+- [QUERY_OPTIMIZATION_SUMMARY.md](../week4/verification/QUERY_OPTIMIZATION_SUMMARY.md) - 쿼리 최적화
 
 ### 관련 코드
 - `MetricsCollector.java` - 메트릭 수집 컴포넌트

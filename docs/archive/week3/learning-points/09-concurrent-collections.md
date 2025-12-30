@@ -885,4 +885,4 @@ Optional.ofNullable(map.get(key));  // null 안전
 **관련 학습**:
 - [04. Repository 패턴](./04-repository-pattern.md) - In-Memory Repository 구현
 - [05. 동시성 제어](./05-concurrency-control.md) - AtomicInteger, Lock
-- [README](./README.md) - 학습 자료 목차로 돌아가기
+- [README](../README.md) - 학습 자료 목차로 돌아가기

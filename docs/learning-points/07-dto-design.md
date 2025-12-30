@@ -416,5 +416,5 @@ public class OrderResponse {
 
 ---
 
-**이전 학습**: [06. 테스트 전략](./06-testing-strategy.md)
+**이전 학습**: [06. 테스트 전략](../archive/week3/learning-points/06-testing-strategy.md)
 **처음으로**: [README](./README.md)

@@ -124,7 +124,7 @@ public class OrderUseCase {
 List<Order> findByUserIdWithItems(@Param("userId") Long userId);
 ```
 
-**자세한 내용:** [`verification/N1_FETCH_JOIN_GUIDE.md`](./verification/N1_FETCH_JOIN_GUIDE.md)
+**자세한 내용:** [`verification/N1_PROBLEM_SOLUTION.md`](./verification/N1_PROBLEM_SOLUTION.md)
 
 ### 5. 쿼리 최적화
 
@@ -153,9 +153,7 @@ List<Order> findByUserIdWithItems(@Param("userId") Long userId);
 Week 4 구현의 정확성을 검증하기 위한 문서들:
 
 ### N+1 문제 검증
-- [`N1_VERIFICATION_RESULT.md`](./verification/N1_VERIFICATION_RESULT.md) - N+1 문제 발생 여부 최종 검증 결과
-- [`N1_TEST_GUIDE.md`](./verification/N1_TEST_GUIDE.md) - N+1 문제 테스트 작성 가이드
-- [`N1_FETCH_JOIN_GUIDE.md`](./verification/N1_FETCH_JOIN_GUIDE.md) - Fetch Join 해결 방법
+- [`N1_PROBLEM_SOLUTION.md`](./verification/N1_PROBLEM_SOLUTION.md) - N+1 문제 원인/해결(검증 포함)
 
 ### 쿼리 최적화
 - [`EXPLAIN_ANALYZE_GUIDE.md`](./verification/EXPLAIN_ANALYZE_GUIDE.md) - MySQL EXPLAIN ANALYZE 사용법
@@ -166,8 +164,7 @@ Week 4 구현의 정확성을 검증하기 위한 문서들:
 - [`TOP_PRODUCTS_QUERY_VERIFICATION.md`](./verification/TOP_PRODUCTS_QUERY_VERIFICATION.md) - 인기 상품 쿼리 검증
 
 ### 코치 피드백 반영
-- [`YULMU_FEEDBACK_STATUS.md`](./verification/YULMU_FEEDBACK_STATUS.md) - Yulmu 코치 피드백 진행 상황
-- [`YULMU_FEEDBACK_IMPROVEMENTS.md`](./verification/YULMU_FEEDBACK_IMPROVEMENTS.md) - 피드백 기반 개선 사항
+- [`../feedback/yulmu-coach-improvements.md`](../feedback/yulmu-coach-improvements.md) - 코치 피드백 기반 개선 사항
 
 ## ✅ Week 4 Pass 조건
 

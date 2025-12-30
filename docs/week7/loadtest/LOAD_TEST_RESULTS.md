@@ -480,9 +480,9 @@ Docker: Redis 컨테이너
 
 ## 📚 관련 문서
 
-- **테스트 스크립트:** [load-test.js](../k6/load-test.js)
-- **피드백 반영:** [FEEDBACK_IMPROVEMENTS.md](../../FEEDBACK_IMPROVEMENTS.md)
-- **아키텍처 변경:** [ARCHITECTURE_CHANGES.md](../../ARCHITECTURE_CHANGES.md)
+- **테스트 스크립트:** [load-test.js](./k6/load-test.js)
+- **피드백 반영:** [FEEDBACK_IMPROVEMENTS.md](../FEEDBACK_IMPROVEMENTS.md)
+- **아키텍처 변경:** [ARCHITECTURE_CHANGES.md](../ARCHITECTURE_CHANGES.md)
 - **성능 개선:** [PERFORMANCE_IMPROVEMENTS.md](./PERFORMANCE_IMPROVEMENTS.md)
 
 ---

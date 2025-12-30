@@ -432,4 +432,4 @@ public class Product {
 ---
 
 **이전 학습**: [02. 유스케이스 패턴](./02-usecase-pattern.md)
-**다음 학습**: [04. Repository 패턴](./04-repository-pattern.md)
+**다음 학습**: [04. Repository 패턴](../archive/week3/learning-points/04-repository-pattern.md)

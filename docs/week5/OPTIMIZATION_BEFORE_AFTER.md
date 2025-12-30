@@ -438,7 +438,7 @@ ROI = (3,000 - 300) / 300 × 100 = 900%
 ## 7. 참고 자료
 
 - [PERFORMANCE_MEASUREMENT.md](./PERFORMANCE_MEASUREMENT.md) - 성능 측정 가이드
-- [LOAD_TEST_README.md](../../LOAD_TEST_README.md) - K6 실행 가이드
-- [load-test.js](../../load-test.js) - K6 부하 테스트 스크립트
+- [K6_LOAD_TEST_GUIDE.md](./verification/K6_LOAD_TEST_GUIDE.md) - K6 실행 가이드
+- [k6 scripts](./verification/k6/scripts/) - K6 부하 테스트 스크립트
 - `MetricsCollector.java` - 메트릭 수집 컴포넌트
 - `application.yml` - HikariCP 최적화 설정

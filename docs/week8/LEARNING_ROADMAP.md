@@ -20,7 +20,7 @@
 #### 1.1 트랜잭션 경계 분석 (40분)
 **학습 자료:**
 - 현재 프로젝트의 `@Transactional` 사용 현황 파악
-- [TRANSACTION_BOUNDARIES.md](./TRANSACTION_BOUNDARIES.md) 읽기
+- [TRANSACTION_SEPARATION_DESIGN.md](./TRANSACTION_SEPARATION_DESIGN.md) 읽기
 
 **실습:**
 ```java
