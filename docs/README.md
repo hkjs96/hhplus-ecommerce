@@ -34,6 +34,15 @@ Week 2(설계)부터 Week 10(SRE/부하테스트/장애대응)까지, **주차�
 
 ---
 
+## 🧱 Week 2 설계 산출물(핵심 세트)
+
+Week 2(설계) 성격의 문서(요구사항/스펙/다이어그램)를 한 번에 보기 위한 링크 모음입니다.
+
+- 범위/요구사항/스펙: `docs/api/requirements.md`, `docs/api/user-stories.md`, `docs/api/api-specification.md`, `docs/api/data-models.md`, `docs/api/error-codes.md`, `docs/api/availability-patterns.md`, `docs/api/scope-clarification.md`, `docs/api/feature-list.md`
+- 다이어그램: `docs/diagrams/erd.md`, `docs/diagrams/sequence-diagrams.md`, `docs/diagrams/flowcharts.md`
+
+---
+
 ## 🗂️ 문서 구조
 
 ```
